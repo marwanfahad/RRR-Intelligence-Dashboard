@@ -872,19 +872,35 @@ function noProg(){
   document.getElementById('progMsg').style.display='none'
 }
 
+/* ── COLUMN ALIASES (alternate header names accepted for the same field) ── */
+const COL_ALIASES = {
+  WO_NUM: ['WO Number', 'Service Order ID', 'Service Order', 'WO No', 'WO#', 'Work Order']
+}
+
 /* ── COLUMN DETECTION ── */
 function detectCols(headers){
   IDX = {}
   const chips = []
   for(const [k, wanted] of Object.entries(COLS)){
-    let idx = headers.findIndex(h=>h===wanted)
-    if(idx<0) idx = headers.findIndex(h=>h.toLowerCase()===wanted.toLowerCase())
-    if(idx<0) idx = headers.findIndex(h=>h.toLowerCase().includes(wanted.toLowerCase()))
+    const aliases = COL_ALIASES[k] ? COL_ALIASES[k] : [wanted]
+    let idx = -1
+    // Try each alias: exact → case-insensitive → partial
+    for(const alias of aliases){
+      if(idx >= 0) break
+      idx = headers.findIndex(h=>h===alias)
+      if(idx<0) idx = headers.findIndex(h=>h.toLowerCase()===alias.toLowerCase())
+      if(idx<0) idx = headers.findIndex(h=>h.toLowerCase().includes(alias.toLowerCase()))
+    }
     IDX[k] = idx
     /* chip in upload zone */
     const chip = document.getElementById(CHIP_IDS[k])
     if(chip) chip.classList.toggle('found', idx>=0)
-    chips.push(`<span class="cb-chip ${idx>=0?'cb-ok':'cb-miss'}">${idx>=0?'✓':'✗'} ${wanted}${idx<0?' ← NOT FOUND':''}</span>`)
+    // Show which alias was actually matched (if different from primary)
+    const matchedAlias = idx >= 0 && COL_ALIASES[k]
+      ? (COL_ALIASES[k].find(a => headers[idx].toLowerCase() === a.toLowerCase() || headers[idx].toLowerCase().includes(a.toLowerCase())) || wanted)
+      : wanted
+    const displayLabel = (matchedAlias !== wanted && idx >= 0) ? `${wanted} <span style="opacity:.6;font-size:9px">(as "${matchedAlias}")</span>` : wanted
+    chips.push(`<span class="cb-chip ${idx>=0?'cb-ok':'cb-miss'}">${idx>=0?'✓':'✗'} ${displayLabel}${idx<0?' ← NOT FOUND':''}</span>`)
   }
   document.getElementById('colBannerChips').innerHTML = chips.join('')
   document.getElementById('colBanner').classList.add('show')
