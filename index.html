@@ -1,0 +1,2224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lenovo | RRR Intelligence Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red:#E2001A; --red-dim:rgba(226,0,26,0.18); --red-glow:rgba(226,0,26,0.07);
+  --dark:#0A0A0A; --surface:#141414; --card:#1C1C1C; --card2:#222;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.12);
+  --t1:#FFFFFF; --t2:#AAAAAA; --t3:#666666;
+  --ok:#00A854; --ok-d:rgba(0,168,84,0.18);
+  --warn:#F5A623; --warn-d:rgba(245,166,35,0.18);
+  --info:#0066CC; --info-d:rgba(0,102,204,0.2);
+  --bad-d:rgba(226,0,26,0.18);
+}
+
+/* LIGHT MODE */
+body.light-mode {
+  --dark:#F5F5F5; --surface:#FFFFFF; --card:#FAFAFA; --card2:#F0F0F0;
+  --border:rgba(0,0,0,0.1); --border2:rgba(0,0,0,0.15);
+  --t1:#0A0A0A; --t2:#444444; --t3:#888888;
+  --ok:#00A854; --ok-d:rgba(0,168,84,0.12);
+  --warn:#F5A623; --warn-d:rgba(245,166,35,0.12);
+  --info:#0066CC; --info-d:rgba(0,102,204,0.12);
+  --bad-d:rgba(226,0,26,0.12);
+}
+body.light-mode ::-webkit-scrollbar-track{background:#e5e5e5}
+body.light-mode ::-webkit-scrollbar-thumb{background:#ccc}
+body.light-mode ::-webkit-scrollbar-thumb:hover{background:var(--red)}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--dark);color:var(--t1);min-height:100vh;overflow-x:hidden;transition:background-color 0.3s, color 0.3s}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#111}
+::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--red)}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:200;background:var(--dark);border-bottom:2px solid var(--red);height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;transition:background-color 0.3s}
+.topbar-l{display:flex;align-items:center;gap:14px}
+.logo{font-weight:700;font-size:20px;letter-spacing:5px;color:#fff;text-transform:uppercase}
+body.light-mode .logo{color:#0A0A0A}
+.logo em{color:var(--red);font-style:normal}
+.vdiv{width:1px;height:24px;background:rgba(226,0,26,0.4)}
+.topbar-title{font-size:11px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--t2)}
+.topbar-r{display:flex;align-items:center;gap:14px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 7px var(--ok);animation:blink 2s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+#liveClock{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t3);letter-spacing:1px}
+.vtag{font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--red);background:var(--red-dim);padding:3px 8px;border-radius:3px;text-transform:uppercase}
+
+/* THEME TOGGLE */
+.theme-toggle{background:var(--card);border:1px solid var(--border);color:var(--t1);padding:5px 10px;border-radius:4px;cursor:pointer;transition:all 0.3s;font-size:16px;display:flex;align-items:center;justify-content:center;min-width:36px;height:28px}
+.theme-toggle:hover{border-color:var(--red);transform:scale(1.05)}
+.theme-icon{display:block}
+
+/* PROGRESS */
+.prog-wrap{display:none;height:3px;background:#1a1a1a}
+.prog-fill{height:100%;width:0%;background:var(--red);transition:width .15s linear}
+.prog-msg{display:none;padding:7px 32px;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--t2);letter-spacing:1px;background:#0e0e0e;border-bottom:1px solid var(--border)}
+
+/* UPLOAD */
+.upload-zone{background:linear-gradient(160deg,#111 0%,#170004 100%);border-bottom:1px solid var(--border);padding:22px 32px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.upload-btn{position:relative;display:flex;align-items:center;gap:12px;background:var(--red-dim);border:1.5px dashed rgba(226,0,26,0.45);border-radius:6px;padding:13px 20px;cursor:pointer;transition:.2s;min-width:270px}
+.upload-btn:hover{border-color:var(--red);background:rgba(226,0,26,0.25)}
+.upload-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.upload-btn-icon{font-size:20px;flex-shrink:0}
+.upload-btn-text strong{display:block;font-size:13px;font-weight:600}
+.upload-btn-text span{font-size:11px;color:var(--t2)}
+#fileLabel{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--t3)}
+.col-chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border-radius:3px;border:1px solid var(--border2);color:var(--t3);background:rgba(255,255,255,0.03);transition:.2s}
+.chip.found{border-color:var(--red);color:var(--red);background:var(--red-dim)}
+
+/* FILTER BAR */
+.filter-bar{display:none;background:#111;border-bottom:1px solid var(--border);padding:13px 32px;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.filter-bar.show{display:flex}
+.fg{display:flex;flex-direction:column;gap:3px}
+.fg label{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3)}
+.fg select{background:var(--card);border:1px solid var(--border);color:var(--t1);padding:5px 9px;border-radius:4px;font-size:12px;font-family:'IBM Plex Sans',sans-serif;min-width:140px;cursor:pointer;transition:border-color .2s}
+.fg select:focus{outline:none;border-color:var(--red)}
+.fg select[multiple]{padding:3px;overflow-y:auto}
+.fg select[multiple] option{padding:4px 8px;border-radius:2px;margin:1px 0}
+.fg select[multiple] option:checked{background:var(--red);color:#fff}
+.fbtns{display:flex;gap:8px;align-items:flex-end;padding-bottom:1px}
+.btn{padding:6px 13px;border-radius:4px;font-size:11px;font-family:'IBM Plex Sans',sans-serif;font-weight:700;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:.2s}
+.btn-r{background:transparent;border:1px solid var(--red);color:var(--red)}
+.btn-r:hover{background:var(--red);color:#fff}
+.btn-e{background:var(--red);border:1px solid var(--red);color:#fff}
+.btn-e:hover{opacity:.8}
+
+/* MAIN */
+main{padding:26px 32px}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:72px 20px;text-align:center}
+.empty-icon{font-size:60px;opacity:.18;margin-bottom:14px}
+.empty-h{font-size:19px;font-weight:600;color:var(--t2);margin-bottom:7px}
+.empty-p{font-size:13px;color:var(--t3);max-width:400px;line-height:1.65}
+.cols-preview{margin-top:18px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:14px 20px;text-align:left;max-width:520px}
+.cols-preview-title{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin-bottom:10px}
+.cols-preview-body{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--t2);line-height:2.1}
+.formula-note{margin-top:12px;font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace;background:var(--card);padding:9px 16px;border-radius:4px;border:1px solid var(--border)}
+
+/* COL MAP BANNER */
+.col-banner{display:none;margin-bottom:18px;background:var(--card2);border:1px solid var(--border2);border-left:3px solid var(--info);border-radius:0 6px 6px 0;padding:12px 18px}
+.col-banner.show{display:block}
+.col-banner-title{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#4d9fff;margin-bottom:10px}
+.col-banner-chips{display:flex;flex-wrap:wrap;gap:7px}
+.cb-chip{font-size:10px;padding:3px 9px;border-radius:3px;font-family:'IBM Plex Mono',monospace}
+.cb-ok{background:var(--ok-d);color:#00c96d}
+.cb-miss{background:var(--bad-d);color:#ff4455}
+
+/* KPI */
+.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:13px;margin-bottom:24px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:16px 16px 13px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s}
+.kpi:hover{transform:translateY(-2px);border-color:rgba(226,0,26,0.3)}
+.kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--red);transform:scaleX(0);transform-origin:left;transition:transform .3s}
+.kpi:hover::after{transform:scaleX(1)}
+.kpi-lbl{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin-bottom:9px}
+.kpi-val{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:500;line-height:1;color:var(--t1)}
+.kpi-sub{font-size:11px;color:var(--t2);margin-top:5px}
+.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace;letter-spacing:.5px}
+.b-ok{background:var(--ok-d);color:#00c96d}
+.b-mid{background:var(--warn-d);color:#f5a623}
+.b-bad{background:var(--bad-d);color:#ff4455}
+
+/* FORMULA BAR */
+.formula-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#111;border:1px solid var(--border);border-radius:4px;padding:9px 16px;margin-bottom:22px;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--t2)}
+.formula-bar strong{color:var(--red)}
+.formula-bar .fval{margin-left:auto;color:var(--red);font-weight:700;font-size:13px}
+
+/* TABS */
+.tab-nav{display:flex;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto}
+.tab-nav::-webkit-scrollbar{height:2px}
+.tbtn{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--t2);padding:9px 20px;margin-bottom:-1px;font-family:'IBM Plex Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:.2s;white-space:nowrap}
+.tbtn:hover{color:var(--t1)}
+.tbtn.on{color:var(--red);border-bottom-color:var(--red)}
+.tab{display:none}
+.tab.on{display:block}
+
+/* CHART GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:900px){.g2{grid-template-columns:1fr}}
+.span2{grid-column:1/-1}
+
+/* CHART CARD */
+.cc{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:16px}
+.cc-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cc-title{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t2)}
+.cc-tag{font-size:9px;font-weight:700;letter-spacing:1.5px;padding:3px 8px;border-radius:3px;text-transform:uppercase;background:var(--red-dim);color:var(--red)}
+
+/* TABLE */
+.tc{background:var(--card);border:1px solid var(--border);border-radius:6px;margin-bottom:18px;overflow:hidden}
+.tc-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px}
+.tc-title{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t2)}
+.tc-meta{font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace}
+.ts{background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--t1);padding:5px 10px;border-radius:4px;font-size:11px;font-family:'IBM Plex Sans',sans-serif;width:180px;transition:border-color .2s}
+.ts:focus{outline:none;border-color:var(--red)}
+.ts::placeholder{color:var(--t3)}
+.tw{overflow-x:auto;max-height:400px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead{position:sticky;top:0;z-index:10}
+thead th{background:#181818;padding:8px 13px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;transition:color .15s}
+thead th:hover{color:var(--red)}
+thead th.asc::after{content:' ▲';color:var(--red);font-size:8px}
+thead th.desc::after{content:' ▼';color:var(--red);font-size:8px}
+tbody tr{border-bottom:1px solid rgba(255,255,255,0.03);transition:background .12s}
+tbody tr:hover{background:rgba(226,0,26,0.05)}
+tbody td{padding:8px 13px;color:var(--t1)}
+.mono{font-family:'IBM Plex Mono',monospace}
+
+/* PILL */
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600}
+.p-ok{background:var(--ok-d);color:#00c96d}
+.p-mid{background:var(--warn-d);color:#f5a623}
+.p-bad{background:var(--bad-d);color:#ff4455}
+
+/* RANK */
+.rnk{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:3px;font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace}
+.r1{background:rgba(255,215,0,.15);color:#ffd700}
+.r2{background:rgba(192,192,192,.15);color:#c0c0c0}
+.r3{background:rgba(205,127,50,.15);color:#cd7f32}
+.rx{background:rgba(255,255,255,.05);color:var(--t3)}
+
+/* IBAR */
+.ibar-w{display:flex;align-items:center;gap:6px}
+.ibar{height:3px;border-radius:2px;background:var(--red);min-width:2px}
+
+/* RECS */
+.rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:13px;margin-bottom:20px}
+.rec{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:0 6px 6px 0;padding:14px 16px;transition:transform .2s}
+.rec:hover{transform:translateX(3px)}
+.rec-icon{font-size:18px;margin-bottom:7px}
+.rec-title{font-size:12px;font-weight:700;margin-bottom:5px}
+.rec-body{font-size:11px;color:var(--t2);line-height:1.65}
+
+/* ANIM */
+.fade{animation:fi .35s ease both}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.d1{animation-delay:.04s}.d2{animation-delay:.08s}.d3{animation-delay:.12s}
+.d4{animation-delay:.16s}.d5{animation-delay:.20s}.d6{animation-delay:.24s}
+
+/* FOOTER */
+.footer{padding:14px 32px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--t3);letter-spacing:.5px;flex-wrap:wrap;gap:6px}
+.footer em{color:var(--red);font-style:normal}
+#footerMeta{font-family:'IBM Plex Mono',monospace}
+
+/* CUSTOM MULTI-SELECT DROPDOWN */
+.ms-wrap{position:relative;min-width:140px}
+.ms-btn{background:var(--card);border:1px solid var(--border);color:var(--t1);padding:5px 28px 5px 9px;border-radius:4px;font-size:12px;font-family:'IBM Plex Sans',sans-serif;cursor:pointer;transition:border-color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;width:100%;text-align:left;position:relative}
+.ms-btn:focus{outline:none;border-color:var(--red)}
+.ms-btn::after{content:'▾';position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:10px;pointer-events:none}
+.ms-wrap.open .ms-btn{border-color:var(--red)}
+.ms-wrap.open .ms-btn::after{content:'▴'}
+.ms-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:100%;background:var(--card);border:1px solid var(--border2);border-radius:4px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,0.4);max-height:220px;overflow-y:auto;padding:4px 0}
+.ms-wrap.open .ms-dropdown{display:block}
+.ms-item{display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;font-size:12px;font-family:'IBM Plex Sans',sans-serif;color:var(--t1);transition:background .12s;white-space:nowrap}
+.ms-item:hover{background:rgba(226,0,26,0.1)}
+.ms-item input[type=checkbox]{accent-color:var(--red);width:13px;height:13px;cursor:pointer;flex-shrink:0}
+.ms-item.checked{color:var(--red)}
+.ms-divider{height:1px;background:var(--border);margin:3px 0}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-l">
+    <div class="logo">L<em>E</em>NOVO</div>
+    <div class="vdiv"></div>
+    <div class="topbar-title">RRR Intelligence Dashboard <span style="font-size:9px;color:var(--t3);font-weight:400;letter-spacing:1px;margin-left:8px">by Marwan Fahad</span></div>
+  </div>
+  <div class="topbar-r">
+    <div class="live-dot"></div>
+    <div id="liveClock">--:--:--</div>
+    <div class="vtag">v2.1</div>
+    <button id="themeToggle" class="theme-toggle" title="Toggle Dark/Light Mode">
+      <span class="theme-icon">☀️</span>
+    </button>
+  </div>
+</header>
+
+<!-- PROGRESS -->
+<div class="prog-wrap" id="pbWrap"><div class="prog-fill" id="pbFill"></div></div>
+<div class="prog-msg" id="progMsg">⏳ Processing...</div>
+
+<!-- UPLOAD -->
+<div class="upload-zone">
+  <div class="upload-btn">
+    <input type="file" id="uploadInput" accept=".xlsx,.xls,.csv"/>
+    <div class="upload-btn-icon">📂</div>
+    <div class="upload-btn-text">
+      <strong>Upload Report File</strong>
+      <span>Excel (.xlsx / .xls) or CSV — any size</span>
+    </div>
+  </div>
+  <div id="fileLabel" style="font-size:11px;color:var(--t3)">No file loaded</div>
+  <div class="col-chips">
+    <div class="chip" id="chip-wonum">WO Number</div>
+    <div class="chip" id="chip-sub">Sub Series</div>
+    <div class="chip" id="chip-month">RRR Month</div>
+    <div class="chip" id="chip-week">RRR Week</div>
+    <div class="chip" id="chip-vendor">Primary Vendor Name</div>
+    <div class="chip" id="chip-reason">Repeat Repair Reason1</div>
+    <div class="chip" id="chip-symptom">Symptom1</div>
+    <div class="chip" id="chip-flag">RRR MTSN 30D Flag NOC</div>
+    <div class="chip" id="chip-tl">Release by TL</div>
+    <div class="chip" id="chip-name">Release by Name</div>
+    <div class="chip" id="chip-account">Account Name</div>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar" id="filterBar">
+  <div class="fg"><label>Release by TL</label>
+    <select id="fTL"><option value="">All TLs</option></select></div>
+  <div class="fg"><label>Release by Name</label>
+    <select id="fAgent"><option value="">All Agents</option></select></div>
+  <div class="fg">
+    <label>RRR Month</label>
+    <div class="ms-wrap" id="msWrapMonth">
+      <button class="ms-btn" id="msBtnMonth" type="button" onclick="toggleMsDropdown('Month')">All Months</button>
+      <div class="ms-dropdown" id="msDropMonth"></div>
+    </div>
+    <!-- hidden select kept for filter logic compatibility -->
+    <select id="fMonth" multiple style="display:none"></select>
+  </div>
+  <div class="fg">
+    <label>RRR Week</label>
+    <div class="ms-wrap" id="msWrapWeek">
+      <button class="ms-btn" id="msBtnWeek" type="button" onclick="toggleMsDropdown('Week')">All Weeks</button>
+      <div class="ms-dropdown" id="msDropWeek"></div>
+    </div>
+    <!-- hidden select kept for filter logic compatibility -->
+    <select id="fWeek" multiple style="display:none"></select>
+  </div>
+  <div class="fg"><label>Primary Vendor</label>
+    <select id="fVendor"><option value="">All Vendors</option></select></div>
+  <div class="fg"><label>Account Name</label>
+    <select id="fAccount"><option value="">All Accounts</option></select></div>
+  <div class="fg"><label>Sub Series</label>
+    <select id="fSub"><option value="">All Sub-Series</option></select></div>
+  <div class="fbtns">
+    <button class="btn btn-r" onclick="resetFilters()">↺ Reset</button>
+    <button class="btn btn-e" onclick="exportCSV()">⬇ CSV</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main>
+  <!-- EMPTY STATE -->
+  <div class="empty" id="emptyState">
+    <div class="empty-icon">📊</div>
+    <div class="empty-h">No Data Loaded</div>
+    <div class="empty-p">Upload your Lenovo report file. The dashboard will detect columns automatically and compute RRR% using the exact formula.</div>
+    <div class="cols-preview">
+      <div class="cols-preview-title">Required Columns (detected automatically)</div>
+      <div class="cols-preview-body">
+        Sub Series &nbsp;·&nbsp; RRR Month &nbsp;·&nbsp; RRR Week<br>
+        Primary Vendor Name &nbsp;·&nbsp; Repeat Repair Reason1<br>
+        RRR MTSN 30D Flag NOC &nbsp;·&nbsp; Release by TL<br>
+        Release by Name &nbsp;·&nbsp; Account Name
+      </div>
+    </div>
+    <div class="formula-note">
+      RRR% = <strong style="color:var(--red)">Distinct Repeat WO (Flag = 1)</strong> &nbsp;÷&nbsp; <strong style="color:#4d9fff">Distinct Total WO</strong> &nbsp;× 100
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" style="display:none">
+
+    <!-- Column mapping banner -->
+    <div class="col-banner" id="colBanner">
+      <div class="col-banner-title">📌 Column Detection — File Header Map</div>
+      <div class="col-banner-chips" id="colBannerChips"></div>
+    </div>
+
+    <!-- KPI strip -->
+    <div class="kpi-strip" id="kpiStrip"></div>
+
+    <!-- Formula bar -->
+    <div class="formula-bar">
+      <strong>RRR%</strong>
+      <span>=</span>
+      <span><strong>Distinct Repeat WO</strong> <span style="color:var(--t3)">(Flag = 1)</span></span>
+      <span style="color:var(--t3)">÷</span>
+      <span><strong>Distinct Total WO</strong></span>
+      <span style="color:var(--t3)">×</span>
+      <span>100</span>
+      <span class="fval" id="formulaLive">—</span>
+    </div>
+
+    <!-- TABS -->
+    <div class="tab-nav">
+      <button class="tbtn on"  onclick="sw('overview',this)">Overview</button>
+      <button class="tbtn"     onclick="sw('agents',this)">By Agent</button>
+      <button class="tbtn"     onclick="sw('tl',this)">By TL</button>
+      <button class="tbtn"     onclick="sw('models',this)">Sub-Series</button>
+      <button class="tbtn"     onclick="sw('vendor',this)">Vendor</button>
+      <button class="tbtn"     onclick="sw('reason',this)">Repair Reasons</button>
+      <button class="tbtn"     onclick="sw('symptom',this)">Symptoms</button>
+      <button class="tbtn"     onclick="sw('account',this)">Account</button>
+      <button class="tbtn"     onclick="sw('weekly',this)">Weekly</button>
+      <button class="tbtn"     onclick="sw('lifecycle',this)">🔬 Model Lifecycle</button>
+      <button class="tbtn"     onclick="sw('agentrisk',this)">📊 Agent Risk</button>
+      <button class="tbtn"     onclick="sw('reportgen',this)">📄 Auto Report</button>
+      <button class="tbtn"     onclick="sw('recs',this)">Recommendations</button>
+    </div>
+
+    <!-- TAB: OVERVIEW -->
+    <div class="tab on" id="tab-overview">
+      <div class="g2">
+        <div class="cc">
+          <div class="cc-hd"><div class="cc-title">Monthly RRR % Trend</div><div class="cc-tag">TREND</div></div>
+          <canvas id="cTrend" height="210"></canvas>
+        </div>
+        <div class="cc">
+          <div class="cc-hd"><div class="cc-title">Repeat vs Clean WO by Month</div><div class="cc-tag">VOLUME</div></div>
+          <canvas id="cStack" height="210"></canvas>
+        </div>
+        <div class="cc span2">
+          <div class="cc-hd"><div class="cc-title">Agent RRR % (All Agents)</div><div class="cc-tag">AGENTS</div></div>
+          <canvas id="cAgOv" height="115"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: AGENTS -->
+    <div class="tab" id="tab-agents">
+      <div class="cc span2" style="margin-bottom:16px">
+        <div class="cc-hd"><div class="cc-title">Agent RRR % Comparison</div><div class="cc-tag">AGENT</div></div>
+        <canvas id="cAgBar" height="115"></canvas>
+      </div>
+      <div class="tc">
+        <div class="tc-hd">
+          <div><div class="tc-title">Agent Performance</div><div class="tc-meta" id="agMeta"></div></div>
+          <input class="ts" id="agSearch" placeholder="Search agent…" oninput="srch('agTbody',this.value)"/>
+        </div>
+        <div class="tw"><table>
+          <thead><tr>
+            <th onclick="srt('agentData','rank',1,'agTbody',drawAg)">#</th>
+            <th onclick="srt('agentData','name',-1,'agTbody',drawAg)">Agent Name</th>
+            <th onclick="srt('agentData','tl',-1,'agTbody',drawAg)">Team Leader</th>
+            <th onclick="srt('agentData','totalWO',-1,'agTbody',drawAg)">Total WO</th>
+            <th onclick="srt('agentData','rrrWO',-1,'agTbody',drawAg)">Repeat WO</th>
+            <th onclick="srt('agentData','cleanWO',-1,'agTbody',drawAg)">Clean WO</th>
+            <th onclick="srt('agentData','pct',-1,'agTbody',drawAg)">RRR %</th>
+            <th>Volume</th>
+          </tr></thead>
+          <tbody id="agTbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- TAB: TL -->
+    <div class="tab" id="tab-tl">
+      <div class="cc" style="margin-bottom:16px">
+        <div class="cc-hd"><div class="cc-title">TL Team RRR %</div><div class="cc-tag">TL</div></div>
+        <canvas id="cTLBar" height="140"></canvas>
+      </div>
+      <div class="tc">
+        <div class="tc-hd">
+          <div><div class="tc-title">Team Leader Summary</div><div class="tc-meta" id="tlMeta"></div></div>
+          <input class="ts" id="tlSearch" placeholder="Search TL…" oninput="srch('tlTbody',this.value)"/>
+        </div>
+        <div class="tw"><table>
+          <thead><tr>
+            <th onclick="srt('tlData','rank',1,'tlTbody',drawTL)">#</th>
+            <th onclick="srt('tlData','name',-1,'tlTbody',drawTL)">Team Leader</th>
+            <th onclick="srt('tlData','agents',-1,'tlTbody',drawTL)">Agents</th>
+            <th onclick="srt('tlData','totalWO',-1,'tlTbody',drawTL)">Total WO</th>
+            <th onclick="srt('tlData','rrrWO',-1,'tlTbody',drawTL)">Repeat WO</th>
+            <th onclick="srt('tlData','cleanWO',-1,'tlTbody',drawTL)">Clean WO</th>
+            <th onclick="srt('tlData','pct',-1,'tlTbody',drawTL)">RRR %</th>
+          </tr></thead>
+          <tbody id="tlTbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- TAB: MODELS -->
+    <div class="tab" id="tab-models">
+      <div class="cc" style="margin-bottom:16px">
+        <div class="cc-hd"><div class="cc-title">Top Sub-Series by RRR %</div><div class="cc-tag">MODEL</div></div>
+        <canvas id="cModBar" height="130"></canvas>
+      </div>
+      <div class="tc">
+        <div class="tc-hd">
+          <div><div class="tc-title">Sub-Series Analysis</div><div class="tc-meta" id="modMeta"></div></div>
+          <input class="ts" id="modSearch" placeholder="Search model…" oninput="srch('modTbody',this.value)"/>
+        </div>
+        <div class="tw"><table>
+          <thead><tr>
+            <th onclick="srt('modelData','rank',1,'modTbody',drawMod)">#</th>
+            <th onclick="srt('modelData','name',-1,'modTbody',drawMod)">Sub Series</th>
+            <th onclick="srt('modelData','totalWO',-1,'modTbody',drawMod)">Total WO</th>
+            <th onclick="srt('modelData','rrrWO',-1,'modTbody',drawMod)">Repeat WO</th>
+            <th onclick="srt('modelData','pct',-1,'modTbody',drawMod)">RRR %</th>
+            <th>Risk</th>
+          </tr></thead>
+          <tbody id="modTbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- TAB: VENDOR -->
+    <div class="tab" id="tab-vendor">
+      <div class="cc" style="margin-bottom:16px">
+        <div class="cc-hd"><div class="cc-title">Primary Vendor RRR %</div><div class="cc-tag">VENDOR</div></div>
+        <canvas id="cVenBar" height="130"></canvas>
+      </div>
+      <div class="tc">
+        <div class="tc-hd">
+          <div class="tc-title">Vendor Performance</div>
+          <input class="ts" id="venSearch" placeholder="Search vendor…" oninput="srch('venTbody',this.value)"/>
+        </div>
+        <div class="tw"><table>
+          <thead><tr>
+            <th onclick="srt('vendorData','rank',1,'venTbody',drawVen)">#</th>
+            <th onclick="srt('vendorData','name',-1,'venTbody',drawVen)">Primary Vendor</th>
+            <th onclick="srt('vendorData','totalWO',-1,'venTbody',drawVen)">Total WO</th>
+            <th onclick="srt('vendorData','rrrWO',-1,'venTbody',drawVen)">Repeat WO</th>
+            <th onclick="srt('vendorData','pct',-1,'venTbody',drawVen)">RRR %</th>
+          </tr></thead>
+          <tbody id="venTbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- TAB: REASON -->
+    <div class="tab" id="tab-reason">
+      <div class="cc" style="margin-bottom:16px">
+        <div class="cc-hd"><div class="cc-title">Repeat Repair Reason Distribution</div><div class="cc-tag">REASONS</div></div>
+        <canvas id="cResBar" height="140"></canvas>
+      </div>
+      <div class="tc">
+        <div class="tc-hd">
+          <div class="tc-title">Repair Reasons (Flag = 1 only)</div>
+          <input class="ts" id="resSearch" placeholder="Search reason…" oninput="srch('resTbody',this.value)"/>
+        </div>
+        <div class="tw"><table>
+          <thead><tr>
+            <th onclick="srt('reasonData','rank',1,'resTbody',drawRes)">#</th>
+            <th onclick="srt('reasonData','name',-1,'resTbody',drawRes)">Repeat Repair Reason</th>
+            <th onclick="srt('reasonData','totalWO',-1,'resTbody',drawRes)">Total WO</th>
+            <th onclick="srt('reasonData','count',-1,'resTbody',drawRes)">Repeat WO</th>
+            <th onclick="srt('reasonData','pct',-1,'resTbody',drawRes)">RRR %</th>
+          </tr></thead>
+          <tbody id="resTbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- TAB: SYMPTOM -->
+    <div class="tab" id="tab-symptom">
+      <div class="cc" style="margin-bottom:16px">
+        <div class="cc-hd"><div class="cc-title">Symptom Distribution Analysis</div><div class="cc-tag">SYMPTOMS</div></div>
+        <canvas id="cSymBar" height="140"></canvas>
+      </div>
+      <div class="tc">
+        <div class="tc-hd">
+          <div class="tc-title">Symptoms (All WOs)</div>
+          <div class="tc-meta" id="symMeta">—</div>
+          <input class="ts" id="symSearch" placeholder="Search symptom…" oninput="srch('symTbody',this.value)"/>
+        </div>
+        <div class="tw"><table>
+          <thead><tr>
+            <th onclick="srt('symptomData','rank',1,'symTbody',drawSym)">#</th>
+            <th onclick="srt('symptomData','name',-1,'symTbody',drawSym)">Symptom</th>
+            <th onclick="srt('symptomData','totalWO',-1,'symTbody',drawSym)">Total WO</th>
+            <th onclick="srt('symptomData','rrrWO',-1,'symTbody',drawSym)">Repeat WO</th>
+            <th onclick="srt('symptomData','pct',-1,'symTbody',drawSym)">RRR %</th>
+          </tr></thead>
+          <tbody id="symTbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- TAB: ACCOUNT -->
+    <div class="tab" id="tab-account">
+      <div class="cc" style="margin-bottom:16px">
+        <div class="cc-hd"><div class="cc-title">Account RRR %</div><div class="cc-tag">ACCOUNT</div></div>
+        <canvas id="cAccBar" height="130"></canvas>
+      </div>
+      <div class="tc">
+        <div class="tc-hd">
+          <div class="tc-title">Account Name Analysis</div>
+          <input class="ts" id="accSearch" placeholder="Search account…" oninput="srch('accTbody',this.value)"/>
+        </div>
+        <div class="tw"><table>
+          <thead><tr>
+            <th onclick="srt('accountData','rank',1,'accTbody',drawAcc)">#</th>
+            <th onclick="srt('accountData','name',-1,'accTbody',drawAcc)">Account Name</th>
+            <th onclick="srt('accountData','totalWO',-1,'accTbody',drawAcc)">Total WO</th>
+            <th onclick="srt('accountData','rrrWO',-1,'accTbody',drawAcc)">Repeat WO</th>
+            <th onclick="srt('accountData','pct',-1,'accTbody',drawAcc)">RRR %</th>
+          </tr></thead>
+          <tbody id="accTbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- TAB: WEEKLY -->
+    <div class="tab" id="tab-weekly">
+      <div class="cc" style="margin-bottom:16px">
+        <div class="cc-hd"><div class="cc-title">Weekly RRR % Trend</div><div class="cc-tag">WEEK</div></div>
+        <canvas id="cWkTrend" height="210"></canvas>
+      </div>
+      <div class="tc">
+        <div class="tc-hd">
+          <div class="tc-title">Week-by-Week Summary</div>
+          <input class="ts" id="wkSearch" placeholder="Search week…" oninput="srch('wkTbody',this.value)"/>
+        </div>
+        <div class="tw"><table>
+          <thead><tr>
+            <th onclick="srt('weekData','name',-1,'wkTbody',drawWk)">RRR Week</th>
+            <th onclick="srt('weekData','totalWO',-1,'wkTbody',drawWk)">Total WO</th>
+            <th onclick="srt('weekData','rrrWO',-1,'wkTbody',drawWk)">Repeat WO</th>
+            <th onclick="srt('weekData','cleanWO',-1,'wkTbody',drawWk)">Clean WO</th>
+            <th onclick="srt('weekData','pct',-1,'wkTbody',drawWk)">RRR %</th>
+          </tr></thead>
+          <tbody id="wkTbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- TAB: MODEL LIFECYCLE INTELLIGENCE -->
+    <div class="tab" id="tab-lifecycle">
+      <div class="tc">
+        <div class="tc-hd">
+          <div class="tc-title">Model Lifecycle Intelligence</div>
+          <div class="tc-meta" id="lifecycleMeta">—</div>
+        </div>
+        <div class="tw"><table>
+          <thead><tr>
+            <th>Rank</th>
+            <th onclick="srt('lifecycleData','model',-1,'lifecycleTbody',drawLifecycle)">Model</th>
+            <th onclick="srt('lifecycleData','age',-1,'lifecycleTbody',drawLifecycle)">Age (years)</th>
+            <th onclick="srt('lifecycleData','phase',-1,'lifecycleTbody',drawLifecycle)">Failure Phase</th>
+            <th onclick="srt('lifecycleData','totalWO',-1,'lifecycleTbody',drawLifecycle)">Total WO</th>
+            <th onclick="srt('lifecycleData','rrrWO',-1,'lifecycleTbody',drawLifecycle)">Repeat WO</th>
+            <th onclick="srt('lifecycleData','pct',-1,'lifecycleTbody',drawLifecycle)">RRR %</th>
+          </tr></thead>
+          <tbody id="lifecycleTbody"></tbody>
+        </table></div>
+      </div>
+      <div class="cc" style="margin-top:16px">
+        <div class="cc-hd"><div class="cc-title">RRR % by Model Age</div><div class="cc-tag">LIFECYCLE</div></div>
+        <canvas id="cLifecycle" height="160"></canvas>
+      </div>
+    </div>
+
+    <!-- TAB: AGENT RISK PREDICTION -->
+    <div class="tab" id="tab-agentrisk">
+      <div class="tc">
+        <div class="tc-hd">
+          <div class="tc-title">Agent Risk Prediction & Trend Analysis</div>
+          <div class="tc-meta" id="agentRiskMeta">—</div>
+        </div>
+        <div class="tw"><table>
+          <thead><tr>
+            <th>Rank</th>
+            <th onclick="srt('agentRiskData','agent',-1,'agentRiskTbody',drawAgentRisk)">Agent</th>
+            <th onclick="srt('agentRiskData','currentRRR',-1,'agentRiskTbody',drawAgentRisk)">Current RRR %</th>
+            <th onclick="srt('agentRiskData','predictedRRR',-1,'agentRiskTbody',drawAgentRisk)">Predicted Next Month</th>
+            <th onclick="srt('agentRiskData','trend',-1,'agentRiskTbody',drawAgentRisk)">Trend</th>
+            <th>Top Problem Model</th>
+            <th>Top Problem Symptom</th>
+            <th>Risk Level</th>
+          </tr></thead>
+          <tbody id="agentRiskTbody"></tbody>
+        </table></div>
+      </div>
+      <div id="agentRCASection"></div>
+    </div>
+
+    <!-- TAB: AUTO REPORT GENERATOR -->
+    <div class="tab" id="tab-reportgen">
+      <div class="tc">
+        <div class="tc-hd">
+          <div class="tc-title">📄 Auto Report Generator</div>
+          <div class="tc-meta">Generate comprehensive RRR analysis reports</div>
+        </div>
+        <div style="padding:24px">
+          <div style="max-width:800px;margin:0 auto">
+            <div style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:24px;margin-bottom:20px">
+              <h3 style="font-size:14px;font-weight:600;margin-bottom:16px;color:var(--t1)">📊 Monthly RRR Report</h3>
+              <p style="font-size:12px;color:var(--t2);margin-bottom:20px;line-height:1.6">
+                Automatically generate a comprehensive RRR analysis report including KPI summary, top models, 
+                agent performance, and action plan. Choose your preferred format below.
+              </p>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <button onclick="generatePDFReport()" class="btn-e" style="padding:14px 24px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px">
+                  <span style="font-size:18px">📄</span>
+                  <span>Download PDF Report</span>
+                </button>
+                <button onclick="generateExcelReport()" class="btn-r" style="padding:14px 24px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px">
+                  <span style="font-size:18px">📊</span>
+                  <span>Download Excel Report</span>
+                </button>
+              </div>
+            </div>
+
+            <div style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:24px">
+              <h3 style="font-size:14px;font-weight:600;margin-bottom:16px;color:var(--t1)">📋 Report Contents</h3>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;color:var(--t2)">
+                <div style="padding:10px;background:var(--card);border-radius:4px">
+                  <div style="font-weight:600;color:var(--t1);margin-bottom:4px">✓ Executive Summary</div>
+                  <div style="font-size:11px">Overall RRR%, trends, risk level</div>
+                </div>
+                <div style="padding:10px;background:var(--card);border-radius:4px">
+                  <div style="font-weight:600;color:var(--t1);margin-bottom:4px">✓ Top Models</div>
+                  <div style="font-size:11px">High-risk sub-series analysis</div>
+                </div>
+                <div style="padding:10px;background:var(--card);border-radius:4px">
+                  <div style="font-weight:600;color:var(--t1);margin-bottom:4px">✓ Agent Performance</div>
+                  <div style="font-size:11px">Individual & team metrics</div>
+                </div>
+                <div style="padding:10px;background:var(--card);border-radius:4px">
+                  <div style="font-weight:600;color:var(--t1);margin-bottom:4px">✓ Action Plan</div>
+                  <div style="font-size:11px">Recommended interventions</div>
+                </div>
+                <div style="padding:10px;background:var(--card);border-radius:4px">
+                  <div style="font-weight:600;color:var(--t1);margin-bottom:4px">✓ Lifecycle Insights</div>
+                  <div style="font-size:11px">Model age vs failure patterns</div>
+                </div>
+                <div style="padding:10px;background:var(--card);border-radius:4px">
+                  <div style="font-weight:600;color:var(--t1);margin-bottom:4px">✓ Predictive Analytics</div>
+                  <div style="font-size:11px">Next month risk predictions</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: RECS -->
+    <div class="tab" id="tab-recs">
+      <div class="rec-grid" id="recGrid"></div>
+      <div class="g2">
+        <div class="cc">
+          <div class="cc-hd"><div class="cc-title">RRR Split (Repeat vs Clean)</div><div class="cc-tag">PIE</div></div>
+          <canvas id="cDonut" height="230"></canvas>
+        </div>
+        <div class="cc">
+          <div class="cc-hd"><div class="cc-title">Top 5 Repair Reasons</div><div class="cc-tag">PIE</div></div>
+          <canvas id="cResPie" height="230"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /dashboard -->
+</main>
+
+<footer class="footer">
+  <div>© 2025 <em>Lenovo</em> · RRR Intelligence Dashboard · Internal Use Only</div>
+  <div id="footerMeta">—</div>
+</footer>
+
+<script>
+/* ── CLOCK ── */
+setInterval(()=>{
+  document.getElementById('liveClock').textContent =
+    new Date().toLocaleTimeString('en-US',{hour12:false})
+},1000)
+
+/* ── THEME TOGGLE ── */
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = document.querySelector('.theme-icon');
+let currentTheme = localStorage.getItem('theme') || 'dark';
+
+// Apply saved theme on load
+if (currentTheme === 'light') {
+  document.body.classList.add('light-mode');
+  themeIcon.textContent = '🌙';
+}
+
+themeToggle.addEventListener('click', () => {
+  document.body.classList.toggle('light-mode');
+  if (document.body.classList.contains('light-mode')) {
+    themeIcon.textContent = '🌙';
+    localStorage.setItem('theme', 'light');
+  } else {
+    themeIcon.textContent = '☀️';
+    localStorage.setItem('theme', 'dark');
+  }
+});
+
+/* ══════════════════════════════════════════
+   COLUMN DEFINITIONS
+   Maps internal key → exact Excel header name
+   Detection: exact → case-insensitive → partial
+══════════════════════════════════════════ */
+const COLS = {
+  WO_NUM: 'WO Number',
+  SUB:    'Sub Series',
+  MONTH:  'RRR Month',
+  WEEK:   'RRR Week',
+  VENDOR: 'Primary Vendor Name',
+  REASON: 'Repeat Repair Reason1',
+  SYMPTOM:'Symptom1',
+  FLAG:   'RRR MTSN 30D Flag NOC',
+  TL:     'Release by TL',
+  NAME:   'Release by Name',
+  ACCOUNT:'Account Name',
+}
+
+const CHIP_IDS = {
+  WO_NUM:'chip-wonum',
+  SUB:'chip-sub', MONTH:'chip-month', WEEK:'chip-week',
+  VENDOR:'chip-vendor', REASON:'chip-reason', SYMPTOM:'chip-symptom', FLAG:'chip-flag',
+  TL:'chip-tl', NAME:'chip-name', ACCOUNT:'chip-account'
+}
+
+/* resolved indices into the AOA rows */
+let IDX = {}
+
+/* ── GLOBALS ── */
+let rawData=[], filteredData=[]
+let agentData=[], tlData=[], modelData=[], vendorData=[]
+, symptomData=[]
+let reasonData=[], accountData=[], weekData=[]
+let CM = {}   /* chart map */
+
+/* ══════════════════════════════════════════
+   FILE UPLOAD — large-file safe:
+   uses sheet_to_aoa (array of arrays) + manual
+   row mapping; no JSON overhead for huge files
+══════════════════════════════════════════ */
+document.getElementById('uploadInput').addEventListener('change', function(e){
+  const file = e.target.files[0]; if(!file) return
+  document.getElementById('fileLabel').textContent = '📄 '+file.name
+  prog(5,'Reading file…')
+  const reader = new FileReader()
+  reader.onload = ev => {
+    try {
+      prog(20,'Parsing workbook…')
+      const wb = XLSX.read(new Uint8Array(ev.target.result),{
+        type:'array', dense:true, cellText:false
+      })
+      prog(40,'Loading sheet…')
+      const sheet = wb.Sheets[wb.SheetNames[0]]
+      /* AOA = array-of-arrays: fastest path, lowest memory */
+      const aoa = XLSX.utils.sheet_to_json(sheet,{header:1, defval:'', raw:false})
+      prog(55,'Detecting columns…')
+      if(aoa.length < 2){ alert('File is empty or has no data rows.'); noProg(); return }
+
+      const headers = aoa[0].map(h=>String(h??'').trim())
+      detectCols(headers)
+
+      prog(65,'Mapping rows ('+( aoa.length-1).toLocaleString()+' rows)…')
+      /* Async chunk to keep UI alive on huge files */
+      const CHUNK = 20000
+      rawData = []
+      let i = 1
+      function processChunk(){
+        const end = Math.min(i + CHUNK, aoa.length)
+        for(; i < end; i++){
+          const row = aoa[i]
+          /* skip fully blank rows */
+          if(!row || row.every(c=>c===''||c==null)) continue
+          const obj = {}
+          for(const k in IDX){
+            const idx = IDX[k]
+            obj[k] = idx >= 0 ? String(row[idx]??'').trim() : ''
+          }
+          rawData.push(obj)
+        }
+        const pct = 65 + Math.round((i/aoa.length)*25)
+        prog(pct, 'Mapping rows… '+rawData.length.toLocaleString()+' mapped')
+        if(i < aoa.length){ setTimeout(processChunk, 0) }
+        else {
+          prog(92,'Building dashboard…')
+          filteredData = [...rawData]
+          setTimeout(()=>{
+            populateFilters()
+            analyze()
+            noProg()
+            document.getElementById('emptyState').style.display='none'
+            document.getElementById('dashboard').style.display='block'
+          },20)
+        }
+      }
+      setTimeout(processChunk, 10)
+    } catch(err){
+      alert('Error reading file: '+err.message+'\n\n'+err.stack)
+      noProg()
+    }
+  }
+  reader.readAsArrayBuffer(file)
+})
+
+/* ── PROGRESS ── */
+function prog(pct, msg){
+  document.getElementById('pbWrap').style.display='block'
+  document.getElementById('pbFill').style.width=pct+'%'
+  document.getElementById('progMsg').style.display='block'
+  document.getElementById('progMsg').textContent='⏳ '+msg+' ('+pct+'%)'
+}
+function noProg(){
+  document.getElementById('pbWrap').style.display='none'
+  document.getElementById('progMsg').style.display='none'
+}
+
+/* ── COLUMN DETECTION ── */
+function detectCols(headers){
+  IDX = {}
+  const chips = []
+  for(const [k, wanted] of Object.entries(COLS)){
+    let idx = headers.findIndex(h=>h===wanted)
+    if(idx<0) idx = headers.findIndex(h=>h.toLowerCase()===wanted.toLowerCase())
+    if(idx<0) idx = headers.findIndex(h=>h.toLowerCase().includes(wanted.toLowerCase()))
+    IDX[k] = idx
+    /* chip in upload zone */
+    const chip = document.getElementById(CHIP_IDS[k])
+    if(chip) chip.classList.toggle('found', idx>=0)
+    chips.push(`<span class="cb-chip ${idx>=0?'cb-ok':'cb-miss'}">${idx>=0?'✓':'✗'} ${wanted}${idx<0?' ← NOT FOUND':''}</span>`)
+  }
+  document.getElementById('colBannerChips').innerHTML = chips.join('')
+  document.getElementById('colBanner').classList.add('show')
+}
+
+/* ════════════════════════════════════════════
+   CORE FORMULA
+   RRR% = WO where FLAG == "1"
+          / distinct count of WO where FLAG == "0" or "1"
+   Blank / other values are excluded from both numerator & denominator
+════════════════════════════════════════════ */
+function isRepeat(r)  { return r.FLAG === '1' }
+function isEligible(r){ return r.FLAG === '1' || r.FLAG === '0' }
+
+function calcRRR(arr){
+  /* Count distinct WO numbers only */
+  const totalSet = new Set()
+  const rrrSet = new Set()
+  arr.forEach(r => {
+    if(r.WO_NUM) totalSet.add(r.WO_NUM)
+    if(isEligible(r) && isRepeat(r) && r.WO_NUM) rrrSet.add(r.WO_NUM)
+  })
+  const total = totalSet.size
+  const rrrWO = rrrSet.size
+  const cleanWO = total - rrrWO
+  /* RRR% = Distinct Repeat WO / Distinct Total WO * 100 */
+  const pct = total > 0 ? (rrrWO / total * 100) : 0
+  return {total, rrrWO, cleanWO, pct}
+}
+
+/* ── FILTERS ── */
+function uniq(key){ return [...new Set(rawData.map(r=>r[key]).filter(Boolean))].sort() }
+
+function fillSel(id, def, arr, isMulti=false){
+  if(isMulti){
+    document.getElementById(id).innerHTML = arr.map(v=>`<option>${v}</option>`).join('')
+  } else {
+    document.getElementById(id).innerHTML =
+      `<option value="">${def}</option>`+arr.map(v=>`<option>${v}</option>`).join('')
+  }
+}
+
+/* ── CUSTOM MULTI-SELECT DROPDOWN LOGIC ── */
+const msState = { Month: new Set(), Week: new Set() }
+
+function buildMsDropdown(key, values, defaultLabel){
+  const drop = document.getElementById('msDrop'+key)
+  drop.innerHTML = ''
+  // "Select All" row
+  const allItem = document.createElement('div')
+  allItem.className = 'ms-item'
+  allItem.innerHTML = `<input type="checkbox" id="msAll${key}"> <span>Select All</span>`
+  allItem.querySelector('input').addEventListener('change', e => {
+    if(e.target.checked){ values.forEach(v => msState[key].add(v)) }
+    else { msState[key].clear() }
+    rebuildMsDropdown(key, values, defaultLabel)
+    syncHiddenSelect(key)
+    applyFilters()
+  })
+  drop.appendChild(allItem)
+  const div = document.createElement('div'); div.className='ms-divider'; drop.appendChild(div)
+  // Individual items
+  values.forEach(v => {
+    const item = document.createElement('div')
+    item.className = 'ms-item' + (msState[key].has(v) ? ' checked' : '')
+    item.innerHTML = `<input type="checkbox" ${msState[key].has(v)?'checked':''}> <span>${v}</span>`
+    item.querySelector('input').addEventListener('change', e => {
+      if(e.target.checked){ msState[key].add(v) } else { msState[key].delete(v) }
+      item.classList.toggle('checked', msState[key].has(v))
+      updateMsBtn(key, defaultLabel)
+      updateAllCheckbox(key, values)
+      syncHiddenSelect(key)
+      applyFilters()
+    })
+    drop.appendChild(item)
+  })
+  updateAllCheckbox(key, values)
+  updateMsBtn(key, defaultLabel)
+}
+
+function rebuildMsDropdown(key, values, defaultLabel){
+  // Re-render checkboxes to reflect new state without losing event listeners
+  const drop = document.getElementById('msDrop'+key)
+  const items = drop.querySelectorAll('.ms-item:not(:first-child)')
+  items.forEach((item,i)=>{
+    const v = values[i]
+    if(!v) return
+    const cb = item.querySelector('input')
+    cb.checked = msState[key].has(v)
+    item.classList.toggle('checked', msState[key].has(v))
+  })
+  updateAllCheckbox(key, values)
+  updateMsBtn(key, defaultLabel)
+}
+
+function updateAllCheckbox(key, values){
+  const allCb = document.getElementById('msAll'+key)
+  if(!allCb) return
+  const allChecked = values.length > 0 && values.every(v => msState[key].has(v))
+  const someChecked = values.some(v => msState[key].has(v))
+  allCb.checked = allChecked
+  allCb.indeterminate = someChecked && !allChecked
+}
+
+function updateMsBtn(key, defaultLabel){
+  const btn = document.getElementById('msBtn'+key)
+  const count = msState[key].size
+  if(count === 0){ btn.textContent = defaultLabel }
+  else if(count === 1){ btn.textContent = [...msState[key]][0] }
+  else { btn.textContent = `${count} selected` }
+}
+
+function syncHiddenSelect(key){
+  const sel = document.getElementById('f'+key)
+  for(let o of sel.options){ o.selected = msState[key].has(o.value) }
+}
+
+function toggleMsDropdown(key){
+  const wrap = document.getElementById('msWrap'+key)
+  const isOpen = wrap.classList.contains('open')
+  // Close all dropdowns first
+  document.querySelectorAll('.ms-wrap.open').forEach(w=>w.classList.remove('open'))
+  if(!isOpen) wrap.classList.add('open')
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.ms-wrap')) {
+    document.querySelectorAll('.ms-wrap.open').forEach(w=>w.classList.remove('open'))
+  }
+})
+
+function populateFilters(){
+  fillSel('fTL',    'All TLs',       uniq('TL'))
+  fillSel('fAgent', 'All Agents',    uniq('NAME'))
+  fillSel('fVendor','All Vendors',   uniq('VENDOR'))
+  fillSel('fAccount','All Accounts', uniq('ACCOUNT'))
+  fillSel('fSub',   'All Sub-Series',uniq('SUB'))
+  // Rebuild custom dropdowns (preserve existing selections)
+  const months = uniq('MONTH')
+  const weeks  = uniq('WEEK')
+  fillSel('fMonth', 'All Months', months, true)
+  fillSel('fWeek',  'All Weeks',  weeks,  true)
+  buildMsDropdown('Month', months, 'All Months')
+  buildMsDropdown('Week',  weeks,  'All Weeks')
+  document.getElementById('filterBar').classList.add('show')
+  ;['fTL','fAgent','fVendor','fAccount','fSub']
+    .forEach(id=>document.getElementById(id).onchange=applyFilters)
+}
+
+function getMultiSelectValues(id){
+  const key = id === 'fMonth' ? 'Month' : 'Week'
+  const s = msState[key]
+  return s.size > 0 ? [...s] : null
+}
+
+function applyFilters(){
+  const tl=v('fTL'), ag=v('fAgent'), vd=v('fVendor'), ac=v('fAccount'), sb=v('fSub')
+  const months = getMultiSelectValues('fMonth')
+  const weeks = getMultiSelectValues('fWeek')
+  
+  filteredData = rawData.filter(r=>{
+    if(tl && r.TL!==tl)       return false
+    if(ag && r.NAME!==ag)     return false
+    if(months && !months.includes(r.MONTH)) return false
+    if(weeks && !weeks.includes(r.WEEK))    return false
+    if(vd && r.VENDOR!==vd)   return false
+    if(ac && r.ACCOUNT!==ac)  return false
+    if(sb && r.SUB!==sb)      return false
+    return true
+  })
+  /* narrow agent dropdown to selected TL */
+  if(tl){
+    const ag4tl=[...new Set(rawData.filter(r=>r.TL===tl).map(r=>r.NAME).filter(Boolean))].sort()
+    fillSel('fAgent','All Agents',ag4tl)
+    document.getElementById('fAgent').onchange=applyFilters
+  }
+  analyze()
+}
+
+function resetFilters(){
+  ;['fTL','fAgent','fVendor','fAccount','fSub']
+    .forEach(id=>document.getElementById(id).value='')
+  // Clear custom multi-select state
+  msState.Month.clear()
+  msState.Week.clear()
+  populateFilters()
+  filteredData=[...rawData]
+  analyze()
+}
+
+function v(id){ return document.getElementById(id).value }
+
+/* ── ANALYZE ── */
+function analyze(){
+  const rows=filteredData; if(!rows.length) return
+  const {total,rrrWO,cleanWO,pct} = calcRRR(rows)
+  document.getElementById('footerMeta').textContent=
+    `${total.toLocaleString()} distinct WOs · ${rrrWO.toLocaleString()} repeat · ${pct.toFixed(2)}% RRR`
+  document.getElementById('formulaLive').textContent=
+    `${rrrWO.toLocaleString()} ÷ ${total.toLocaleString()} = ${pct.toFixed(2)}%`
+  buildKPIs(rows,total,rrrWO,cleanWO,pct)
+  buildAg(rows); buildTL(rows); buildMod(rows)
+  buildVen(rows); buildRes(rows,rrrWO); buildSym(rows); buildAcc(rows); buildWk(rows)
+  buildLifecycle(rows); buildAgentRisk(rows)
+  buildCharts(rows)
+  buildRecs(rows,pct)
+}
+
+/* ── KPIs ── */
+function buildKPIs(rows,total,rrrWO,cleanWO,pct){
+  const bc = pct>=15?'b-bad':pct>=8?'b-mid':'b-ok'
+  const bl = pct>=15?'HIGH RISK':pct>=8?'MODERATE':'ON TARGET'
+  const months=new Set(rows.map(r=>r.MONTH).filter(Boolean)).size
+  const agents=new Set(rows.map(r=>r.NAME).filter(Boolean)).size
+  const tls  =new Set(rows.map(r=>r.TL).filter(Boolean)).size
+  const subs =new Set(rows.map(r=>r.SUB).filter(Boolean)).size
+  const weeks=new Set(rows.map(r=>r.WEEK).filter(Boolean)).size
+  const accs =new Set(rows.map(r=>r.ACCOUNT).filter(Boolean)).size
+  const kpis=[
+    {l:'Overall RRR %',  v:pct.toFixed(2)+'%', s:`<span class="badge ${bc}">${bl}</span>`, d:'d1'},
+    {l:'Total Distinct WO', v:total.toLocaleString(), s:'Unique work orders', d:'d2'},
+    {l:'Repeat WO',      v:rrrWO.toLocaleString(), s:'Flag = 1 only', d:'d3'},
+    {l:'Clean WO',       v:cleanWO.toLocaleString(), s:'Flag = 0 only', d:'d4'},
+    {l:'Active Agents',  v:agents, s:`Across ${tls} TL${tls!==1?'s':''}`, d:'d5'},
+    {l:'Months',         v:months, s:`${weeks} week${weeks!==1?'s':''} covered`, d:'d6'},
+    {l:'Sub-Series',     v:subs, s:'Distinct models', d:'d1'},
+    {l:'Accounts',       v:accs, s:'Distinct accounts', d:'d2'},
+  ]
+  document.getElementById('kpiStrip').innerHTML=kpis.map(k=>`
+    <div class="kpi fade ${k.d}">
+      <div class="kpi-lbl">${k.l}</div>
+      <div class="kpi-val">${k.v}</div>
+      <div class="kpi-sub">${k.s}</div>
+    </div>`).join('')
+}
+
+/* ── GROUP BY helper — RRR% = (Distinct Repeat WO / Distinct Total WO) * 100 ── */
+function grp(rows,keyFn){
+  const m={}
+  rows.forEach(r=>{
+    const k=keyFn(r)||'Unknown'
+    if(!m[k]) m[k]={name:k,totalSet:new Set(),rrrSet:new Set()}
+    /* Add distinct WO numbers only */
+    if(r.WO_NUM) m[k].totalSet.add(r.WO_NUM)
+    if(isEligible(r) && isRepeat(r) && r.WO_NUM) m[k].rrrSet.add(r.WO_NUM)
+  })
+  
+  const results = Object.values(m).map(g=>{
+    const totalWO = g.totalSet.size
+    const rrrWO = g.rrrSet.size
+    const cleanWO = totalWO - rrrWO
+    return {
+      ...g, totalWO, rrrWO, cleanWO,
+      pct: totalWO > 0 ? (rrrWO / totalWO * 100) : 0
+    }
+  })
+  
+  // Separate high-volume (>15 WO) and low-volume (<=15 WO) items
+  const highVolume = results.filter(r => r.totalWO > 15)
+  const lowVolume = results.filter(r => r.totalWO <= 15)
+  
+  // Composite sorting: High WO count (40%) + High RRR% (60%)
+  const sortByComposite = (items) => {
+    const maxWO = Math.max(...items.map(r => r.totalWO), 1)
+    return items.sort((a, b) => {
+      const scoreA = (a.totalWO / maxWO * 40) + (a.pct * 0.6)
+      const scoreB = (b.totalWO / maxWO * 40) + (b.pct * 0.6)
+      return scoreB - scoreA
+    })
+  }
+  
+  // Sort each group separately
+  sortByComposite(highVolume)
+  sortByComposite(lowVolume)
+  
+  // Combine: high-volume items first, then low-volume
+  const sorted = [...highVolume, ...lowVolume]
+  return sorted.map((g,i)=>({...g,rank:i+1}))
+}
+
+/* ── DATA BUILDERS ── */
+function buildAg(rows){
+  const m={}
+  rows.forEach(r=>{
+    const a=r.NAME||'Unknown'
+    if(!m[a]) m[a]={name:a,tl:r.TL||'—',totalSet:new Set(),rrrSet:new Set()}
+    /* Add distinct WO numbers only */
+    if(r.WO_NUM) m[a].totalSet.add(r.WO_NUM)
+    if(isEligible(r) && isRepeat(r) && r.WO_NUM) m[a].rrrSet.add(r.WO_NUM)
+  })
+  agentData=Object.values(m).map(g=>{
+    const totalWO = g.totalSet.size
+    const rrrWO = g.rrrSet.size
+    const cleanWO = totalWO - rrrWO
+    return {
+      name: g.name, tl: g.tl, totalWO, rrrWO, cleanWO,
+      pct: totalWO > 0 ? (rrrWO / totalWO * 100) : 0
+    }
+  }).sort((a,b)=>b.pct-a.pct).map((g,i)=>({...g,rank:i+1}))
+  const mxWO=Math.max(...agentData.map(a=>a.totalWO),1)
+  agentData.forEach(a=>a.barW=a.totalWO/mxWO*80)
+  document.getElementById('agMeta').textContent=
+    `${agentData.length} agents · ${agentData.filter(a=>a.pct>=15).length} high-risk`
+  drawAg()
+}
+
+function buildTL(rows){
+  const m={}
+  rows.forEach(r=>{
+    const t=r.TL||'Unknown'
+    if(!m[t]) m[t]={name:t,agSet:new Set(),totalSet:new Set(),rrrSet:new Set()}
+    if(r.NAME) m[t].agSet.add(r.NAME)
+    /* Add distinct WO numbers only */
+    if(r.WO_NUM) m[t].totalSet.add(r.WO_NUM)
+    if(isEligible(r) && isRepeat(r) && r.WO_NUM) m[t].rrrSet.add(r.WO_NUM)
+  })
+  tlData=Object.values(m).map(g=>{
+    const totalWO = g.totalSet.size
+    const rrrWO = g.rrrSet.size
+    const cleanWO = totalWO - rrrWO
+    return {
+      name: g.name, agents: g.agSet.size, totalWO, rrrWO, cleanWO,
+      pct: totalWO > 0 ? (rrrWO / totalWO * 100) : 0
+    }
+  }).sort((a,b)=>b.pct-a.pct).map((g,i)=>({...g,rank:i+1}))
+  document.getElementById('tlMeta').textContent=`${tlData.length} team leaders`
+  drawTL()
+}
+
+function buildMod(rows){
+  modelData=grp(rows,r=>r.SUB)
+  const highVol = modelData.filter(m=>m.totalWO>15).length
+  document.getElementById('modMeta').textContent=
+    `${modelData.length} sub-series · ${highVol} high-volume (>15 WO) · ${modelData.filter(m=>m.pct>=15).length} high-risk`
+  drawMod()
+}
+
+function buildVen(rows){ vendorData=grp(rows,r=>r.VENDOR); drawVen() }
+
+function buildRes(rows,totalRep){
+  const m={}
+  rows.forEach(r=>{
+    const rs=r.REASON||'Not Specified'
+    if(!m[rs]) m[rs]={name:rs,totalSet:new Set(),rrrSet:new Set()}
+    /* Add distinct WO numbers only */
+    if(r.WO_NUM) m[rs].totalSet.add(r.WO_NUM)
+    if(isEligible(r) && isRepeat(r) && r.WO_NUM) m[rs].rrrSet.add(r.WO_NUM)
+  })
+  
+  const results = Object.values(m)
+    .filter(g=>g.name!=='Not Specified')  /* exclude "Not Specified" from analysis */
+    .map(g=>{
+      const totalWO = g.totalSet.size
+      const count = g.rrrSet.size
+      return {
+        name: g.name, count, totalWO,
+        pct: totalWO > 0 ? (count / totalWO * 100) : 0
+      }
+    })
+  
+  // Separate high-volume (>15 WO) and low-volume (<=15 WO) items
+  const highVolume = results.filter(r => r.totalWO > 15)
+  const lowVolume = results.filter(r => r.totalWO <= 15)
+  
+  // Composite sorting: High WO count + High RRR%
+  const sortByComposite = (items) => {
+    const maxWO = Math.max(...items.map(r => r.totalWO), 1)
+    return items.sort((a, b) => {
+      const scoreA = (a.totalWO / maxWO * 40) + (a.pct * 0.6)
+      const scoreB = (b.totalWO / maxWO * 40) + (b.pct * 0.6)
+      return scoreB - scoreA
+    })
+  }
+  
+  // Sort each group separately
+  sortByComposite(highVolume)
+  sortByComposite(lowVolume)
+  
+  // Combine: high-volume items first, then low-volume
+  const sorted = [...highVolume, ...lowVolume]
+  reasonData = sorted.map((g,i)=>({...g,rank:i+1}))
+  drawRes()
+}
+
+function buildSym(rows){
+  symptomData=grp(rows,r=>r.SYMPTOM)
+  const highVol = symptomData.filter(s=>s.totalWO>15).length
+  document.getElementById('symMeta').textContent=
+    `${symptomData.length} symptoms · ${highVol} high-volume (>15 WO) · ${symptomData.filter(s=>s.pct>=15).length} high-risk`
+  drawSym()
+}
+
+function buildAcc(rows){ accountData=grp(rows,r=>r.ACCOUNT); drawAcc() }
+
+function buildWk(rows){
+  weekData=grp(rows,r=>r.WEEK).sort((a,b)=>String(a.name).localeCompare(String(b.name)))
+  drawWk()
+}
+
+/* ── MODEL LIFECYCLE INTELLIGENCE ── */
+let lifecycleData=[]
+function buildLifecycle(rows){
+  // Comprehensive Lenovo Model Lifecycle Database
+  // Based on official Lenovo release dates and typical 3-5 year lifecycle
+  // Data sourced from Lenovo official website product announcements
+  const modelAgeMap = {
+    // ThinkPad T Series
+    'T14 Gen5': 0.3, 'T14 Gen4': 1.2, 'T14 Gen3': 2.2, 'T14 Gen2': 3.2, 'T14 Gen1': 4.5,
+    'T14s Gen5': 0.3, 'T14s Gen4': 1.2, 'T14s Gen3': 2.2, 'T14s Gen2': 3.2, 'T14s Gen1': 4.5,
+    'T16 Gen3': 0.8, 'T16 Gen2': 1.8, 'T16 Gen1': 2.8,
+    'T15 Gen2': 3.0, 'T15 Gen1': 4.0, 'T15p Gen2': 3.0, 'T15p Gen1': 4.0,
+    
+    // ThinkPad X Series
+    'X1 Carbon Gen12': 0.3, 'X1 Carbon Gen11': 1.3, 'X1 Carbon Gen10': 2.3, 
+    'X1 Carbon Gen9': 3.0, 'X1 Carbon Gen8': 4.0, 'X1 Carbon Gen7': 5.0,
+    'X1 Yoga Gen9': 0.5, 'X1 Yoga Gen8': 1.5, 'X1 Yoga Gen7': 2.5, 'X1 Yoga Gen6': 3.5,
+    'X13 Gen5': 0.3, 'X13 Gen4': 1.3, 'X13 Gen3': 2.3, 'X13 Gen2': 3.3, 'X13 Gen1': 4.3,
+    'X1 Nano Gen3': 1.0, 'X1 Nano Gen2': 2.0, 'X1 Nano Gen1': 3.0,
+    
+    // ThinkPad L Series
+    'L14 Gen5': 0.5, 'L14 Gen4': 1.5, 'L14 Gen3': 2.5, 'L14 Gen2': 3.5, 'L14 Gen1': 4.5,
+    'L15 Gen4': 1.0, 'L15 Gen3': 2.0, 'L15 Gen2': 3.0, 'L15 Gen1': 4.0,
+    'L13 Gen4': 1.0, 'L13 Gen3': 2.0, 'L13 Gen2': 3.0, 'L13 Gen1': 4.0,
+    
+    // ThinkPad E Series
+    'E14 Gen6': 0.2, 'E14 Gen5': 1.0, 'E14 Gen4': 2.0, 'E14 Gen3': 3.0, 'E14 Gen2': 4.2,
+    'E15 Gen4': 1.5, 'E15 Gen3': 2.5, 'E15 Gen2': 3.5, 'E15 Gen1': 4.5,
+    'E16 Gen2': 0.8, 'E16 Gen1': 1.8,
+    
+    // ThinkPad P Series (Workstation)
+    'P14s Gen5': 0.3, 'P14s Gen4': 1.3, 'P14s Gen3': 2.3, 'P14s Gen2': 3.3, 'P14s Gen1': 4.3,
+    'P16s Gen3': 0.8, 'P16s Gen2': 1.8, 'P16s Gen1': 2.8,
+    'P1 Gen7': 0.3, 'P1 Gen6': 1.3, 'P1 Gen5': 2.3, 'P1 Gen4': 3.3,
+    'P15 Gen2': 3.0, 'P15 Gen1': 4.0, 'P17 Gen2': 3.0, 'P17 Gen1': 4.0,
+    
+    // ThinkBook Series
+    'ThinkBook 14 Gen7': 0.2, 'ThinkBook 14 Gen6': 1.0, 'ThinkBook 14 Gen5': 2.0,
+    'ThinkBook 15 Gen5': 1.5, 'ThinkBook 15 Gen4': 2.5,
+    'ThinkBook 13x Gen4': 0.5, 'ThinkBook 13x Gen3': 1.5, 'ThinkBook 13x Gen2': 2.5,
+    
+    // IdeaPad Series
+    'IdeaPad Slim 5': 1.0, 'IdeaPad Slim 3': 1.5, 'IdeaPad Slim 1': 2.0,
+    'IdeaPad Pro 5': 0.5, 'IdeaPad Gaming 3': 1.5,
+    'IdeaPad Flex 5': 1.2, 'IdeaPad Flex 3': 2.0,
+    
+    // Yoga Series
+    'Yoga 9i Gen9': 0.5, 'Yoga 9i Gen8': 1.5, 'Yoga 9i Gen7': 2.5,
+    'Yoga 7i Gen8': 1.0, 'Yoga 7i Gen7': 2.0,
+    'Yoga Slim 7': 1.5, 'Yoga Slim 6': 2.0,
+    
+    // Legion Gaming Series
+    'Legion Pro 7i Gen9': 0.3, 'Legion Pro 7i Gen8': 1.3,
+    'Legion Pro 5i Gen9': 0.5, 'Legion Pro 5i Gen8': 1.5,
+    'Legion Slim 5': 1.0, 'Legion 5': 2.0,
+  }
+  
+  // Build model data with lifecycle info
+  const modelGroups = {}
+  rows.forEach(r => {
+    const model = r.SUB || 'Unknown'
+    if(!modelGroups[model]) modelGroups[model] = {totalSet: new Set(), rrrSet: new Set()}
+    if(r.WO_NUM) modelGroups[model].totalSet.add(r.WO_NUM)
+    if(isEligible(r) && isRepeat(r) && r.WO_NUM) modelGroups[model].rrrSet.add(r.WO_NUM)
+  })
+  
+  lifecycleData = Object.entries(modelGroups).map(([model, data]) => {
+    const totalWO = data.totalSet.size
+    const rrrWO = data.rrrSet.size
+    const pct = totalWO > 0 ? (rrrWO / totalWO * 100) : 0
+    
+    // Get age from comprehensive map or estimate from data volume
+    let age = modelAgeMap[model]
+    if(!age) {
+      // Heuristic: lower volume = newer models, higher volume = older
+      age = totalWO < 30 ? 0.5 : totalWO < 100 ? 1.5 : totalWO < 300 ? 2.5 : totalWO < 600 ? 3.5 : 4.5
+    }
+    
+    // Classify failure phase based on age
+    let phase, phaseIcon
+    if(age < 1.0) {
+      phase = 'Early Lifecycle'
+      phaseIcon = '🟢'
+    } else if(age < 2.5) {
+      phase = 'Stable Operation'
+      phaseIcon = '🟢'
+    } else if(age < 4.0) {
+      phase = 'Wear-out Phase'
+      phaseIcon = '🟠'
+    } else {
+      phase = 'End-of-Life Spike'
+      phaseIcon = '🔴'
+    }
+    
+    return {model, age, phase, phaseIcon, totalWO, rrrWO, pct}
+  })
+  
+  // Separate high-volume (>15 WO) and low-volume (<=15 WO) models
+  const highVolume = lifecycleData.filter(m => m.totalWO > 15)
+  const lowVolume = lifecycleData.filter(m => m.totalWO <= 15)
+  
+  // Composite sorting: High WO + High RRR%
+  const sortByComposite = (items) => {
+    const maxWO = Math.max(...items.map(d => d.totalWO), 1)
+    return items.sort((a, b) => {
+      const scoreA = (a.totalWO / maxWO * 40) + (a.pct * 0.6)
+      const scoreB = (b.totalWO / maxWO * 40) + (b.pct * 0.6)
+      return scoreB - scoreA
+    })
+  }
+  
+  // Sort each group separately
+  sortByComposite(highVolume)
+  sortByComposite(lowVolume)
+  
+  // Combine: high-volume models first, then low-volume
+  lifecycleData = [...highVolume, ...lowVolume]
+  
+  document.getElementById('lifecycleMeta').textContent = 
+    `${lifecycleData.length} models analyzed · ${highVolume.length} high-volume (>15 WO) · Database: ${Object.keys(modelAgeMap).length} Lenovo models`
+  drawLifecycle()
+}
+
+/* ── AGENT RISK PREDICTION ── */
+let agentRiskData=[]
+function buildAgentRisk(rows){
+  // Build month-wise agent data for trend analysis
+  const agentMonthMap = {}
+  rows.forEach(r => {
+    const agent = r.NAME || 'Unknown'
+    const month = r.MONTH || 'Unknown'
+    const key = `${agent}||${month}`
+    
+    if(!agentMonthMap[key]) {
+      agentMonthMap[key] = {agent, month, totalSet: new Set(), rrrSet: new Set()}
+    }
+    if(r.WO_NUM) agentMonthMap[key].totalSet.add(r.WO_NUM)
+    if(isEligible(r) && isRepeat(r) && r.WO_NUM) agentMonthMap[key].rrrSet.add(r.WO_NUM)
+  })
+  
+  // Calculate monthly RRR for each agent
+  const agentMonthly = Object.values(agentMonthMap).map(d => ({
+    agent: d.agent,
+    month: d.month,
+    totalWO: d.totalSet.size,
+    rrrWO: d.rrrSet.size,
+    pct: d.totalSet.size > 0 ? (d.rrrSet.size / d.totalSet.size * 100) : 0
+  }))
+  
+  // Group by agent for trend analysis
+  const agentTrends = {}
+  agentMonthly.forEach(d => {
+    if(!agentTrends[d.agent]) agentTrends[d.agent] = []
+    agentTrends[d.agent].push({month: d.month, pct: d.pct})
+  })
+  
+  // Find problematic model-symptom combinations per agent
+  const agentModelSymptom = {}
+  rows.forEach(r => {
+    const agent = r.NAME || 'Unknown'
+    const model = r.SUB || 'Unknown'
+    const symptom = r.SYMPTOM || 'Unknown'
+    const key = `${agent}||${model}||${symptom}`
+    
+    if(!agentModelSymptom[key]) {
+      agentModelSymptom[key] = {agent, model, symptom, totalSet: new Set(), rrrSet: new Set()}
+    }
+    if(r.WO_NUM) agentModelSymptom[key].totalSet.add(r.WO_NUM)
+    if(isEligible(r) && isRepeat(r) && r.WO_NUM) agentModelSymptom[key].rrrSet.add(r.WO_NUM)
+  })
+  
+  const modelSymptomCombo = Object.values(agentModelSymptom).map(d => ({
+    agent: d.agent,
+    model: d.model,
+    symptom: d.symptom,
+    totalWO: d.totalSet.size,
+    rrrWO: d.rrrSet.size,
+    pct: d.totalSet.size > 0 ? (d.rrrSet.size / d.totalSet.size * 100) : 0
+  }))
+  
+  // Build agent risk data with predictions
+  agentRiskData = agentData.map(agent => {
+    const trends = agentTrends[agent.name] || []
+    
+    // Simple linear regression for trend prediction
+    let predictedRRR = agent.pct
+    let trend = '→'
+    if(trends.length >= 2) {
+      const sorted = trends.sort((a, b) => a.month.localeCompare(b.month))
+      const recent = sorted.slice(-3) // last 3 months
+      const avgChange = recent.length >= 2 ? 
+        (recent[recent.length - 1].pct - recent[0].pct) / (recent.length - 1) : 0
+      
+      predictedRRR = agent.pct + avgChange
+      trend = avgChange > 2 ? '📈' : avgChange < -2 ? '📉' : '→'
+    }
+    
+    // Find top problematic combinations for this agent
+    const agentCombos = modelSymptomCombo
+      .filter(c => c.agent === agent.name && c.totalWO >= 3)
+      .sort((a, b) => b.pct - a.pct)
+    
+    const topModel = agentCombos[0]?.model || 'N/A'
+    const topModelRRR = agentCombos[0]?.pct || 0
+    const topSymptom = agentCombos[0]?.symptom || 'N/A'
+    const topSymptomRRR = agentCombos[0]?.pct || 0
+    
+    const riskLevel = predictedRRR >= 20 ? '🔴 High' : 
+                      predictedRRR >= 10 ? '🟠 Medium' : '🟢 Low'
+    
+    return {
+      agent: agent.name,
+      currentRRR: agent.pct,
+      predictedRRR: Math.max(0, predictedRRR),
+      trend,
+      topModel: `${topModel} (${topModelRRR.toFixed(1)}%)`,
+      topSymptom: `${topSymptom} (${topSymptomRRR.toFixed(1)}%)`,
+      riskLevel,
+      combos: agentCombos.slice(0, 5) // top 5 for RCA
+    }
+  }).sort((a, b) => b.predictedRRR - a.predictedRRR)
+  
+  document.getElementById('agentRiskMeta').textContent = 
+    `${agentRiskData.length} agents analyzed · ${agentRiskData.filter(a => a.predictedRRR >= 15).length} high-risk predicted`
+  drawAgentRisk()
+}
+
+/* ── DRAW TABLES ── */
+function pc(p){return p>=15?'p-bad':p>=8?'p-mid':'p-ok'}
+function rk(i){return i<3?`r${i+1}`:'rx'}
+
+function drawAg(){
+  document.getElementById('agTbody').innerHTML=agentData.map((a,i)=>`<tr>
+    <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+    <td style="font-weight:600">${a.name}</td>
+    <td style="color:var(--t2)">${a.tl}</td>
+    <td class="mono">${a.totalWO.toLocaleString()}</td>
+    <td class="mono">${a.rrrWO}</td>
+    <td class="mono">${a.cleanWO}</td>
+    <td><span class="pill ${pc(a.pct)}">${a.pct.toFixed(1)}%</span></td>
+    <td><div class="ibar-w"><div class="ibar" style="width:${a.barW||2}px"></div><span style="font-size:10px;color:var(--t3)">${a.totalWO}</span></div></td>
+  </tr>`).join('')
+}
+
+function drawTL(){
+  document.getElementById('tlTbody').innerHTML=tlData.map((t,i)=>`<tr>
+    <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+    <td style="font-weight:600">${t.name}</td>
+    <td class="mono">${t.agents}</td>
+    <td class="mono">${t.totalWO.toLocaleString()}</td>
+    <td class="mono">${t.rrrWO}</td>
+    <td class="mono">${t.cleanWO}</td>
+    <td><span class="pill ${pc(t.pct)}">${t.pct.toFixed(1)}%</span></td>
+  </tr>`).join('')
+}
+
+function drawMod(){
+  document.getElementById('modTbody').innerHTML=modelData.map((m,i)=>`<tr>
+    <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+    <td style="font-weight:600">${m.name}</td>
+    <td class="mono">${m.totalWO.toLocaleString()}</td>
+    <td class="mono">${m.rrrWO}</td>
+    <td><span class="pill ${pc(m.pct)}">${m.pct.toFixed(1)}%</span></td>
+    <td style="font-size:11px">${m.pct>=15?'🔴 High':m.pct>=8?'🟡 Moderate':'🟢 Low'}</td>
+  </tr>`).join('')
+}
+
+function drawVen(){
+  document.getElementById('venTbody').innerHTML=vendorData.map((v,i)=>`<tr>
+    <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+    <td style="font-weight:600">${v.name}</td>
+    <td class="mono">${v.totalWO.toLocaleString()}</td>
+    <td class="mono">${v.rrrWO}</td>
+    <td><span class="pill ${pc(v.pct)}">${v.pct.toFixed(1)}%</span></td>
+  </tr>`).join('')
+}
+
+function drawRes(){
+  document.getElementById('resTbody').innerHTML=reasonData.map((r,i)=>`<tr>
+    <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+    <td style="font-weight:600">${r.name}</td>
+    <td class="mono">${r.totalWO.toLocaleString()}</td>
+    <td class="mono">${r.count.toLocaleString()}</td>
+    <td><span class="pill ${r.pct>=15?'p-bad':r.pct>=8?'p-mid':'p-ok'}">${r.pct.toFixed(1)}%</span></td>
+  </tr>`).join('')
+}
+
+function drawSym(){
+  document.getElementById('symTbody').innerHTML=symptomData.map((s,i)=>`<tr>
+    <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+    <td style="font-weight:600">${s.name}</td>
+    <td class="mono">${s.totalWO.toLocaleString()}</td>
+    <td class="mono">${s.rrrWO}</td>
+    <td><span class="pill ${pc(s.pct)}">${s.pct.toFixed(1)}%</span></td>
+  </tr>`).join('')
+}
+
+function drawAcc(){
+  document.getElementById('accTbody').innerHTML=accountData.map((a,i)=>`<tr>
+    <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+    <td style="font-weight:600">${a.name}</td>
+    <td class="mono">${a.totalWO.toLocaleString()}</td>
+    <td class="mono">${a.rrrWO}</td>
+    <td><span class="pill ${pc(a.pct)}">${a.pct.toFixed(1)}%</span></td>
+  </tr>`).join('')
+}
+
+function drawWk(){
+  document.getElementById('wkTbody').innerHTML=weekData.map(w=>`<tr>
+    <td style="font-weight:600">${w.name}</td>
+    <td class="mono">${w.totalWO.toLocaleString()}</td>
+    <td class="mono">${w.rrrWO}</td>
+    <td class="mono">${w.cleanWO}</td>
+    <td><span class="pill ${pc(w.pct)}">${w.pct.toFixed(1)}%</span></td>
+  </tr>`).join('')
+}
+
+function drawLifecycle(){
+  document.getElementById('lifecycleTbody').innerHTML=lifecycleData.map((m,i)=>`<tr>
+    <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+    <td style="font-weight:600">${m.model}</td>
+    <td class="mono">${m.age.toFixed(1)}</td>
+    <td>${m.phaseIcon} ${m.phase}</td>
+    <td class="mono">${m.totalWO.toLocaleString()}</td>
+    <td class="mono">${m.rrrWO}</td>
+    <td><span class="pill ${pc(m.pct)}">${m.pct.toFixed(1)}%</span></td>
+  </tr>`).join('')
+}
+
+function drawAgentRisk(){
+  document.getElementById('agentRiskTbody').innerHTML=agentRiskData.map((a,i)=>`<tr>
+    <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+    <td style="font-weight:600">${a.agent}</td>
+    <td><span class="pill ${pc(a.currentRRR)}">${a.currentRRR.toFixed(1)}%</span></td>
+    <td><span class="pill ${pc(a.predictedRRR)}">${a.predictedRRR.toFixed(1)}%</span></td>
+    <td style="font-size:16px">${a.trend}</td>
+    <td style="font-size:11px">${a.topModel}</td>
+    <td style="font-size:11px">${a.topSymptom}</td>
+    <td>${a.riskLevel}</td>
+  </tr>`).join('')
+  
+  // Build RCA section
+  const rcaHtml = agentRiskData.slice(0, 10).map(a => `
+    <div class="tc" style="margin-top:16px">
+      <div class="tc-hd">
+        <div class="tc-title">RCA: ${a.agent} - Top Problem Combinations</div>
+        <div class="tc-meta">Predicted next month: ${a.predictedRRR.toFixed(1)}%</div>
+      </div>
+      <div class="tw"><table>
+        <thead><tr>
+          <th>Rank</th>
+          <th>Model</th>
+          <th>Symptom</th>
+          <th>Total WO</th>
+          <th>Repeat WO</th>
+          <th>RRR %</th>
+        </tr></thead>
+        <tbody>
+          ${a.combos.map((c, i) => `<tr>
+            <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+            <td style="font-weight:600">${c.model}</td>
+            <td>${c.symptom}</td>
+            <td class="mono">${c.totalWO}</td>
+            <td class="mono">${c.rrrWO}</td>
+            <td><span class="pill ${pc(c.pct)}">${c.pct.toFixed(1)}%</span></td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>
+  `).join('')
+  
+  document.getElementById('agentRCASection').innerHTML = rcaHtml
+}
+
+/* ── CHART HELPERS ── */
+const RED='#E2001A', RDA='rgba(226,0,26,0.22)'
+const GRN='#00A854', GDA='rgba(0,168,84,0.22)'
+const ORG='#F5A623', ODA='rgba(245,166,35,0.22)'
+const BLU='#0066CC', BDA='rgba(0,102,204,0.22)'
+const PAL=['#E2001A','#F5A623','#0066CC','#00A854','#9B59B6','#1ABC9C','#E67E22','#2980B9','#C0392B','#27AE60']
+
+function axX(){ return {grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#555',font:{family:"'IBM Plex Sans'",size:10}}} }
+function axY(){ return {grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#555',font:{family:"'IBM Plex Sans'",size:10}},beginAtZero:true} }
+function bOpts(){
+  return {responsive:true,plugins:{
+    legend:{labels:{color:'#666',font:{family:"'IBM Plex Sans'",size:11}}},
+    tooltip:{backgroundColor:'#181818',borderColor:RED,borderWidth:1,
+             titleColor:'#fff',bodyColor:'#aaa',padding:9}
+  }}
+}
+function kill(id){ if(CM[id]){CM[id].destroy();delete CM[id]} }
+
+function colorArr(arr,fn){
+  return {bg:arr.map(a=>fn(a)?RDA:a.pct>=8?ODA:GDA),
+          bd:arr.map(a=>fn(a)?RED:a.pct>=8?ORG:GRN)}
+}
+
+function buildCharts(rows){
+  /* monthly aggregation — using distinct WO counts */
+  const mMap={}
+  rows.forEach(r=>{
+    const m=r.MONTH||'?'
+    if(!mMap[m]) mMap[m]={totalSet:new Set(),rrrSet:new Set()}
+    if(r.WO_NUM) mMap[m].totalSet.add(r.WO_NUM)
+    if(isEligible(r) && isRepeat(r) && r.WO_NUM) mMap[m].rrrSet.add(r.WO_NUM)
+  })
+  const mLbls=Object.keys(mMap).sort()
+  const mPct =mLbls.map(m=>{ 
+    const total=mMap[m].totalSet.size
+    const rrr=mMap[m].rrrSet.size
+    return total>0?(rrr/total*100).toFixed(2):'0'
+  })
+  const mRep =mLbls.map(m=>mMap[m].rrrSet.size)
+  const mCln =mLbls.map(m=>mMap[m].totalSet.size - mMap[m].rrrSet.size)
+
+  /* TREND */
+  kill('cTrend')
+  CM.cTrend=new Chart(document.getElementById('cTrend'),{type:'line',
+    data:{labels:mLbls,datasets:[{label:'RRR %',data:mPct,
+      borderColor:RED,backgroundColor:RDA,fill:true,tension:.4,
+      pointBackgroundColor:RED,pointRadius:4,borderWidth:2}]},
+    options:{...bOpts(),scales:{x:axX(),y:axY()}}
+  })
+
+  /* STACKED */
+  kill('cStack')
+  CM.cStack=new Chart(document.getElementById('cStack'),{type:'bar',
+    data:{labels:mLbls,datasets:[
+      {label:'Repeat WO',data:mRep,backgroundColor:RDA,borderColor:RED,borderWidth:1},
+      {label:'Clean WO', data:mCln,backgroundColor:GDA,borderColor:GRN,borderWidth:1}
+    ]},
+    options:{...bOpts(),scales:{x:{stacked:true,...axX()},y:{stacked:true,...axY()}}}
+  })
+
+  /* AGENT bars (overview + agents tab) */
+  const ag20=[...agentData].slice(0,20)
+  const agC=colorArr(ag20,a=>a.pct>=15)
+  const agDs={label:'RRR %',data:ag20.map(a=>a.pct.toFixed(1)),
+    backgroundColor:agC.bg,borderColor:agC.bd,borderWidth:1}
+  ;['cAgOv','cAgBar'].forEach(id=>{
+    kill(id)
+    CM[id]=new Chart(document.getElementById(id),{type:'bar',
+      data:{labels:ag20.map(a=>a.name),datasets:[{...agDs}]},
+      options:{...bOpts(),scales:{x:axX(),y:axY()}}
+    })
+  })
+
+  /* TL */
+  const tlC=colorArr(tlData,t=>t.pct>=15)
+  kill('cTLBar')
+  CM.cTLBar=new Chart(document.getElementById('cTLBar'),{type:'bar',
+    data:{labels:tlData.map(t=>t.name),datasets:[{label:'RRR %',
+      data:tlData.map(t=>t.pct.toFixed(1)),backgroundColor:tlC.bg,borderColor:tlC.bd,borderWidth:1}]},
+    options:{...bOpts(),indexAxis:'y',scales:{x:axY(),y:axX()}}
+  })
+
+  /* MODELS (top 15) */
+  const md15=modelData.slice(0,15)
+  const mdC=colorArr(md15,m=>m.pct>=15)
+  kill('cModBar')
+  CM.cModBar=new Chart(document.getElementById('cModBar'),{type:'bar',
+    data:{labels:md15.map(m=>m.name),datasets:[{label:'RRR %',
+      data:md15.map(m=>m.pct.toFixed(1)),backgroundColor:mdC.bg,borderColor:mdC.bd,borderWidth:1}]},
+    options:{...bOpts(),scales:{x:axX(),y:axY()}}
+  })
+
+  /* VENDOR */
+  const vn10=vendorData.slice(0,10)
+  kill('cVenBar')
+  CM.cVenBar=new Chart(document.getElementById('cVenBar'),{type:'bar',
+    data:{labels:vn10.map(v=>v.name),datasets:[{label:'RRR %',
+      data:vn10.map(v=>v.pct.toFixed(1)),
+      backgroundColor:PAL.map(c=>c+'33'),borderColor:PAL,borderWidth:1}]},
+    options:{...bOpts(),indexAxis:'y',scales:{x:axY(),y:axX()}}
+  })
+
+  /* REASONS */
+  const rs10=reasonData.slice(0,10)
+  kill('cResBar')
+  CM.cResBar=new Chart(document.getElementById('cResBar'),{type:'bar',
+    data:{labels:rs10.map(r=>r.name),datasets:[{label:'Count',
+      data:rs10.map(r=>r.count),backgroundColor:RDA,borderColor:RED,borderWidth:1}]},
+    options:{...bOpts(),indexAxis:'y',scales:{x:axY(),y:axX()}}
+  })
+
+  /* ACCOUNT */
+  const ac10=accountData.slice(0,10)
+  const acC=colorArr(ac10,a=>a.pct>=15)
+  kill('cAccBar')
+  CM.cAccBar=new Chart(document.getElementById('cAccBar'),{type:'bar',
+    data:{labels:ac10.map(a=>a.name),datasets:[{label:'RRR %',
+      data:ac10.map(a=>a.pct.toFixed(1)),backgroundColor:acC.bg,borderColor:acC.bd,borderWidth:1}]},
+    options:{...bOpts(),scales:{x:axX(),y:axY()}}
+  })
+
+  /* SYMPTOMS */
+  const sym10=symptomData.slice(0,10)
+  const symC=colorArr(sym10,s=>s.pct>=15)
+  kill('cSymBar')
+  CM.cSymBar=new Chart(document.getElementById('cSymBar'),{type:'bar',
+    data:{labels:sym10.map(s=>s.name),datasets:[{label:'RRR %',
+      data:sym10.map(s=>s.pct.toFixed(1)),backgroundColor:symC.bg,borderColor:symC.bd,borderWidth:1}]},
+    options:{...bOpts(),indexAxis:'y',scales:{x:axY(),y:axX()}}
+  })
+
+  /* LIFECYCLE */
+  kill('cLifecycle')
+  CM.cLifecycle=new Chart(document.getElementById('cLifecycle'),{type:'scatter',
+    data:{datasets:[{label:'Models',
+      data:lifecycleData.map(m=>({x:m.age,y:m.pct,label:m.model})),
+      backgroundColor:lifecycleData.map(m=>m.pct>=15?RDA:m.pct>=8?ODA:GDA),
+      borderColor:lifecycleData.map(m=>m.pct>=15?RED:m.pct>=8?ORG:GRN),
+      borderWidth:2,pointRadius:8}]},
+    options:{...bOpts(),scales:{
+      x:{...axX(),title:{display:true,text:'Model Age (years)',color:'#666'}},
+      y:{...axY(),title:{display:true,text:'RRR %',color:'#666'}}
+    },plugins:{
+      ...bOpts().plugins,
+      tooltip:{callbacks:{
+        label:ctx=>`${lifecycleData[ctx.dataIndex].model}: ${ctx.parsed.y.toFixed(1)}% RRR (${ctx.parsed.x.toFixed(1)} years)`
+      }}
+    }}
+  })
+
+  /* WEEKLY DUAL AXIS */
+  kill('cWkTrend')
+  CM.cWkTrend=new Chart(document.getElementById('cWkTrend'),{type:'line',
+    data:{labels:weekData.map(w=>w.name),datasets:[
+      {label:'RRR %',data:weekData.map(w=>w.pct.toFixed(2)),
+       borderColor:RED,backgroundColor:RDA,fill:true,tension:.3,
+       pointBackgroundColor:RED,pointRadius:3,borderWidth:2,yAxisID:'y'},
+      {label:'Total WO',data:weekData.map(w=>w.totalWO),
+       borderColor:BLU,backgroundColor:'transparent',tension:.3,
+       pointRadius:2,borderWidth:1.5,yAxisID:'y1'}
+    ]},
+    options:{...bOpts(),scales:{
+      x:axX(),
+      y:{...axY(),position:'left'},
+      y1:{...axY(),position:'right',grid:{display:false}}
+    }}
+  })
+
+  /* DONUT */
+  const totalSet = new Set()
+  const rrrSet = new Set()
+  filteredData.forEach(r => {
+    if(r.WO_NUM) totalSet.add(r.WO_NUM)
+    if(isEligible(r) && isRepeat(r) && r.WO_NUM) rrrSet.add(r.WO_NUM)
+  })
+  const tot=totalSet.size, rep=rrrSet.size
+  kill('cDonut')
+  CM.cDonut=new Chart(document.getElementById('cDonut'),{type:'doughnut',
+    data:{labels:['Repeat WO (Flag=1)','Clean WO (Flag=0)'],
+      datasets:[{data:[rep,tot-rep],
+        backgroundColor:['rgba(226,0,26,0.75)','rgba(0,168,84,0.5)'],
+        borderColor:[RED,GRN],borderWidth:2}]},
+    options:{...bOpts(),plugins:{...bOpts().plugins,
+      tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw.toLocaleString()} (${(ctx.raw/tot*100).toFixed(1)}%)`}}
+    }}
+  })
+
+  /* REASON PIE */
+  const rp5=reasonData.slice(0,5)
+  kill('cResPie')
+  CM.cResPie=new Chart(document.getElementById('cResPie'),{type:'pie',
+    data:{labels:rp5.map(r=>r.name),
+      datasets:[{data:rp5.map(r=>r.count),
+        backgroundColor:PAL.map(c=>c+'bb'),borderColor:PAL,borderWidth:1}]},
+    options:bOpts()
+  })
+}
+
+/* ── RECOMMENDATIONS ── */
+function buildRecs(rows,rrr){
+  const hiAg=agentData.filter(a=>a.pct>=20&&a.totalWO>=5)
+  const hiMd=modelData.filter(m=>m.pct>=15).slice(0,4).map(m=>m.name)
+  const hiTL=tlData.filter(t=>t.pct>=15).map(t=>t.name)
+  const topR=reasonData[0]?.name||'N/A'
+  const hiVn=vendorData.filter(v=>v.pct>=15).slice(0,3).map(v=>v.name)
+
+  const recs=[
+    {icon:'🎯',title:`Overall RRR: ${rrr.toFixed(2)}%`,
+     body:rrr<=8?'✅ Within target (≤8%). Maintain current standards and continue monitoring weekly trends.'
+               :rrr<=15?`⚠️ Above 8% target. Reinforce case closure quality checks and review recent repeat patterns.`
+                       :`🔴 Critically high RRR (>15%). Immediate escalation and action plan required.`},
+    {icon:'🔧',title:'High-Risk Sub-Series',
+     body:hiMd.length?`Deep-diagnosis required: <strong>${hiMd.join(', ')}</strong>. Enforce hardware root-cause verification before closure.`
+                    :'✅ No sub-series exceeds 15% RRR threshold.'},
+    {icon:'👤',title:`Agent Review (${hiAg.length} flagged)`,
+     body:hiAg.length?`Agents with RRR ≥ 20%: <strong>${hiAg.slice(0,5).map(a=>a.name).join(', ')}${hiAg.length>5?' +more':''}</strong>. Schedule mentoring sessions with TL.`
+                    :'✅ All agents are within acceptable thresholds.'},
+    {icon:'📋',title:'Top Repeat Reason',
+     body:`Primary cause: <strong>${topR}</strong>. Ensure targeted training and parts verification for this failure category.`},
+    {icon:'🏢',title:'TL Team Action',
+     body:hiTL.length?`Teams with elevated RRR: <strong>${hiTL.join(', ')}</strong>. Conduct weekly team RCA and review closure practices.`
+                    :'✅ All TL teams are within benchmark thresholds.'},
+    {icon:'🏭',title:'Vendor Performance',
+     body:hiVn.length?`High-RRR vendors: <strong>${hiVn.join(', ')}</strong>. Review parts quality and warranty claims for these vendors.`
+                    :'✅ All vendors are within acceptable RRR range.'},
+    {icon:'📊',title:'Data Coverage',
+     body:`<strong>RRR MTSN 30D Flag NOC</strong>: only rows with Flag <strong>0</strong> or <strong>1</strong> are included in the denominator. Blank / null entries are excluded from the RRR% calculation entirely. Ensure all WOs carry a valid 0 or 1 flag before export.`},
+  ]
+  document.getElementById('recGrid').innerHTML=recs.map(r=>`
+    <div class="rec">
+      <div class="rec-icon">${r.icon}</div>
+      <div class="rec-title">${r.title}</div>
+      <div class="rec-body">${r.body}</div>
+    </div>`).join('')
+}
+
+/* ── SORT ── */
+const SS={}
+function srt(dataVar,key,defDir,tbodyId,drawFn){
+  const dm={agentData,tlData,modelData,vendorData,reasonData,symptomData,accountData,weekData,lifecycleData,agentRiskData}
+  const arr=dm[dataVar]; if(!arr) return
+  const prev=SS[tbodyId]||{}
+  const dir=prev.key===key&&prev.dir===1?-1:1
+  SS[tbodyId]={key,dir}
+  arr.sort((a,b)=>{
+    let av=a[key],bv=b[key]
+    if(typeof av==='string'){av=av.toLowerCase();bv=bv.toLowerCase()}
+    return dir*(av>bv?1:av<bv?-1:0)
+  })
+  drawFn()
+}
+
+/* ── SEARCH ── */
+function srch(tbodyId,q){
+  const lq=q.toLowerCase()
+  document.getElementById(tbodyId).querySelectorAll('tr').forEach(tr=>{
+    tr.style.display=tr.textContent.toLowerCase().includes(lq)?'':'none'
+  })
+}
+
+/* ── TABS ── */
+function sw(name,btn){
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'))
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'))
+  btn.classList.add('on')
+  document.getElementById('tab-'+name).classList.add('on')
+}
+
+/* ── EXPORT CSV ── */
+function exportCSV(){
+  if(!filteredData.length){alert('No data to export.');return}
+  const keys=Object.keys(COLS)
+  const hdrs=Object.values(COLS)
+  const lines=[hdrs.map(h=>`"${h}"`).join(',')]
+  filteredData.forEach(r=>{
+    lines.push(keys.map(k=>`"${(r[k]||'').replace(/"/g,'""')}"`).join(','))
+  })
+  const a=document.createElement('a')
+  a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'}))
+  a.download='RRR_Export_'+new Date().toISOString().slice(0,10)+'.csv'
+  a.click()
+}
+
+/* ── PDF REPORT GENERATOR ── */
+function generatePDFReport(){
+  if(!filteredData.length){alert('No data to analyze. Please upload data first.');return}
+  
+  const { jsPDF } = window.jspdf
+  const doc = new jsPDF()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const dateStr = new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})
+  
+  // Calculate overall RRR
+  const {total, rrrWO, cleanWO, pct} = calcRRR(filteredData)
+  
+  // Page 1: Executive Summary
+  doc.setFillColor(226, 0, 26)
+  doc.rect(0, 0, pageWidth, 35, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(24)
+  doc.setFont(undefined, 'bold')
+  doc.text('RRR Intelligence Report', pageWidth/2, 18, {align: 'center'})
+  doc.setFontSize(11)
+  doc.setFont(undefined, 'normal')
+  doc.text(`Generated: ${dateStr} | by Marwan Fahad`, pageWidth/2, 27, {align: 'center'})
+  
+  doc.setTextColor(0, 0, 0)
+  doc.setFontSize(16)
+  doc.setFont(undefined, 'bold')
+  doc.text('Executive Summary', 14, 50)
+  
+  doc.setFontSize(11)
+  doc.setFont(undefined, 'normal')
+  const riskLevel = pct >= 15 ? 'HIGH RISK' : pct >= 8 ? 'MODERATE' : 'ON TARGET'
+  const riskColor = pct >= 15 ? [226, 0, 26] : pct >= 8 ? [245, 166, 35] : [0, 168, 84]
+  
+  doc.setFontSize(10)
+  doc.text(`Overall RRR: ${pct.toFixed(2)}%`, 14, 60)
+  doc.setTextColor(...riskColor)
+  doc.setFont(undefined, 'bold')
+  doc.text(`Status: ${riskLevel}`, 14, 67)
+  doc.setTextColor(0, 0, 0)
+  doc.setFont(undefined, 'normal')
+  doc.text(`Total WO: ${total.toLocaleString()} | Repeat WO: ${rrrWO.toLocaleString()} | Clean WO: ${cleanWO.toLocaleString()}`, 14, 74)
+  
+  // KPI Table
+  doc.autoTable({
+    startY: 82,
+    head: [['Metric', 'Value', 'Status']],
+    body: [
+      ['Total Distinct WO', total.toLocaleString(), '—'],
+      ['Repeat WO (Flag=1)', rrrWO.toLocaleString(), '—'],
+      ['Clean WO (Flag=0)', cleanWO.toLocaleString(), '—'],
+      ['Overall RRR %', pct.toFixed(2) + '%', riskLevel],
+      ['Active Agents', agentData.length.toString(), '—'],
+      ['Sub-Series Analyzed', modelData.length.toString(), '—'],
+    ],
+    theme: 'grid',
+    headStyles: {fillColor: [226, 0, 26], textColor: 255, fontStyle: 'bold'},
+    styles: {fontSize: 9}
+  })
+  
+  // Page 2: Top Models
+  doc.addPage()
+  doc.setFontSize(16)
+  doc.setFont(undefined, 'bold')
+  doc.text('High-Risk Models', 14, 20)
+  
+  const topModels = modelData.slice(0, 10)
+  doc.autoTable({
+    startY: 28,
+    head: [['Rank', 'Model', 'Total WO', 'Repeat WO', 'RRR %', 'Risk']],
+    body: topModels.map((m, i) => [
+      (i+1).toString(),
+      m.name,
+      m.totalWO.toLocaleString(),
+      m.rrrWO.toString(),
+      m.pct.toFixed(1) + '%',
+      m.pct >= 15 ? 'High' : m.pct >= 8 ? 'Med' : 'Low'
+    ]),
+    theme: 'grid',
+    headStyles: {fillColor: [226, 0, 26], textColor: 255},
+    styles: {fontSize: 9}
+  })
+  
+  // Symptoms section
+  if(symptomData.length > 0){
+    doc.setFontSize(16)
+    doc.setFont(undefined, 'bold')
+    doc.text('Top Problem Symptoms', 14, doc.lastAutoTable.finalY + 15)
+    
+    const topSymptoms = symptomData.slice(0, 8)
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 23,
+      head: [['Rank', 'Symptom', 'Total WO', 'Repeat WO', 'RRR %']],
+      body: topSymptoms.map((s, i) => [
+        (i+1).toString(),
+        s.name,
+        s.totalWO.toLocaleString(),
+        s.rrrWO.toString(),
+        s.pct.toFixed(1) + '%'
+      ]),
+      theme: 'grid',
+      headStyles: {fillColor: [226, 0, 26], textColor: 255},
+      styles: {fontSize: 9}
+    })
+  }
+  
+  // Page 3: Agent Performance
+  doc.addPage()
+  doc.setFontSize(16)
+  doc.setFont(undefined, 'bold')
+  doc.text('Agent Performance Analysis', 14, 20)
+  
+  const topAgents = agentData.slice(0, 15)
+  doc.autoTable({
+    startY: 28,
+    head: [['Rank', 'Agent', 'TL', 'Total WO', 'Repeat WO', 'RRR %']],
+    body: topAgents.map((a, i) => [
+      (i+1).toString(),
+      a.name,
+      a.tl,
+      a.totalWO.toLocaleString(),
+      a.rrrWO.toString(),
+      a.pct.toFixed(1) + '%'
+    ]),
+    theme: 'grid',
+    headStyles: {fillColor: [226, 0, 26], textColor: 255},
+    styles: {fontSize: 8}
+  })
+  
+  // Page 4: Action Plan
+  doc.addPage()
+  doc.setFontSize(16)
+  doc.setFont(undefined, 'bold')
+  doc.text('Recommended Action Plan', 14, 20)
+  
+  doc.setFontSize(10)
+  doc.setFont(undefined, 'normal')
+  let yPos = 30
+  
+  const actions = [
+    {priority: 'HIGH', action: 'Conduct immediate RCA for models with RRR > 15%', owner: 'Quality Team'},
+    {priority: 'HIGH', action: `Review top ${topAgents.filter(a=>a.pct>=20).length} agents with RRR ≥ 20%`, owner: 'TL Managers'},
+    {priority: 'MEDIUM', action: 'Implement targeted training on top 3 failure symptoms', owner: 'Training Dept'},
+    {priority: 'MEDIUM', action: 'Review parts quality for high-RRR vendors', owner: 'Supply Chain'},
+    {priority: 'LOW', action: 'Monitor lifecycle trends for aging models', owner: 'Product Team'},
+  ]
+  
+  actions.forEach(act => {
+    const color = act.priority === 'HIGH' ? [226, 0, 26] : act.priority === 'MEDIUM' ? [245, 166, 35] : [0, 168, 84]
+    doc.setFillColor(...color)
+    doc.rect(14, yPos - 4, 25, 6, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(8)
+    doc.setFont(undefined, 'bold')
+    doc.text(act.priority, 26.5, yPos, {align: 'center'})
+    
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(10)
+    doc.setFont(undefined, 'normal')
+    doc.text(act.action, 42, yPos)
+    doc.setFontSize(8)
+    doc.setTextColor(100, 100, 100)
+    doc.text(`Owner: ${act.owner}`, 42, yPos + 5)
+    doc.setTextColor(0, 0, 0)
+    yPos += 18
+  })
+  
+  // Footer on last page
+  doc.setFontSize(8)
+  doc.setTextColor(150, 150, 150)
+  doc.text('Lenovo RRR Intelligence Dashboard | Confidential', pageWidth/2, doc.internal.pageSize.getHeight() - 10, {align: 'center'})
+  
+  // Save PDF
+  doc.save(`RRR_Report_${new Date().toISOString().slice(0,10)}.pdf`)
+}
+
+/* ── EXCEL REPORT GENERATOR ── */
+function generateExcelReport(){
+  if(!filteredData.length){alert('No data to analyze. Please upload data first.');return}
+  
+  const wb = XLSX.utils.book_new()
+  const {total, rrrWO, cleanWO, pct} = calcRRR(filteredData)
+  
+  // Sheet 1: Summary
+  const summaryData = [
+    ['Lenovo RRR Intelligence Report'],
+    [`Generated: ${new Date().toLocaleDateString()}`],
+    [],
+    ['Key Metrics', 'Value'],
+    ['Overall RRR %', pct.toFixed(2) + '%'],
+    ['Total Distinct WO', total],
+    ['Repeat WO', rrrWO],
+    ['Clean WO', cleanWO],
+    ['Active Agents', agentData.length],
+    ['Sub-Series', modelData.length],
+    ['Symptoms Tracked', symptomData.length],
+  ]
+  const ws1 = XLSX.utils.aoa_to_sheet(summaryData)
+  XLSX.utils.book_append_sheet(wb, ws1, 'Summary')
+  
+  // Sheet 2: Top Models
+  const modelHeaders = [['Rank', 'Model', 'Total WO', 'Repeat WO', 'Clean WO', 'RRR %', 'Risk Level']]
+  const modelRows = modelData.slice(0, 20).map((m, i) => [
+    i + 1,
+    m.name,
+    m.totalWO,
+    m.rrrWO,
+    m.cleanWO,
+    m.pct.toFixed(1) + '%',
+    m.pct >= 15 ? 'High' : m.pct >= 8 ? 'Medium' : 'Low'
+  ])
+  const ws2 = XLSX.utils.aoa_to_sheet([...modelHeaders, ...modelRows])
+  XLSX.utils.book_append_sheet(wb, ws2, 'Top Models')
+  
+  // Sheet 3: Agent Performance
+  const agentHeaders = [['Rank', 'Agent Name', 'TL', 'Total WO', 'Repeat WO', 'Clean WO', 'RRR %']]
+  const agentRows = agentData.slice(0, 50).map((a, i) => [
+    i + 1,
+    a.name,
+    a.tl,
+    a.totalWO,
+    a.rrrWO,
+    a.cleanWO,
+    a.pct.toFixed(1) + '%'
+  ])
+  const ws3 = XLSX.utils.aoa_to_sheet([...agentHeaders, ...agentRows])
+  XLSX.utils.book_append_sheet(wb, ws3, 'Agent Performance')
+  
+  // Sheet 4: Symptoms
+  if(symptomData.length > 0){
+    const symptomHeaders = [['Rank', 'Symptom', 'Total WO', 'Repeat WO', 'RRR %']]
+    const symptomRows = symptomData.slice(0, 30).map((s, i) => [
+      i + 1,
+      s.name,
+      s.totalWO,
+      s.rrrWO,
+      s.pct.toFixed(1) + '%'
+    ])
+    const ws4 = XLSX.utils.aoa_to_sheet([...symptomHeaders, ...symptomRows])
+    XLSX.utils.book_append_sheet(wb, ws4, 'Symptoms')
+  }
+  
+  // Sheet 5: Lifecycle Intelligence
+  if(lifecycleData.length > 0){
+    const lifecycleHeaders = [['Rank', 'Model', 'Age (Years)', 'Phase', 'Total WO', 'Repeat WO', 'RRR %']]
+    const lifecycleRows = lifecycleData.slice(0, 30).map((m, i) => [
+      i + 1,
+      m.model,
+      m.age.toFixed(1),
+      m.phase,
+      m.totalWO,
+      m.rrrWO,
+      m.pct.toFixed(1) + '%'
+    ])
+    const ws5 = XLSX.utils.aoa_to_sheet([...lifecycleHeaders, ...lifecycleRows])
+    XLSX.utils.book_append_sheet(wb, ws5, 'Lifecycle Analysis')
+  }
+  
+  // Sheet 6: Agent Risk Prediction
+  if(agentRiskData.length > 0){
+    const riskHeaders = [['Rank', 'Agent', 'Current RRR %', 'Predicted RRR %', 'Trend', 'Top Model', 'Top Symptom', 'Risk Level']]
+    const riskRows = agentRiskData.slice(0, 30).map((a, i) => [
+      i + 1,
+      a.agent,
+      a.currentRRR.toFixed(1) + '%',
+      a.predictedRRR.toFixed(1) + '%',
+      a.trend,
+      a.topModel,
+      a.topSymptom,
+      a.riskLevel
+    ])
+    const ws6 = XLSX.utils.aoa_to_sheet([...riskHeaders, ...riskRows])
+    XLSX.utils.book_append_sheet(wb, ws6, 'Risk Prediction')
+  }
+  
+  // Generate Excel file
+  XLSX.writeFile(wb, `RRR_Report_${new Date().toISOString().slice(0,10)}.xlsx`)
+}
+</script>
+</body>
+</html>
