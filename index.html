@@ -151,12 +151,6 @@ main{padding:26px 32px}
 @media(max-width:900px){.g2{grid-template-columns:1fr}}
 .span2{grid-column:1/-1}
 
-/* CHART CARD */
-.cc{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:16px}
-.cc-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.cc-title{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t2)}
-.cc-tag{font-size:9px;font-weight:700;letter-spacing:1.5px;padding:3px 8px;border-radius:3px;text-transform:uppercase;background:var(--red-dim);color:var(--red)}
-
 /* TABLE */
 .tc{background:var(--card);border:1px solid var(--border);border-radius:6px;margin-bottom:18px;overflow:hidden}
 .tc-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px}
@@ -193,14 +187,6 @@ tbody td{padding:8px 13px;color:var(--t1)}
 /* IBAR */
 .ibar-w{display:flex;align-items:center;gap:6px}
 .ibar{height:3px;border-radius:2px;background:var(--red);min-width:2px}
-
-/* RECS */
-.rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:13px;margin-bottom:20px}
-.rec{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:0 6px 6px 0;padding:14px 16px;transition:transform .2s}
-.rec:hover{transform:translateX(3px)}
-.rec-icon{font-size:18px;margin-bottom:7px}
-.rec-title{font-size:12px;font-weight:700;margin-bottom:5px}
-.rec-body{font-size:11px;color:var(--t2);line-height:1.65}
 
 /* ANIM */
 .fade{animation:fi .35s ease both}
@@ -250,7 +236,7 @@ tbody td{padding:8px 13px;color:var(--t1)}
   <div class="topbar-r">
     <div class="live-dot"></div>
     <div id="liveClock">--:--:--</div>
-    <div class="vtag">v2.1</div>
+    <div class="vtag">v2.5</div>
     <button id="themeToggle" class="theme-toggle" title="Toggle Dark/Light Mode">
       <span class="theme-icon">☀️</span>
     </button>
@@ -261,38 +247,38 @@ tbody td{padding:8px 13px;color:var(--t1)}
 <div class="prog-wrap" id="pbWrap"><div class="prog-fill" id="pbFill"></div></div>
 <div class="prog-msg" id="progMsg">⏳ Processing...</div>
 
-<!-- UPLOAD -->
+<!-- UPLOAD ZONE -->
 <div class="upload-zone">
   <div class="upload-btn">
-    <input type="file" id="uploadInput" accept=".xlsx,.xls,.csv"/>
-    <div class="upload-btn-icon">📂</div>
-    <div class="upload-btn-text">
-      <strong>Upload Report File</strong>
-      <span>Excel (.xlsx / .xls) or CSV — any size</span>
+      <input type="file" id="uploadInput" accept=".xlsx,.xls,.csv"/>
+      <div class="upload-btn-icon">📂</div>
+      <div class="upload-btn-text">
+        <strong>Upload RRR File</strong>
+        <span>Excel (.xlsx / .xls) or CSV</span>
+      </div>
+    </div>
+    <div id="fileLabel" style="font-size:11px;color:var(--t3)">No file loaded</div>
+  <div class="col-chips">
+      <div class="chip" id="chip-wonum">Service Order ID / WO Number</div>
+      <div class="chip" id="chip-mtsn">Machine Serial Number</div>
+      <div class="chip" id="chip-sub">Sub Series</div>
+      <div class="chip" id="chip-month">RRR Month</div>
+      <div class="chip" id="chip-week">RRR Week</div>
+      <div class="chip" id="chip-flag">RRR MTSN 30D NOC x Labor</div>
+      <div class="chip" id="chip-svctype">Service Delivery Type</div>
+      <div class="chip" id="chip-warranty">Service Warranty Type</div>
+      <div class="chip" id="chip-lob">LOB</div>
+      <div class="chip" id="chip-prodgrp">Product Group</div>
+      <div class="chip" id="chip-wostatus">WO Status</div>
+      <div class="chip" id="chip-laborstatus">Labor Status</div>
+      <div class="chip" id="chip-vendor">Primary Vendor Name</div>
+      <div class="chip" id="chip-reason">Repeat Repair Reason1</div>
+      <div class="chip" id="chip-symptom">Symptom1</div>
+      <div class="chip" id="chip-tl">Release by TL</div>
+      <div class="chip" id="chip-name">Release by Name</div>
+      <div class="chip" id="chip-account">Account Name</div>
     </div>
   </div>
-  <div id="fileLabel" style="font-size:11px;color:var(--t3)">No file loaded</div>
-  <div class="col-chips">
-    <div class="chip" id="chip-wonum">Service Order ID / WO Number</div>
-    <div class="chip" id="chip-mtsn">Machine Serial Number</div>
-    <div class="chip" id="chip-sub">Sub Series</div>
-    <div class="chip" id="chip-month">RRR Month</div>
-    <div class="chip" id="chip-week">RRR Week</div>
-    <div class="chip" id="chip-flag">RRR MTSN 30D Flag NOC</div>
-    <div class="chip" id="chip-svctype">Service Delivery Type</div>
-    <div class="chip" id="chip-warranty">Service Warranty Type</div>
-    <div class="chip" id="chip-lob">LOB</div>
-    <div class="chip" id="chip-prodgrp">Product Group</div>
-    <div class="chip" id="chip-wostatus">WO Status</div>
-    <div class="chip" id="chip-laborstatus">Labor Status</div>
-    <div class="chip" id="chip-vendor">Primary Vendor Name</div>
-    <div class="chip" id="chip-reason">Repeat Repair Reason1</div>
-    <div class="chip" id="chip-symptom">Symptom1</div>
-    <div class="chip" id="chip-tl">Release by TL</div>
-    <div class="chip" id="chip-name">Release by Name</div>
-    <div class="chip" id="chip-account">Account Name</div>
-  </div>
-</div>
 
 <!-- FILTER BAR -->
 <div class="filter-bar" id="filterBar">
@@ -306,7 +292,6 @@ tbody td{padding:8px 13px;color:var(--t1)}
       <button class="ms-btn" id="msBtnMonth" type="button" onclick="toggleMsDropdown('Month')">All Months</button>
       <div class="ms-dropdown" id="msDropMonth"></div>
     </div>
-    <!-- hidden select kept for filter logic compatibility -->
     <select id="fMonth" multiple style="display:none"></select>
   </div>
   <div class="fg">
@@ -315,7 +300,6 @@ tbody td{padding:8px 13px;color:var(--t1)}
       <button class="ms-btn" id="msBtnWeek" type="button" onclick="toggleMsDropdown('Week')">All Weeks</button>
       <div class="ms-dropdown" id="msDropWeek"></div>
     </div>
-    <!-- hidden select kept for filter logic compatibility -->
     <select id="fWeek" multiple style="display:none"></select>
   </div>
   <div class="fg"><label>Primary Vendor</label>
@@ -336,11 +320,11 @@ tbody td{padding:8px 13px;color:var(--t1)}
   <div class="empty" id="emptyState">
     <div class="empty-icon">📊</div>
     <div class="empty-h">No Data Loaded</div>
-    <div class="empty-p">Upload your Lenovo report file. The dashboard will detect columns automatically and compute RRR% using the exact formula.</div>
+    <div class="empty-p">Upload your Lenovo RRR report file. The dashboard will detect columns automatically and compute RRR% using the exact formula. Optionally, upload an HCS file to access the HCS Analyzer tab.</div>
     <div class="cols-preview">
       <div class="cols-preview-title">Required Columns (detected automatically)</div>
       <div class="cols-preview-body">
-        Machine Serial Number &nbsp;·&nbsp; RRR MTSN 30D Flag NOC<br>
+        Machine Serial Number &nbsp;·&nbsp; RRR MTSN 30D NOC x Labor<br>
         RRR Month &nbsp;·&nbsp; RRR Week &nbsp;·&nbsp; Sub Series<br>
         Service Delivery Type &nbsp;·&nbsp; Service Warranty Type<br>
         LOB &nbsp;·&nbsp; Product Group &nbsp;·&nbsp; WO Status &nbsp;·&nbsp; Labor Status<br>
@@ -349,10 +333,10 @@ tbody td{padding:8px 13px;color:var(--t1)}
       </div>
     </div>
     <div class="formula-note">
-      RRR% = <strong style="color:var(--red)">Σ RRR_MTSN_30D_Flag_NOC</strong> <span style="color:#888">(excl. Labor-Cancelled WOs)</span>
-      &nbsp;÷&nbsp; <strong style="color:#4d9fff">Distinct MTSN Count</strong>
+      RRR% = <strong style="color:var(--red)">Σ RRR_MTSN_30D_NOC_x_Labor</strong>
+      &nbsp;÷&nbsp; <strong style="color:#4d9fff">Distinct MTSN</strong>
       &nbsp;× 100
-      <br><small style="color:#666;font-size:10px">Scope: Onsite · Standard Warranty · Think LOB · Think Product Group</small>
+      <br><small style="color:#666;font-size:10px">Scope: Onsite · Standard Warranty · Lenovo & Think Product Groups</small>
     </div>
   </div>
 
@@ -372,9 +356,9 @@ tbody td{padding:8px 13px;color:var(--t1)}
     <div class="formula-bar">
       <strong>RRR%</strong>
       <span>=</span>
-      <span><strong>Σ RRR_MTSN_30D_Flag_NOC</strong> <span style="color:var(--t3)">(excl. Labor-Cancelled)</span></span>
+      <span><strong>Σ RRR_MTSN_30D_NOC_x_Labor</strong></span>
       <span style="color:var(--t3)">÷</span>
-      <span><strong>Distinct MTSN Count</strong> <span style="color:var(--t3)">(Onsite · Standard · Think)</span></span>
+      <span><strong>Distinct MTSN</strong></span>
       <span style="color:var(--t3)">×</span>
       <span>100</span>
       <span class="fval" id="formulaLive">—</span>
@@ -382,8 +366,8 @@ tbody td{padding:8px 13px;color:var(--t1)}
 
     <!-- TABS -->
     <div class="tab-nav">
-      <button class="tbtn on"  onclick="sw('overview',this)">Overview</button>
-      <button class="tbtn"     onclick="sw('agents',this)">By Agent</button>
+      <button class="tbtn on"  onclick="sw('agents',this)">By Agent</button>
+      <button class="tbtn" id="hcsTabBtn" onclick="sw('hcsanalyzer',this)" style="color:var(--info)">🔬 HCS Analyzer</button>
       <button class="tbtn"     onclick="sw('tl',this)">By TL</button>
       <button class="tbtn"     onclick="sw('models',this)">Sub-Series</button>
       <button class="tbtn"     onclick="sw('vendor',this)">Vendor</button>
@@ -391,36 +375,12 @@ tbody td{padding:8px 13px;color:var(--t1)}
       <button class="tbtn"     onclick="sw('symptom',this)">Symptoms</button>
       <button class="tbtn"     onclick="sw('account',this)">Account</button>
       <button class="tbtn"     onclick="sw('weekly',this)">Weekly</button>
-      <button class="tbtn"     onclick="sw('lifecycle',this)">🔬 Model Lifecycle</button>
       <button class="tbtn"     onclick="sw('agentrisk',this)">📊 Agent Risk</button>
       <button class="tbtn"     onclick="sw('reportgen',this)">📄 Auto Report</button>
-      <button class="tbtn"     onclick="sw('recs',this)">Recommendations</button>
-    </div>
-
-    <!-- TAB: OVERVIEW -->
-    <div class="tab on" id="tab-overview">
-      <div class="g2">
-        <div class="cc">
-          <div class="cc-hd"><div class="cc-title">Monthly RRR % Trend</div><div class="cc-tag">TREND</div></div>
-          <canvas id="cTrend" height="210"></canvas>
-        </div>
-        <div class="cc">
-          <div class="cc-hd"><div class="cc-title">Repeat vs Clean WO by Month</div><div class="cc-tag">VOLUME</div></div>
-          <canvas id="cStack" height="210"></canvas>
-        </div>
-        <div class="cc span2">
-          <div class="cc-hd"><div class="cc-title">Agent RRR % (All Agents)</div><div class="cc-tag">AGENTS</div></div>
-          <canvas id="cAgOv" height="115"></canvas>
-        </div>
-      </div>
     </div>
 
     <!-- TAB: AGENTS -->
-    <div class="tab" id="tab-agents">
-      <div class="cc span2" style="margin-bottom:16px">
-        <div class="cc-hd"><div class="cc-title">Agent RRR % Comparison</div><div class="cc-tag">AGENT</div></div>
-        <canvas id="cAgBar" height="115"></canvas>
-      </div>
+    <div class="tab on" id="tab-agents">
       <div class="tc">
         <div class="tc-hd">
           <div>
@@ -447,12 +407,84 @@ tbody td{padding:8px 13px;color:var(--t1)}
       </div>
     </div>
 
+    <!-- TAB: HCS ANALYZER -->
+    <div class="tab" id="tab-hcsanalyzer">
+      <div id="hcsEmptyMsg" style="display:flex;flex-direction:column;align-items:center;padding:48px 20px;text-align:center">
+        <div style="font-size:48px;opacity:.25;margin-bottom:14px">🔬</div>
+        <div style="font-size:16px;font-weight:600;color:var(--t2);margin-bottom:7px">HCS File Not Loaded</div>
+        <div style="font-size:12px;color:var(--t3);max-width:440px;line-height:1.65">Upload your RRR file — the HCS Analyzer will activate automatically if the file contains <strong>HCS</strong> and <strong>Scenario</strong> columns.</div>
+        <div style="margin-top:18px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:14px 20px;text-align:left;max-width:500px">
+          <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin-bottom:10px">HCS Analyzer Logic</div>
+          <div style="font-size:11px;color:var(--t2);line-height:2">
+            <strong>HCS ≥ 85%</strong> → value starts with "a." in HCS column<br>
+            <strong>Compliance map</strong> → Scenario = "Compliance" mapped against all agents & true RRR Hits<br>
+            <strong>HCS Compliance 85%</strong> → Compliance % = Compliance ÷ (Compliance + Non-Compliance) × 100
+          </div>
+        </div>
+      </div>
+
+      <div id="hcsContent" style="display:none">
+        
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;background:var(--card);padding:12px 16px;border:1px solid var(--border);border-radius:6px;">
+          <label style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:1.5px;">HCS Month Filter:</label>
+          <select id="hcsMonthFilter" class="ts" onchange="buildHCSAnalyzer()" style="min-width:160px;"></select>
+        </div>
+
+        <!-- Section 1: Compliance × RRR Hit Mapping -->
+        <div class="tc" style="margin-bottom:18px">
+          <div class="tc-hd">
+            <div>
+              <div class="tc-title">📋 Compliance × RRR Hit Mapping (Agent-wise)</div>
+              <div class="tc-meta" id="hcsRrrMeta">Showing all agents with Compliance (a.>=85%) and their RRR hits & reasons</div>
+            </div>
+            <input class="ts" id="hcsRrrSearch" placeholder="Search agent…" oninput="srch('hcsRrrTbody',this.value)"/>
+          </div>
+          <div class="tw">
+            <table>
+              <thead><tr>
+                <th>#</th>
+                <th>Agent Name</th>
+                <th>Compliance Count<br><span style="font-weight:400;font-size:9px">(a.≥85%)</span></th>
+                <th style="background:rgba(226,0,26,0.1);color:#ff4455">RRR Hits<br><span style="font-weight:400;font-size:9px">(within Compliance)</span></th>
+                <th>% RRR Hit<br><span style="font-weight:400;font-size:9px">(Hits ÷ Compliance)</span></th>
+                <th>Repair Reasons (Count)</th>
+                <th>Insight</th>
+              </tr></thead>
+              <tbody id="hcsRrrTbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section 2: HCS Compliance 85% Summary -->
+        <div class="tc" style="margin-bottom:18px">
+          <div class="tc-hd">
+            <div>
+              <div class="tc-title">📊 HCS Compliance 85% — Compliance % Agent-wise</div>
+              <div class="tc-meta" id="hcsCompMeta">Compliance % = Compliance ÷ (Compliance + Non-Compliance) × 100 (Where HCS ≥ 85%)</div>
+            </div>
+            <input class="ts" id="hcsCompSearch" placeholder="Search agent…" oninput="srch('hcsCompTbody',this.value)"/>
+          </div>
+          <div class="tw">
+            <table>
+              <thead><tr>
+                <th>#</th>
+                <th>Agent Name</th>
+                <th>Total<br><span style="font-weight:400;font-size:9px">(Compliance + Non-Compliance)</span></th>
+                <th style="color:#00c96d">Compliance</th>
+                <th style="color:#ff4455">Non-Compliance</th>
+                <th style="background:rgba(0,102,204,0.12)">Compliance %</th>
+                <th>Status</th>
+              </tr></thead>
+              <tbody id="hcsCompTbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /hcsContent -->
+    </div><!-- /tab-hcsanalyzer -->
+
     <!-- TAB: TL -->
     <div class="tab" id="tab-tl">
-      <div class="cc" style="margin-bottom:16px">
-        <div class="cc-hd"><div class="cc-title">TL Team RRR %</div><div class="cc-tag">TL</div></div>
-        <canvas id="cTLBar" height="140"></canvas>
-      </div>
       <div class="tc">
         <div class="tc-hd">
           <div>
@@ -480,10 +512,6 @@ tbody td{padding:8px 13px;color:var(--t1)}
 
     <!-- TAB: MODELS -->
     <div class="tab" id="tab-models">
-      <div class="cc" style="margin-bottom:16px">
-        <div class="cc-hd"><div class="cc-title">Top Sub-Series by RRR %</div><div class="cc-tag">MODEL</div></div>
-        <canvas id="cModBar" height="130"></canvas>
-      </div>
       <div class="tc">
         <div class="tc-hd">
           <div><div class="tc-title">Sub-Series Analysis</div><div class="tc-meta" id="modMeta"></div></div>
@@ -493,8 +521,8 @@ tbody td{padding:8px 13px;color:var(--t1)}
           <thead><tr>
             <th onclick="srt('modelData','rank',1,'modTbody',drawMod)">#</th>
             <th onclick="srt('modelData','name',-1,'modTbody',drawMod)">Sub Series</th>
-            <th onclick="srt('modelData','totalWO',-1,'modTbody',drawMod)">Total WO</th>
-            <th onclick="srt('modelData','rrrWO',-1,'modTbody',drawMod)">Repeat WO</th>
+            <th onclick="srt('modelData','totalWO',-1,'modTbody',drawMod)">Distinct MTSN</th>
+            <th onclick="srt('modelData','rrrWO',-1,'modTbody',drawMod)">Repeat Flags</th>
             <th onclick="srt('modelData','pct',-1,'modTbody',drawMod)">RRR %</th>
             <th>Risk</th>
           </tr></thead>
@@ -505,10 +533,6 @@ tbody td{padding:8px 13px;color:var(--t1)}
 
     <!-- TAB: VENDOR -->
     <div class="tab" id="tab-vendor">
-      <div class="cc" style="margin-bottom:16px">
-        <div class="cc-hd"><div class="cc-title">Primary Vendor RRR %</div><div class="cc-tag">VENDOR</div></div>
-        <canvas id="cVenBar" height="130"></canvas>
-      </div>
       <div class="tc">
         <div class="tc-hd">
           <div class="tc-title">Vendor Performance</div>
@@ -518,8 +542,8 @@ tbody td{padding:8px 13px;color:var(--t1)}
           <thead><tr>
             <th onclick="srt('vendorData','rank',1,'venTbody',drawVen)">#</th>
             <th onclick="srt('vendorData','name',-1,'venTbody',drawVen)">Primary Vendor</th>
-            <th onclick="srt('vendorData','totalWO',-1,'venTbody',drawVen)">Total WO</th>
-            <th onclick="srt('vendorData','rrrWO',-1,'venTbody',drawVen)">Repeat WO</th>
+            <th onclick="srt('vendorData','totalWO',-1,'venTbody',drawVen)">Distinct MTSN</th>
+            <th onclick="srt('vendorData','rrrWO',-1,'venTbody',drawVen)">Repeat Flags</th>
             <th onclick="srt('vendorData','pct',-1,'venTbody',drawVen)">RRR %</th>
           </tr></thead>
           <tbody id="venTbody"></tbody>
@@ -529,10 +553,6 @@ tbody td{padding:8px 13px;color:var(--t1)}
 
     <!-- TAB: REASON -->
     <div class="tab" id="tab-reason">
-      <div class="cc" style="margin-bottom:16px">
-        <div class="cc-hd"><div class="cc-title">Repeat Repair Reason Distribution</div><div class="cc-tag">REASONS</div></div>
-        <canvas id="cResBar" height="140"></canvas>
-      </div>
       <div class="tc">
         <div class="tc-hd">
           <div class="tc-title">Repair Reasons (Flag = 1 only)</div>
@@ -542,8 +562,8 @@ tbody td{padding:8px 13px;color:var(--t1)}
           <thead><tr>
             <th onclick="srt('reasonData','rank',1,'resTbody',drawRes)">#</th>
             <th onclick="srt('reasonData','name',-1,'resTbody',drawRes)">Repeat Repair Reason</th>
-            <th onclick="srt('reasonData','totalWO',-1,'resTbody',drawRes)">Total WO</th>
-            <th onclick="srt('reasonData','count',-1,'resTbody',drawRes)">Repeat WO</th>
+            <th onclick="srt('reasonData','totalWO',-1,'resTbody',drawRes)">Distinct MTSN</th>
+            <th onclick="srt('reasonData','rrrWO',-1,'resTbody',drawRes)">Repeat Flags</th>
             <th onclick="srt('reasonData','pct',-1,'resTbody',drawRes)">RRR %</th>
           </tr></thead>
           <tbody id="resTbody"></tbody>
@@ -553,13 +573,9 @@ tbody td{padding:8px 13px;color:var(--t1)}
 
     <!-- TAB: SYMPTOM -->
     <div class="tab" id="tab-symptom">
-      <div class="cc" style="margin-bottom:16px">
-        <div class="cc-hd"><div class="cc-title">Symptom Distribution Analysis</div><div class="cc-tag">SYMPTOMS</div></div>
-        <canvas id="cSymBar" height="140"></canvas>
-      </div>
       <div class="tc">
         <div class="tc-hd">
-          <div class="tc-title">Symptoms (All WOs)</div>
+          <div class="tc-title">Symptoms (All records)</div>
           <div class="tc-meta" id="symMeta">—</div>
           <input class="ts" id="symSearch" placeholder="Search symptom…" oninput="srch('symTbody',this.value)"/>
         </div>
@@ -567,8 +583,8 @@ tbody td{padding:8px 13px;color:var(--t1)}
           <thead><tr>
             <th onclick="srt('symptomData','rank',1,'symTbody',drawSym)">#</th>
             <th onclick="srt('symptomData','name',-1,'symTbody',drawSym)">Symptom</th>
-            <th onclick="srt('symptomData','totalWO',-1,'symTbody',drawSym)">Total WO</th>
-            <th onclick="srt('symptomData','rrrWO',-1,'symTbody',drawSym)">Repeat WO</th>
+            <th onclick="srt('symptomData','totalWO',-1,'symTbody',drawSym)">Distinct MTSN</th>
+            <th onclick="srt('symptomData','rrrWO',-1,'symTbody',drawSym)">Repeat Flags</th>
             <th onclick="srt('symptomData','pct',-1,'symTbody',drawSym)">RRR %</th>
           </tr></thead>
           <tbody id="symTbody"></tbody>
@@ -578,10 +594,6 @@ tbody td{padding:8px 13px;color:var(--t1)}
 
     <!-- TAB: ACCOUNT -->
     <div class="tab" id="tab-account">
-      <div class="cc" style="margin-bottom:16px">
-        <div class="cc-hd"><div class="cc-title">Account RRR %</div><div class="cc-tag">ACCOUNT</div></div>
-        <canvas id="cAccBar" height="130"></canvas>
-      </div>
       <div class="tc">
         <div class="tc-hd">
           <div class="tc-title">Account Name Analysis</div>
@@ -591,8 +603,8 @@ tbody td{padding:8px 13px;color:var(--t1)}
           <thead><tr>
             <th onclick="srt('accountData','rank',1,'accTbody',drawAcc)">#</th>
             <th onclick="srt('accountData','name',-1,'accTbody',drawAcc)">Account Name</th>
-            <th onclick="srt('accountData','totalWO',-1,'accTbody',drawAcc)">Total WO</th>
-            <th onclick="srt('accountData','rrrWO',-1,'accTbody',drawAcc)">Repeat WO</th>
+            <th onclick="srt('accountData','totalWO',-1,'accTbody',drawAcc)">Distinct MTSN</th>
+            <th onclick="srt('accountData','rrrWO',-1,'accTbody',drawAcc)">Repeat Flags</th>
             <th onclick="srt('accountData','pct',-1,'accTbody',drawAcc)">RRR %</th>
           </tr></thead>
           <tbody id="accTbody"></tbody>
@@ -602,10 +614,6 @@ tbody td{padding:8px 13px;color:var(--t1)}
 
     <!-- TAB: WEEKLY -->
     <div class="tab" id="tab-weekly">
-      <div class="cc" style="margin-bottom:16px">
-        <div class="cc-hd"><div class="cc-title">Weekly RRR % Trend</div><div class="cc-tag">WEEK</div></div>
-        <canvas id="cWkTrend" height="210"></canvas>
-      </div>
       <div class="tc">
         <div class="tc-hd">
           <div class="tc-title">Week-by-Week Summary</div>
@@ -614,39 +622,13 @@ tbody td{padding:8px 13px;color:var(--t1)}
         <div class="tw"><table>
           <thead><tr>
             <th onclick="srt('weekData','name',-1,'wkTbody',drawWk)">RRR Week</th>
-            <th onclick="srt('weekData','totalWO',-1,'wkTbody',drawWk)">Total WO</th>
-            <th onclick="srt('weekData','rrrWO',-1,'wkTbody',drawWk)">Repeat WO</th>
-            <th onclick="srt('weekData','cleanWO',-1,'wkTbody',drawWk)">Clean WO</th>
+            <th onclick="srt('weekData','totalWO',-1,'wkTbody',drawWk)">Distinct MTSN</th>
+            <th onclick="srt('weekData','rrrWO',-1,'wkTbody',drawWk)">Repeat Flags</th>
+            <th onclick="srt('weekData','cleanWO',-1,'wkTbody',drawWk)">Clean MTSN</th>
             <th onclick="srt('weekData','pct',-1,'wkTbody',drawWk)">RRR %</th>
           </tr></thead>
           <tbody id="wkTbody"></tbody>
         </table></div>
-      </div>
-    </div>
-
-    <!-- TAB: MODEL LIFECYCLE INTELLIGENCE -->
-    <div class="tab" id="tab-lifecycle">
-      <div class="tc">
-        <div class="tc-hd">
-          <div class="tc-title">Model Lifecycle Intelligence</div>
-          <div class="tc-meta" id="lifecycleMeta">—</div>
-        </div>
-        <div class="tw"><table>
-          <thead><tr>
-            <th>Rank</th>
-            <th onclick="srt('lifecycleData','model',-1,'lifecycleTbody',drawLifecycle)">Model</th>
-            <th onclick="srt('lifecycleData','age',-1,'lifecycleTbody',drawLifecycle)">Age (years)</th>
-            <th onclick="srt('lifecycleData','phase',-1,'lifecycleTbody',drawLifecycle)">Failure Phase</th>
-            <th onclick="srt('lifecycleData','totalWO',-1,'lifecycleTbody',drawLifecycle)">Total WO</th>
-            <th onclick="srt('lifecycleData','rrrWO',-1,'lifecycleTbody',drawLifecycle)">Repeat WO</th>
-            <th onclick="srt('lifecycleData','pct',-1,'lifecycleTbody',drawLifecycle)">RRR %</th>
-          </tr></thead>
-          <tbody id="lifecycleTbody"></tbody>
-        </table></div>
-      </div>
-      <div class="cc" style="margin-top:16px">
-        <div class="cc-hd"><div class="cc-title">RRR % by Model Age</div><div class="cc-tag">LIFECYCLE</div></div>
-        <canvas id="cLifecycle" height="160"></canvas>
       </div>
     </div>
 
@@ -662,7 +644,6 @@ tbody td{padding:8px 13px;color:var(--t1)}
             <th>Rank</th>
             <th onclick="srt('agentRiskData','agent',-1,'agentRiskTbody',drawAgentRisk)">Agent</th>
             <th onclick="srt('agentRiskData','currentRRR',-1,'agentRiskTbody',drawAgentRisk)">Current RRR %</th>
-            <th onclick="srt('agentRiskData','predictedRRR',-1,'agentRiskTbody',drawAgentRisk)">Predicted Next Month</th>
             <th onclick="srt('agentRiskData','trend',-1,'agentRiskTbody',drawAgentRisk)">Trend</th>
             <th>Top Problem Model</th>
             <th>Top Problem Symptom</th>
@@ -679,73 +660,38 @@ tbody td{padding:8px 13px;color:var(--t1)}
       <div class="tc">
         <div class="tc-hd">
           <div class="tc-title">📄 Auto Report Generator</div>
-          <div class="tc-meta">Generate comprehensive RRR analysis reports</div>
+          <div class="tc-meta">Generate comprehensive RRR analysis reports based on scope</div>
         </div>
         <div style="padding:24px">
           <div style="max-width:800px;margin:0 auto">
             <div style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:24px;margin-bottom:20px">
-              <h3 style="font-size:14px;font-weight:600;margin-bottom:16px;color:var(--t1)">📊 Monthly RRR Report</h3>
-              <p style="font-size:12px;color:var(--t2);margin-bottom:20px;line-height:1.6">
-                Automatically generate a comprehensive RRR analysis report including KPI summary, top models, 
-                agent performance, and action plan. Choose your preferred format below.
-              </p>
+              <h3 style="font-size:14px;font-weight:600;margin-bottom:16px;color:var(--t1)">📊 Scope Selection</h3>
+              
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;background:var(--card);padding:14px;border:1px solid var(--border);border-radius:6px;">
+                 <div class="fg" style="margin-right:8px;">
+                    <label>Report Target:</label>
+                    <select id="reportScopeType" onchange="updateReportScope()" style="width:160px;padding:8px;font-size:13px;">
+                       <option value="Overall">Overall / All</option>
+                       <option value="Agent">Specific Agent</option>
+                       <option value="TL">Specific TL</option>
+                    </select>
+                 </div>
+                 <div class="fg" id="reportScopeNameWrap" style="display:none; flex-grow:1;">
+                    <label>Select Name:</label>
+                    <select id="reportScopeName" style="width:100%;padding:8px;font-size:13px;"></select>
+                 </div>
+              </div>
+
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <button onclick="generatePDFReport()" class="btn-e" style="padding:14px 24px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px">
-                  <span style="font-size:18px">📄</span>
-                  <span>Download PDF Report</span>
+                  <span style="font-size:18px">📄</span><span>Download PDF Report</span>
                 </button>
                 <button onclick="generateExcelReport()" class="btn-r" style="padding:14px 24px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px">
-                  <span style="font-size:18px">📊</span>
-                  <span>Download Excel Report</span>
+                  <span style="font-size:18px">📊</span><span>Download Excel Report</span>
                 </button>
-              </div>
-            </div>
-
-            <div style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:24px">
-              <h3 style="font-size:14px;font-weight:600;margin-bottom:16px;color:var(--t1)">📋 Report Contents</h3>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;color:var(--t2)">
-                <div style="padding:10px;background:var(--card);border-radius:4px">
-                  <div style="font-weight:600;color:var(--t1);margin-bottom:4px">✓ Executive Summary</div>
-                  <div style="font-size:11px">Overall RRR%, trends, risk level</div>
-                </div>
-                <div style="padding:10px;background:var(--card);border-radius:4px">
-                  <div style="font-weight:600;color:var(--t1);margin-bottom:4px">✓ Top Models</div>
-                  <div style="font-size:11px">High-risk sub-series analysis</div>
-                </div>
-                <div style="padding:10px;background:var(--card);border-radius:4px">
-                  <div style="font-weight:600;color:var(--t1);margin-bottom:4px">✓ Agent Performance</div>
-                  <div style="font-size:11px">Individual & team metrics</div>
-                </div>
-                <div style="padding:10px;background:var(--card);border-radius:4px">
-                  <div style="font-weight:600;color:var(--t1);margin-bottom:4px">✓ Action Plan</div>
-                  <div style="font-size:11px">Recommended interventions</div>
-                </div>
-                <div style="padding:10px;background:var(--card);border-radius:4px">
-                  <div style="font-weight:600;color:var(--t1);margin-bottom:4px">✓ Lifecycle Insights</div>
-                  <div style="font-size:11px">Model age vs failure patterns</div>
-                </div>
-                <div style="padding:10px;background:var(--card);border-radius:4px">
-                  <div style="font-weight:600;color:var(--t1);margin-bottom:4px">✓ Predictive Analytics</div>
-                  <div style="font-size:11px">Next month risk predictions</div>
-                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB: RECS -->
-    <div class="tab" id="tab-recs">
-      <div class="rec-grid" id="recGrid"></div>
-      <div class="g2">
-        <div class="cc">
-          <div class="cc-hd"><div class="cc-title">RRR Split (Repeat vs Clean)</div><div class="cc-tag">PIE</div></div>
-          <canvas id="cDonut" height="230"></canvas>
-        </div>
-        <div class="cc">
-          <div class="cc-hd"><div class="cc-title">Top 5 Repair Reasons</div><div class="cc-tag">PIE</div></div>
-          <canvas id="cResPie" height="230"></canvas>
         </div>
       </div>
     </div>
@@ -754,7 +700,7 @@ tbody td{padding:8px 13px;color:var(--t1)}
 </main>
 
 <footer class="footer">
-  <div>© 2025 <em>Lenovo</em> · RRR Intelligence Dashboard · Internal Use Only</div>
+  <div>© 2026 <em>Lenovo</em> · RRR Intelligence Dashboard · Internal Use Only</div>
   <div id="footerMeta">—</div>
 </footer>
 
@@ -769,13 +715,10 @@ setInterval(()=>{
 const themeToggle = document.getElementById('themeToggle');
 const themeIcon = document.querySelector('.theme-icon');
 let currentTheme = localStorage.getItem('theme') || 'dark';
-
-// Apply saved theme on load
 if (currentTheme === 'light') {
   document.body.classList.add('light-mode');
   themeIcon.textContent = '🌙';
 }
-
 themeToggle.addEventListener('click', () => {
   document.body.classList.toggle('light-mode');
   if (document.body.classList.contains('light-mode')) {
@@ -787,56 +730,50 @@ themeToggle.addEventListener('click', () => {
   }
 });
 
-/* ══════════════════════════════════════════
+/* ══════════════════════════════
    COLUMN DEFINITIONS
-   Maps internal key → exact Excel header name
-   Detection: exact → case-insensitive → partial
-══════════════════════════════════════════ */
+══════════════════════════════ */
 const COLS = {
-  WO_NUM:       'WO Number',
-  MTSN:         'Machine Serial Number',
-  SUB:          'Sub Series',
-  MONTH:        'RRR Month',
-  WEEK:         'RRR Week',
-  VENDOR:       'Primary Vendor Name',
-  REASON:       'Repeat Repair Reason1',
-  SYMPTOM:      'Symptom1',
-  FLAG:         'RRR MTSN 30D Flag NOC',
-  TL:           'Release by TL',
-  NAME:         'Release by Name',
-  ACCOUNT:      'Account Name',
-  SVC_TYPE:     'Service Delivery Type',
-  WARRANTY:     'Service Warranty Type',
-  LOB:          'LOB',
-  PROD_GRP:     'Product Group',
-  LABOR_STATUS: 'Labor Status',
-  WO_STATUS:    'WO Status',
+  WO_NUM:'WO Number', MTSN:'Machine Serial Number', SUB:'Sub Series',
+  MONTH:'RRR Month', WEEK:'RRR Week', VENDOR:'Primary Vendor Name',
+  REASON:'Repeat Repair Reason1', SYMPTOM:'Symptom1', FLAG:'RRR MTSN 30D NOC x Labor',
+  TL:'Release by TL', NAME:'Release by Name', ACCOUNT:'Account Name',
+  SVC_TYPE:'Service Delivery Type', WARRANTY:'Service Warranty Type',
+  LOB:'LOB', PROD_GRP:'Product Group', LABOR_STATUS:'Labor Status', WO_STATUS:'WO Status',
+  HCS:'HCS', SCENARIO:'Scenario',
 }
-
 const CHIP_IDS = {
-  WO_NUM:'chip-wonum', MTSN:'chip-mtsn',
-  SUB:'chip-sub', MONTH:'chip-month', WEEK:'chip-week',
-  VENDOR:'chip-vendor', REASON:'chip-reason', SYMPTOM:'chip-symptom', FLAG:'chip-flag',
-  TL:'chip-tl', NAME:'chip-name', ACCOUNT:'chip-account',
+  WO_NUM:'chip-wonum', MTSN:'chip-mtsn', SUB:'chip-sub', MONTH:'chip-month',
+  WEEK:'chip-week', VENDOR:'chip-vendor', REASON:'chip-reason', SYMPTOM:'chip-symptom',
+  FLAG:'chip-flag', TL:'chip-tl', NAME:'chip-name', ACCOUNT:'chip-account',
   SVC_TYPE:'chip-svctype', WARRANTY:'chip-warranty', LOB:'chip-lob',
   PROD_GRP:'chip-prodgrp', LABOR_STATUS:'chip-laborstatus', WO_STATUS:'chip-wostatus'
 }
-
-/* resolved indices into the AOA rows */
 let IDX = {}
 
 /* ── GLOBALS ── */
 let rawData=[], filteredData=[]
 let agentData=[], tlData=[], modelData=[], vendorData=[]
-, symptomData=[]
-let reasonData=[], accountData=[], weekData=[]
-let CM = {}   /* chart map */
+let symptomData=[], reasonData=[], accountData=[], weekData=[]
+let agentRiskData=[]
 
-/* ══════════════════════════════════════════
-   FILE UPLOAD — large-file safe:
-   uses sheet_to_aoa (array of arrays) + manual
-   row mapping; no JSON overhead for huge files
-══════════════════════════════════════════ */
+/* ── MULTI-SELECT STATE ── */
+const msState = { Month: new Set(), Week: new Set() }
+
+/* ── COL ALIASES ── */
+const COL_ALIASES = {
+  WO_NUM:['WO Number','Service Order ID','Service Order','WO No','WO#','Work Order'],
+  MTSN:['Machine Serial Number','Serial Number','MTSN','Serial No','SN'],
+  SVC_TYPE:['Service Delivery Type','Service Type','Delivery Type'],
+  WARRANTY:['Service Warranty Type','Warranty Type','Warranty'],
+  LOB:['LOB','Line of Business'],
+  PROD_GRP:['Product Group','Prod Group','Product Grp'],
+  LABOR_STATUS:['Labor Status','Labour Status','Labor Stat'],
+  WO_STATUS:['WO Status','Work Order Status','SO Status','Order Status'],
+  FLAG:['RRR MTSN 30D NOC x Labor', 'RRR_MTSN_30D_NOC_x_Labor', 'RRR MTSN 30D Flag NOC', 'RRR MTSN 30D']
+}
+
+/* ── RRR FILE UPLOAD ── */
 document.getElementById('uploadInput').addEventListener('change', function(e){
   const file = e.target.files[0]; if(!file) return
   document.getElementById('fileLabel').textContent = '📄 '+file.name
@@ -845,37 +782,28 @@ document.getElementById('uploadInput').addEventListener('change', function(e){
   reader.onload = ev => {
     try {
       prog(20,'Parsing workbook…')
-      const wb = XLSX.read(new Uint8Array(ev.target.result),{
-        type:'array', dense:true, cellText:false
-      })
+      const wb = XLSX.read(new Uint8Array(ev.target.result),{type:'array',dense:true,cellText:false})
       prog(40,'Loading sheet…')
       const sheet = wb.Sheets[wb.SheetNames[0]]
-      /* AOA = array-of-arrays: fastest path, lowest memory */
-      const aoa = XLSX.utils.sheet_to_json(sheet,{header:1, defval:'', raw:false})
+      const aoa = XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false})
       prog(55,'Detecting columns…')
-      if(aoa.length < 2){ alert('File is empty or has no data rows.'); noProg(); return }
-
+      if(aoa.length < 2){ alert('File is empty.'); noProg(); return }
       const headers = aoa[0].map(h=>String(h??'').trim())
       detectCols(headers)
-
       prog(65,'Mapping rows ('+( aoa.length-1).toLocaleString()+' rows)…')
-      /* Async chunk to keep UI alive on huge files */
       const CHUNK = 20000
-      rawData = []
+      rawData =[]
       let i = 1
       function processChunk(){
         const end = Math.min(i + CHUNK, aoa.length)
         for(; i < end; i++){
           const row = aoa[i]
-          /* skip fully blank rows */
           if(!row || row.every(c=>c===''||c==null)) continue
           const obj = {}
           for(const k in IDX){
             const idx = IDX[k]
             obj[k] = idx >= 0 ? String(row[idx]??'').trim() : ''
           }
-          /* ── HARD PRE-FILTERS (non-negotiable, per RRR definition) ──
-             Only Onsite + Standard warranty + Think LOB + Think Product Group */
           if(passesHardFilters(obj)) rawData.push(obj)
         }
         const pct = 65 + Math.round((i/aoa.length)*25)
@@ -894,10 +822,7 @@ document.getElementById('uploadInput').addEventListener('change', function(e){
         }
       }
       setTimeout(processChunk, 10)
-    } catch(err){
-      alert('Error reading file: '+err.message+'\n\n'+err.stack)
-      noProg()
-    }
+    } catch(err){ alert('Error reading file: '+err.message); noProg() }
   }
   reader.readAsArrayBuffer(file)
 })
@@ -914,26 +839,13 @@ function noProg(){
   document.getElementById('progMsg').style.display='none'
 }
 
-/* ── COLUMN ALIASES (alternate header names accepted for the same field) ── */
-const COL_ALIASES = {
-  WO_NUM:       ['WO Number', 'Service Order ID', 'Service Order', 'WO No', 'WO#', 'Work Order'],
-  MTSN:         ['Machine Serial Number', 'Serial Number', 'MTSN', 'Serial No', 'SN'],
-  SVC_TYPE:     ['Service Delivery Type', 'Service Type', 'Delivery Type'],
-  WARRANTY:     ['Service Warranty Type', 'Warranty Type', 'Warranty'],
-  LOB:          ['LOB', 'Line of Business'],
-  PROD_GRP:     ['Product Group', 'Prod Group', 'Product Grp'],
-  LABOR_STATUS: ['Labor Status', 'Labour Status', 'Labor Stat'],
-  WO_STATUS:    ['WO Status', 'Work Order Status', 'SO Status', 'Order Status'],
-}
-
 /* ── COLUMN DETECTION ── */
 function detectCols(headers){
   IDX = {}
-  const chips = []
+  const chips =[]
   for(const [k, wanted] of Object.entries(COLS)){
     const aliases = COL_ALIASES[k] ? COL_ALIASES[k] : [wanted]
     let idx = -1
-    // Try each alias: exact → case-insensitive → partial
     for(const alias of aliases){
       if(idx >= 0) break
       idx = headers.findIndex(h=>h===alias)
@@ -941,225 +853,178 @@ function detectCols(headers){
       if(idx<0) idx = headers.findIndex(h=>h.toLowerCase().includes(alias.toLowerCase()))
     }
     IDX[k] = idx
-    /* chip in upload zone */
     const chip = document.getElementById(CHIP_IDS[k])
     if(chip) chip.classList.toggle('found', idx>=0)
-    // Show which alias was actually matched (if different from primary)
-    const matchedAlias = idx >= 0 && COL_ALIASES[k]
-      ? (COL_ALIASES[k].find(a => headers[idx].toLowerCase() === a.toLowerCase() || headers[idx].toLowerCase().includes(a.toLowerCase())) || wanted)
-      : wanted
-    const displayLabel = (matchedAlias !== wanted && idx >= 0) ? `${wanted} <span style="opacity:.6;font-size:9px">(as "${matchedAlias}")</span>` : wanted
-    chips.push(`<span class="cb-chip ${idx>=0?'cb-ok':'cb-miss'}">${idx>=0?'✓':'✗'} ${displayLabel}${idx<0?' ← NOT FOUND':''}</span>`)
+    chips.push(`<span class="cb-chip ${idx>=0?'cb-ok':'cb-miss'}">${idx>=0?'✓':'✗'} ${wanted}${idx<0?' ← NOT FOUND':''}</span>`)
   }
   document.getElementById('colBannerChips').innerHTML = chips.join('')
   document.getElementById('colBanner').classList.add('show')
 }
 
-/* ════════════════════════════════════════════
-   RRR FORMULA — OFFICIAL DEFINITION
-   % of MTSN with repeat repair within 30 days
-   Default view: EXCLUDE Labor-Cancelled WOs
-     Labour-Cancelled = WO header status ≠ Cancelled AND Labor status = Cancelled
-   Pre-filters (applied at data-load, non-negotiable):
-     • Service Delivery Type = "Onsite"  (case-insensitive)
-     • Service Warranty Type = "Standard" (case-insensitive)
-     • LOB contains "Think" (case-insensitive)
-     • Product Group contains "Think" (case-insensitive)
-
-   NUMERATOR  : SUM of RRR_MTSN_30D_Flag_NOC  (value = "1")
-                — excludes all labor-cancelled WOs
-   DENOMINATOR: DISTINCT COUNT of Machine Serial Number
-                within the filtered dataset (same RRR month/week scope)
-════════════════════════════════════════════ */
-
-/* A row is "labor-cancelled" if:
-   WO header status ≠ "Cancelled"  AND  Labor status = "Cancelled"
-   Such rows are excluded from BOTH numerator and denominator */
-function isLaborCancelled(r){
-  const wo  = (r.WO_STATUS    || '').toLowerCase()
-  const lab = (r.LABOR_STATUS || '').toLowerCase()
-  return (wo !== 'cancelled') && (lab === 'cancelled')
-}
-
-/* Pre-filter gate — applied once at load time.
-   Only rows that pass ALL four criteria enter rawData */
+/* ── HARD FILTERS ── */
 function passesHardFilters(r){
   const svc     = (r.SVC_TYPE  || '').toLowerCase()
   const warr    = (r.WARRANTY  || '').toLowerCase()
-  const lob     = (r.LOB       || '').toLowerCase()
   const prodGrp = (r.PROD_GRP  || '').toLowerCase()
+  
   if(!svc.includes('onsite'))   return false
   if(!warr.includes('standard'))return false
-  if(!lob.includes('think'))    return false
-  if(!prodGrp.includes('think'))return false
+  
+  // Product Group must include Lenovo or Think
+  const isLenovo = prodGrp.includes('lenovo');
+  const isThink  = prodGrp.includes('think');
+  if(!(isLenovo || isThink)) return false;
+
   return true
 }
 
-/* A row contributes to the numerator if:
-   FLAG value = "1" AND NOT labor-cancelled */
-function isRepeatNOC(r){ return r.FLAG === '1' && !isLaborCancelled(r) }
-
-/* A row is eligible for denominator (its MTSN counted) if NOT labor-cancelled */
-function isEligibleNOC(r){ return !isLaborCancelled(r) }
-
-function calcRRR(arr){
-  /* NUMERATOR: sum of FLAG_NOC = 1 (not labor-cancelled) */
-  let numerator = 0
-  /* DENOMINATOR: distinct MTSN (not labor-cancelled) */
-  const mtsnSet = new Set()
-  arr.forEach(r => {
-    if(isEligibleNOC(r)){
-      if(r.MTSN) mtsnSet.add(r.MTSN)
-      if(isRepeatNOC(r)) numerator++
+/* ── UNIVERSAL RRR CALCULATION LOGIC ── 
+   RRR% = Sum of "RRR MTSN 30D NOC x Labor" hits / Distinct MTSN * 100 
+   Where "RRR MTSN 30D NOC x Labor" = 1 is a hit, 0 or blank is Non-hit.
+*/
+function getRRRStats(rows) {
+  const mtsnMap = new Map(); // MTSN -> Count of hits
+  let rrrWO = 0;
+  
+  rows.forEach(r => {
+    const isHit = (r.FLAG === '1');
+    if(isHit) {
+      rrrWO++;
     }
-  })
-  const denominator = mtsnSet.size
-  const pct = denominator > 0 ? (numerator / denominator * 100) : 0
-  return { total: denominator, rrrWO: numerator, cleanWO: denominator - numerator, pct }
-}
-
-/* ── FILTERS ── */
-function uniq(key){ return [...new Set(rawData.map(r=>r[key]).filter(Boolean))].sort() }
-
-function fillSel(id, def, arr, isMulti=false){
-  if(isMulti){
-    document.getElementById(id).innerHTML = arr.map(v=>`<option>${v}</option>`).join('')
-  } else {
-    document.getElementById(id).innerHTML =
-      `<option value="">${def}</option>`+arr.map(v=>`<option>${v}</option>`).join('')
+    if(r.MTSN) {
+      mtsnMap.set(r.MTSN, (mtsnMap.get(r.MTSN) || 0) + (isHit ? 1 : 0));
+    }
+  });
+  
+  const totalWO = mtsnMap.size; // Distinct MTSN
+  
+  // Calculate cleanWO (Distinct MTSN with 0 hits)
+  let cleanWO = 0;
+  for (const hits of mtsnMap.values()) {
+    if (hits === 0) cleanWO++;
   }
+  
+  return {
+    totalWO, 
+    rrrWO, 
+    cleanWO, 
+    pct: totalWO > 0 ? (rrrWO / totalWO * 100) : 0
+  };
 }
 
-/* ── CUSTOM MULTI-SELECT DROPDOWN LOGIC ── */
-const msState = { Month: new Set(), Week: new Set() }
+function calcRRR(rows){
+  const stats = getRRRStats(rows);
+  return { total: stats.totalWO, rrrWO: stats.rrrWO, cleanWO: stats.cleanWO, pct: stats.pct };
+}
 
-function buildMsDropdown(key, values, defaultLabel){
-  const drop = document.getElementById('msDrop'+key)
-  drop.innerHTML = ''
-  // "Select All" row
-  const allItem = document.createElement('div')
-  allItem.className = 'ms-item'
-  allItem.innerHTML = `<input type="checkbox" id="msAll${key}"> <span>Select All</span>`
-  allItem.querySelector('input').addEventListener('change', e => {
-    if(e.target.checked){ values.forEach(v => msState[key].add(v)) }
-    else { msState[key].clear() }
-    rebuildMsDropdown(key, values, defaultLabel)
-    syncHiddenSelect(key)
-    applyFilters()
+/* ── MULTI-SELECT HELPERS ── */
+function uniq(key){ return[...new Set(rawData.map(r=>r[key]).filter(Boolean))].sort() }
+function fillSel(id, blank, vals, keepSel=false){
+  const el=document.getElementById(id)
+  if(!el) return;
+  const prev = keepSel ? [...el.options].filter(o=>o.selected).map(o=>o.value) :[]
+  el.innerHTML=`<option value="">${blank}</option>`
+  vals.forEach(v=>{
+    const o=document.createElement('option')
+    o.value=o.textContent=v
+    if(keepSel && prev.includes(v)) o.selected=true
+    el.appendChild(o)
   })
-  drop.appendChild(allItem)
-  const div = document.createElement('div'); div.className='ms-divider'; drop.appendChild(div)
-  // Individual items
-  values.forEach(v => {
-    const item = document.createElement('div')
-    item.className = 'ms-item' + (msState[key].has(v) ? ' checked' : '')
-    item.innerHTML = `<input type="checkbox" ${msState[key].has(v)?'checked':''}> <span>${v}</span>`
-    item.querySelector('input').addEventListener('change', e => {
-      if(e.target.checked){ msState[key].add(v) } else { msState[key].delete(v) }
-      item.classList.toggle('checked', msState[key].has(v))
-      updateMsBtn(key, defaultLabel)
-      updateAllCheckbox(key, values)
-      syncHiddenSelect(key)
-      applyFilters()
-    })
-    drop.appendChild(item)
+}
+function buildMsDropdown(key, vals, blankLabel){
+  const drop = document.getElementById('msDropDown'+key) || document.getElementById('msDrop'+key)
+  if(!drop) return
+  drop.innerHTML = `<div class="ms-item" onclick="toggleMsAll('${key}')">
+    <input type="checkbox" id="ms-all-${key}"/><label style="cursor:pointer">All ${blankLabel}</label></div>
+    <div class="ms-divider"></div>`
+  vals.forEach(v=>{
+    const checked = msState[key].has(v)
+    drop.innerHTML += `<div class="ms-item ${checked?'checked':''}" onclick="toggleMsItem('${key}','${v}',this)">
+      <input type="checkbox" ${checked?'checked':''}/>${v}</div>`
   })
-  updateAllCheckbox(key, values)
-  updateMsBtn(key, defaultLabel)
+  updateMsBtn(key)
 }
-
-function rebuildMsDropdown(key, values, defaultLabel){
-  // Re-render checkboxes to reflect new state without losing event listeners
-  const drop = document.getElementById('msDrop'+key)
-  const items = drop.querySelectorAll('.ms-item:not(:first-child)')
-  items.forEach((item,i)=>{
-    const v = values[i]
-    if(!v) return
-    const cb = item.querySelector('input')
-    cb.checked = msState[key].has(v)
-    item.classList.toggle('checked', msState[key].has(v))
+function toggleMsItem(key,val,el){
+  if(msState[key].has(val)){msState[key].delete(val);el.classList.remove('checked')}
+  else{msState[key].add(val);el.classList.add('checked')}
+  el.querySelector('input').checked = msState[key].has(val)
+  syncHiddenSelect(key); updateMsBtn(key); applyFilters()
+}
+function toggleMsAll(key){
+  const drop = document.getElementById('msDropMonth')||document.getElementById('msDrop'+key)
+  const items = drop ? drop.querySelectorAll('.ms-item:not(:first-child)') :[]
+  const allChecked = msState[key].size === items.length
+  msState[key].clear()
+  items.forEach(item=>{
+    const val = item.textContent.trim()
+    item.classList.remove('checked')
+    item.querySelector('input').checked = false
+    if(!allChecked){ msState[key].add(val); item.classList.add('checked'); item.querySelector('input').checked=true }
   })
-  updateAllCheckbox(key, values)
-  updateMsBtn(key, defaultLabel)
+  syncHiddenSelect(key); updateMsBtn(key); applyFilters()
 }
-
-function updateAllCheckbox(key, values){
-  const allCb = document.getElementById('msAll'+key)
-  if(!allCb) return
-  const allChecked = values.length > 0 && values.every(v => msState[key].has(v))
-  const someChecked = values.some(v => msState[key].has(v))
-  allCb.checked = allChecked
-  allCb.indeterminate = someChecked && !allChecked
-}
-
-function updateMsBtn(key, defaultLabel){
+function updateMsBtn(key){
   const btn = document.getElementById('msBtn'+key)
+  if(!btn) return
   const count = msState[key].size
-  if(count === 0){ btn.textContent = defaultLabel }
-  else if(count === 1){ btn.textContent = [...msState[key]][0] }
-  else { btn.textContent = `${count} selected` }
+  if(count===0) btn.textContent = key==='Month'?'All Months':'All Weeks'
+  else if(count===1) btn.textContent =[...msState[key]][0]
+  else btn.textContent = `${count} selected`
 }
-
 function syncHiddenSelect(key){
   const sel = document.getElementById('f'+key)
-  for(let o of sel.options){ o.selected = msState[key].has(o.value) }
+  if(!sel) return
+  for(let o of sel.options) o.selected = msState[key].has(o.value)
 }
-
 function toggleMsDropdown(key){
   const wrap = document.getElementById('msWrap'+key)
   const isOpen = wrap.classList.contains('open')
-  // Close all dropdowns first
   document.querySelectorAll('.ms-wrap.open').forEach(w=>w.classList.remove('open'))
   if(!isOpen) wrap.classList.add('open')
 }
-
-// Close dropdowns on outside click
 document.addEventListener('click', e=>{
-  if(!e.target.closest('.ms-wrap')) {
+  if(!e.target.closest('.ms-wrap'))
     document.querySelectorAll('.ms-wrap.open').forEach(w=>w.classList.remove('open'))
-  }
 })
 
+/* ── FILTERS ── */
 function populateFilters(){
-  fillSel('fTL',    'All TLs',       uniq('TL'))
-  fillSel('fAgent', 'All Agents',    uniq('NAME'))
-  fillSel('fVendor','All Vendors',   uniq('VENDOR'))
-  fillSel('fAccount','All Accounts', uniq('ACCOUNT'))
-  fillSel('fSub',   'All Sub-Series',uniq('SUB'))
-  // Rebuild custom dropdowns (preserve existing selections)
+  fillSel('fTL','All TLs',uniq('TL'))
+  fillSel('fAgent','All Agents',uniq('NAME'))
+  fillSel('fVendor','All Vendors',uniq('VENDOR'))
+  fillSel('fAccount','All Accounts',uniq('ACCOUNT'))
+  fillSel('fSub','All Sub-Series',uniq('SUB'))
   const months = uniq('MONTH')
   const weeks  = uniq('WEEK')
-  fillSel('fMonth', 'All Months', months, true)
-  fillSel('fWeek',  'All Weeks',  weeks,  true)
-  buildMsDropdown('Month', months, 'All Months')
-  buildMsDropdown('Week',  weeks,  'All Weeks')
+  fillSel('fMonth','All Months',months,true)
+  fillSel('fWeek','All Weeks',weeks,true)
+  buildMsDropdown('Month',months,'Months')
+  buildMsDropdown('Week',weeks,'Weeks')
   document.getElementById('filterBar').classList.add('show')
   ;['fTL','fAgent','fVendor','fAccount','fSub']
     .forEach(id=>document.getElementById(id).onchange=applyFilters)
+  
+  updateReportScope();
 }
-
 function getMultiSelectValues(id){
-  const key = id === 'fMonth' ? 'Month' : 'Week'
+  const key = id==='fMonth'?'Month':'Week'
   const s = msState[key]
   return s.size > 0 ? [...s] : null
 }
-
 function applyFilters(){
   const tl=v('fTL'), ag=v('fAgent'), vd=v('fVendor'), ac=v('fAccount'), sb=v('fSub')
   const months = getMultiSelectValues('fMonth')
-  const weeks = getMultiSelectValues('fWeek')
-  
+  const weeks  = getMultiSelectValues('fWeek')
   filteredData = rawData.filter(r=>{
-    if(tl && r.TL!==tl)       return false
-    if(ag && r.NAME!==ag)     return false
+    if(tl && r.TL!==tl)           return false
+    if(ag && r.NAME!==ag)         return false
     if(months && !months.includes(r.MONTH)) return false
-    if(weeks && !weeks.includes(r.WEEK))    return false
-    if(vd && r.VENDOR!==vd)   return false
-    if(ac && r.ACCOUNT!==ac)  return false
-    if(sb && r.SUB!==sb)      return false
+    if(weeks  && !weeks.includes(r.WEEK))   return false
+    if(vd && r.VENDOR!==vd)       return false
+    if(ac && r.ACCOUNT!==ac)      return false
+    if(sb && r.SUB!==sb)          return false
     return true
   })
-  /* narrow agent dropdown to selected TL */
   if(tl){
     const ag4tl=[...new Set(rawData.filter(r=>r.TL===tl).map(r=>r.NAME).filter(Boolean))].sort()
     fillSel('fAgent','All Agents',ag4tl)
@@ -1167,20 +1032,14 @@ function applyFilters(){
   }
   analyze()
 }
-
 function resetFilters(){
-  ;['fTL','fAgent','fVendor','fAccount','fSub']
-    .forEach(id=>document.getElementById(id).value='')
-  // Clear custom multi-select state
-  msState.Month.clear()
-  msState.Week.clear()
-  agActiveMslMonth = null
-  tlActiveMslMonth = null
+  ;['fTL','fAgent','fVendor','fAccount','fSub'].forEach(id=>document.getElementById(id).value='')
+  msState.Month.clear(); msState.Week.clear()
+  agActiveMslMonth=null; tlActiveMslMonth=null
   populateFilters()
   filteredData=[...rawData]
   analyze()
 }
-
 function v(id){ return document.getElementById(id).value }
 
 /* ── ANALYZE ── */
@@ -1191,34 +1050,34 @@ function analyze(){
     `${total.toLocaleString()} distinct MTSN · ${rrrWO.toLocaleString()} repeat flag · ${pct.toFixed(2)}% RRR`
   document.getElementById('formulaLive').textContent=
     `${rrrWO.toLocaleString()} ÷ ${total.toLocaleString()} = ${pct.toFixed(2)}%`
+  
   buildKPIs(rows,total,rrrWO,cleanWO,pct)
   buildAg(rows); buildTL(rows); buildMod(rows)
   buildMonthSlicers(rows)
   buildVen(rows); buildRes(rows,rrrWO); buildSym(rows); buildAcc(rows); buildWk(rows)
-  buildLifecycle(rows); buildAgentRisk(rows)
-  buildCharts(rows)
-  buildRecs(rows,pct)
+  buildAgentRisk(rows)
+  buildHCSAnalyzer()
 }
 
 /* ── KPIs ── */
 function buildKPIs(rows,total,rrrWO,cleanWO,pct){
-  const bc = pct>=15?'b-bad':pct>=8?'b-mid':'b-ok'
-  const bl = pct>=15?'HIGH RISK':pct>=8?'MODERATE':'ON TARGET'
+  const bc=pct>=15?'b-bad':pct>=8?'b-mid':'b-ok'
+  const bl=pct>=15?'HIGH RISK':pct>=8?'MODERATE':'ON TARGET'
   const months=new Set(rows.map(r=>r.MONTH).filter(Boolean)).size
   const agents=new Set(rows.map(r=>r.NAME).filter(Boolean)).size
-  const tls  =new Set(rows.map(r=>r.TL).filter(Boolean)).size
-  const subs =new Set(rows.map(r=>r.SUB).filter(Boolean)).size
+  const tls=new Set(rows.map(r=>r.TL).filter(Boolean)).size
+  const subs=new Set(rows.map(r=>r.SUB).filter(Boolean)).size
   const weeks=new Set(rows.map(r=>r.WEEK).filter(Boolean)).size
-  const accs =new Set(rows.map(r=>r.ACCOUNT).filter(Boolean)).size
+  const accs=new Set(rows.map(r=>r.ACCOUNT).filter(Boolean)).size
   const kpis=[
-    {l:'Overall RRR %',      v:pct.toFixed(2)+'%', s:`<span class="badge ${bc}">${bl}</span>`, d:'d1'},
-    {l:'Distinct MTSN',      v:total.toLocaleString(), s:'Denominator (unique machines)', d:'d2'},
-    {l:'Repeat Flag Count',  v:rrrWO.toLocaleString(), s:'Numerator — FLAG_NOC = 1', d:'d3'},
-    {l:'Non-Repeat MTSN',    v:cleanWO.toLocaleString(), s:'MTSN − Repeat flags', d:'d4'},
-    {l:'Active Agents',      v:agents, s:`Across ${tls} TL${tls!==1?'s':''}`, d:'d5'},
-    {l:'Months',             v:months, s:`${weeks} week${weeks!==1?'s':''} covered`, d:'d6'},
-    {l:'Sub-Series',         v:subs, s:'Distinct models', d:'d1'},
-    {l:'Accounts',           v:accs, s:'Distinct accounts', d:'d2'},
+    {l:'Overall RRR %',     v:pct.toFixed(2)+'%', s:`<span class="badge ${bc}">${bl}</span>`, d:'d1'},
+    {l:'Distinct MTSN',     v:total.toLocaleString(), s:'Denominator (All Valid)', d:'d2'},
+    {l:'Repeat Flag Count', v:rrrWO.toLocaleString(), s:'Numerator — FLAG = 1', d:'d3'},
+    {l:'Clean MTSN',        v:cleanWO.toLocaleString(), s:'MTSNs with 0 hits', d:'d4'},
+    {l:'Active Agents',     v:agents, s:`Across ${tls} TL${tls!==1?'s':''}`, d:'d5'},
+    {l:'Months',            v:months, s:`${weeks} week${weeks!==1?'s':''} covered`, d:'d6'},
+    {l:'Sub-Series',        v:subs, s:'Distinct models', d:'d1'},
+    {l:'Accounts',          v:accs, s:'Distinct accounts', d:'d2'},
   ]
   document.getElementById('kpiStrip').innerHTML=kpis.map(k=>`
     <div class="kpi fade ${k.d}">
@@ -1228,42 +1087,35 @@ function buildKPIs(rows,total,rrrWO,cleanWO,pct){
     </div>`).join('')
 }
 
-/* ── GROUP BY helper ──
-   NUMERATOR  : count of rows where FLAG_NOC = "1" (not labor-cancelled)
-   DENOMINATOR: distinct MTSN (not labor-cancelled)
-   RRR% = Numerator / Denominator * 100                                    ── */
-function grp(rows, keyFn){
-  const m = {}
-  rows.forEach(r => {
-    const k = keyFn(r) || 'Unknown'
-    if(!m[k]) m[k] = { name:k, mtsnSet:new Set(), numerator:0 }
-    if(isEligibleNOC(r)){
-      if(r.MTSN) m[k].mtsnSet.add(r.MTSN)
-      if(isRepeatNOC(r)) m[k].numerator++
+/* ── GROUP BY ── */
+function grp(rows,keyFn){
+  const m={}
+  rows.forEach(r=>{
+    const k=keyFn(r)||'Unknown'
+    if(!m[k]) m[k]={name:k, mtsnMap:new Map(), num:0}
+    
+    const isHit = (r.FLAG === '1');
+    if(isHit) {
+      m[k].num++
+    }
+    if(r.MTSN) {
+      m[k].mtsnMap.set(r.MTSN, (m[k].mtsnMap.get(r.MTSN) || 0) + (isHit ? 1 : 0))
     }
   })
-
-  const results = Object.values(m).map(g => {
-    const totalWO  = g.mtsnSet.size   // denominator = distinct MTSN
-    const rrrWO    = g.numerator      // numerator   = sum of FLAG_NOC=1
-    const cleanWO  = Math.max(0, totalWO - rrrWO)
-    return { ...g, totalWO, rrrWO, cleanWO,
-      pct: totalWO > 0 ? (rrrWO / totalWO * 100) : 0 }
+  const results=Object.values(m).map(g=>{
+    const totalWO = g.mtsnMap.size;
+    let cleanWO = 0;
+    for (const hits of g.mtsnMap.values()) if (hits === 0) cleanWO++;
+    const rrrWO = g.num;
+    return {...g, totalWO, rrrWO, cleanWO, pct: totalWO>0 ? (rrrWO/totalWO*100) : 0}
   })
-
-  const highVolume = results.filter(r => r.totalWO > 15)
-  const lowVolume  = results.filter(r => r.totalWO <= 15)
-  const sortByComposite = items => {
-    const maxWO = Math.max(...items.map(r => r.totalWO), 1)
-    return items.sort((a, b) => {
-      const scoreA = (a.totalWO / maxWO * 40) + (a.pct * 0.6)
-      const scoreB = (b.totalWO / maxWO * 40) + (b.pct * 0.6)
-      return scoreB - scoreA
-    })
+  const high=results.filter(r=>r.totalWO>15), low=results.filter(r=>r.totalWO<=15)
+  const sortC=items=>{
+    const mx=Math.max(...items.map(r=>r.totalWO),1)
+    return items.sort((a,b)=>((b.totalWO/mx*40)+(b.pct*.6))-((a.totalWO/mx*40)+(a.pct*.6)))
   }
-  sortByComposite(highVolume)
-  sortByComposite(lowVolume)
-  return [...highVolume, ...lowVolume].map((g, i) => ({ ...g, rank: i+1 }))
+  sortC(high); sortC(low)
+  return[...high,...low].map((g,i)=>({...g,rank:i+1}))
 }
 
 /* ── DATA BUILDERS ── */
@@ -1271,21 +1123,20 @@ function buildAg(rows){
   const m={}
   rows.forEach(r=>{
     const a=r.NAME||'Unknown'
-    if(!m[a]) m[a]={name:a,tl:r.TL||'—',mtsnSet:new Set(),numerator:0}
-    if(isEligibleNOC(r)){
-      if(r.MTSN) m[a].mtsnSet.add(r.MTSN)
-      if(isRepeatNOC(r)) m[a].numerator++
-    }
+    if(!m[a]) m[a]={name:a,tl:r.TL||'—', mtsnMap:new Map(), num:0}
+    
+    const isHit = (r.FLAG === '1');
+    if(isHit) m[a].num++
+    if(r.MTSN) m[a].mtsnMap.set(r.MTSN, (m[a].mtsnMap.get(r.MTSN) || 0) + (isHit ? 1 : 0))
   })
   agentData=Object.values(m).map(g=>{
-    const totalWO = g.mtsnSet.size
-    const rrrWO   = g.numerator
-    const cleanWO = Math.max(0, totalWO - rrrWO)
-    return {
-      name: g.name, tl: g.tl, totalWO, rrrWO, cleanWO,
-      pct: totalWO > 0 ? (rrrWO / totalWO * 100) : 0
-    }
+    const totalWO = g.mtsnMap.size;
+    let cleanWO = 0;
+    for (const hits of g.mtsnMap.values()) if(hits === 0) cleanWO++;
+    const rrrWO = g.num;
+    return {name:g.name, tl:g.tl, totalWO, rrrWO, cleanWO, pct:totalWO>0 ? (rrrWO/totalWO*100) : 0}
   }).sort((a,b)=>b.pct-a.pct).map((g,i)=>({...g,rank:i+1}))
+  
   const mxWO=Math.max(...agentData.map(a=>a.totalWO),1)
   agentData.forEach(a=>a.barW=a.totalWO/mxWO*80)
   document.getElementById('agMeta').textContent=
@@ -1297,466 +1148,206 @@ function buildTL(rows){
   const m={}
   rows.forEach(r=>{
     const t=r.TL||'Unknown'
-    if(!m[t]) m[t]={name:t,agSet:new Set(),mtsnSet:new Set(),numerator:0}
+    if(!m[t]) m[t]={name:t, agSet:new Set(), mtsnMap:new Map(), num:0}
     if(r.NAME) m[t].agSet.add(r.NAME)
-    if(isEligibleNOC(r)){
-      if(r.MTSN) m[t].mtsnSet.add(r.MTSN)
-      if(isRepeatNOC(r)) m[t].numerator++
-    }
+    
+    const isHit = (r.FLAG === '1');
+    if(isHit) m[t].num++
+    if(r.MTSN) m[t].mtsnMap.set(r.MTSN, (m[t].mtsnMap.get(r.MTSN) || 0) + (isHit ? 1 : 0))
   })
   tlData=Object.values(m).map(g=>{
-    const totalWO = g.mtsnSet.size
-    const rrrWO   = g.numerator
-    const cleanWO = Math.max(0, totalWO - rrrWO)
-    return {
-      name: g.name, agents: g.agSet.size, totalWO, rrrWO, cleanWO,
-      pct: totalWO > 0 ? (rrrWO / totalWO * 100) : 0
-    }
+    const totalWO = g.mtsnMap.size;
+    let cleanWO = 0;
+    for (const hits of g.mtsnMap.values()) if(hits === 0) cleanWO++;
+    const rrrWO = g.num;
+    return {name:g.name, agents:g.agSet.size, totalWO, rrrWO, cleanWO, pct:totalWO>0 ? (rrrWO/totalWO*100) : 0}
   }).sort((a,b)=>b.pct-a.pct).map((g,i)=>({...g,rank:i+1}))
+  
   document.getElementById('tlMeta').textContent=`${tlData.length} team leaders`
   drawTL()
 }
 
 function buildMod(rows){
   modelData=grp(rows,r=>r.SUB)
-  const highVol = modelData.filter(m=>m.totalWO>15).length
   document.getElementById('modMeta').textContent=
-    `${modelData.length} sub-series · ${highVol} high-volume (>15 WO) · ${modelData.filter(m=>m.pct>=15).length} high-risk`
+    `${modelData.length} sub-series · ${modelData.filter(m=>m.pct>=15).length} high-risk`
   drawMod()
 }
-
 function buildVen(rows){ vendorData=grp(rows,r=>r.VENDOR); drawVen() }
-
 function buildRes(rows,totalRep){
-  const m={}
-  rows.forEach(r=>{
-    const rs=r.REASON||'Not Specified'
-    if(!m[rs]) m[rs]={name:rs, mtsnSet:new Set(), numerator:0}
-    if(isEligibleNOC(r)){
-      if(r.MTSN) m[rs].mtsnSet.add(r.MTSN)
-      if(isRepeatNOC(r)) m[rs].numerator++
-    }
-  })
-  
-  const results = Object.values(m)
-    .filter(g=>g.name!=='Not Specified')
-    .map(g=>{
-      const totalWO = g.mtsnSet.size
-      const count   = g.numerator
-      return {
-        name: g.name, count, totalWO,
-        pct: totalWO > 0 ? (count / totalWO * 100) : 0
-      }
-    })
-  
-  // Separate high-volume (>15 WO) and low-volume (<=15 WO) items
-  const highVolume = results.filter(r => r.totalWO > 15)
-  const lowVolume = results.filter(r => r.totalWO <= 15)
-  
-  // Composite sorting: High WO count + High RRR%
-  const sortByComposite = (items) => {
-    const maxWO = Math.max(...items.map(r => r.totalWO), 1)
-    return items.sort((a, b) => {
-      const scoreA = (a.totalWO / maxWO * 40) + (a.pct * 0.6)
-      const scoreB = (b.totalWO / maxWO * 40) + (b.pct * 0.6)
-      return scoreB - scoreA
-    })
-  }
-  
-  // Sort each group separately
-  sortByComposite(highVolume)
-  sortByComposite(lowVolume)
-  
-  // Combine: high-volume items first, then low-volume
-  const sorted = [...highVolume, ...lowVolume]
-  reasonData = sorted.map((g,i)=>({...g,rank:i+1}))
+  reasonData = grp(rows, r=>r.REASON).filter(g=>g.name!=='Unknown' && g.name!=='Not Specified').map((g,i)=>({...g, rank:i+1}));
   drawRes()
 }
-
 function buildSym(rows){
   symptomData=grp(rows,r=>r.SYMPTOM)
-  const highVol = symptomData.filter(s=>s.totalWO>15).length
-  document.getElementById('symMeta').textContent=
-    `${symptomData.length} symptoms · ${highVol} high-volume (>15 WO) · ${symptomData.filter(s=>s.pct>=15).length} high-risk`
+  document.getElementById('symMeta').textContent=`${symptomData.length} symptoms`
   drawSym()
 }
-
 function buildAcc(rows){ accountData=grp(rows,r=>r.ACCOUNT); drawAcc() }
-
 function buildWk(rows){
   weekData=grp(rows,r=>r.WEEK).sort((a,b)=>String(a.name).localeCompare(String(b.name)))
   drawWk()
 }
 
-/* ── MODEL LIFECYCLE INTELLIGENCE ── */
-let lifecycleData=[]
-function buildLifecycle(rows){
-  // Comprehensive Lenovo Model Lifecycle Database
-  // Based on official Lenovo release dates and typical 3-5 year lifecycle
-  // Data sourced from Lenovo official website product announcements
-  const modelAgeMap = {
-    // ThinkPad T Series
-    'T14 Gen5': 0.3, 'T14 Gen4': 1.2, 'T14 Gen3': 2.2, 'T14 Gen2': 3.2, 'T14 Gen1': 4.5,
-    'T14s Gen5': 0.3, 'T14s Gen4': 1.2, 'T14s Gen3': 2.2, 'T14s Gen2': 3.2, 'T14s Gen1': 4.5,
-    'T16 Gen3': 0.8, 'T16 Gen2': 1.8, 'T16 Gen1': 2.8,
-    'T15 Gen2': 3.0, 'T15 Gen1': 4.0, 'T15p Gen2': 3.0, 'T15p Gen1': 4.0,
-    
-    // ThinkPad X Series
-    'X1 Carbon Gen12': 0.3, 'X1 Carbon Gen11': 1.3, 'X1 Carbon Gen10': 2.3, 
-    'X1 Carbon Gen9': 3.0, 'X1 Carbon Gen8': 4.0, 'X1 Carbon Gen7': 5.0,
-    'X1 Yoga Gen9': 0.5, 'X1 Yoga Gen8': 1.5, 'X1 Yoga Gen7': 2.5, 'X1 Yoga Gen6': 3.5,
-    'X13 Gen5': 0.3, 'X13 Gen4': 1.3, 'X13 Gen3': 2.3, 'X13 Gen2': 3.3, 'X13 Gen1': 4.3,
-    'X1 Nano Gen3': 1.0, 'X1 Nano Gen2': 2.0, 'X1 Nano Gen1': 3.0,
-    
-    // ThinkPad L Series
-    'L14 Gen5': 0.5, 'L14 Gen4': 1.5, 'L14 Gen3': 2.5, 'L14 Gen2': 3.5, 'L14 Gen1': 4.5,
-    'L15 Gen4': 1.0, 'L15 Gen3': 2.0, 'L15 Gen2': 3.0, 'L15 Gen1': 4.0,
-    'L13 Gen4': 1.0, 'L13 Gen3': 2.0, 'L13 Gen2': 3.0, 'L13 Gen1': 4.0,
-    
-    // ThinkPad E Series
-    'E14 Gen6': 0.2, 'E14 Gen5': 1.0, 'E14 Gen4': 2.0, 'E14 Gen3': 3.0, 'E14 Gen2': 4.2,
-    'E15 Gen4': 1.5, 'E15 Gen3': 2.5, 'E15 Gen2': 3.5, 'E15 Gen1': 4.5,
-    'E16 Gen2': 0.8, 'E16 Gen1': 1.8,
-    
-    // ThinkPad P Series (Workstation)
-    'P14s Gen5': 0.3, 'P14s Gen4': 1.3, 'P14s Gen3': 2.3, 'P14s Gen2': 3.3, 'P14s Gen1': 4.3,
-    'P16s Gen3': 0.8, 'P16s Gen2': 1.8, 'P16s Gen1': 2.8,
-    'P1 Gen7': 0.3, 'P1 Gen6': 1.3, 'P1 Gen5': 2.3, 'P1 Gen4': 3.3,
-    'P15 Gen2': 3.0, 'P15 Gen1': 4.0, 'P17 Gen2': 3.0, 'P17 Gen1': 4.0,
-    
-    // ThinkBook Series
-    'ThinkBook 14 Gen7': 0.2, 'ThinkBook 14 Gen6': 1.0, 'ThinkBook 14 Gen5': 2.0,
-    'ThinkBook 15 Gen5': 1.5, 'ThinkBook 15 Gen4': 2.5,
-    'ThinkBook 13x Gen4': 0.5, 'ThinkBook 13x Gen3': 1.5, 'ThinkBook 13x Gen2': 2.5,
-    
-    // IdeaPad Series
-    'IdeaPad Slim 5': 1.0, 'IdeaPad Slim 3': 1.5, 'IdeaPad Slim 1': 2.0,
-    'IdeaPad Pro 5': 0.5, 'IdeaPad Gaming 3': 1.5,
-    'IdeaPad Flex 5': 1.2, 'IdeaPad Flex 3': 2.0,
-    
-    // Yoga Series
-    'Yoga 9i Gen9': 0.5, 'Yoga 9i Gen8': 1.5, 'Yoga 9i Gen7': 2.5,
-    'Yoga 7i Gen8': 1.0, 'Yoga 7i Gen7': 2.0,
-    'Yoga Slim 7': 1.5, 'Yoga Slim 6': 2.0,
-    
-    // Legion Gaming Series
-    'Legion Pro 7i Gen9': 0.3, 'Legion Pro 7i Gen8': 1.3,
-    'Legion Pro 5i Gen9': 0.5, 'Legion Pro 5i Gen8': 1.5,
-    'Legion Slim 5': 1.0, 'Legion 5': 2.0,
-  }
-  
-  // Build model data with lifecycle info
-  const modelGroups = {}
-  rows.forEach(r => {
-    const model = r.SUB || 'Unknown'
-    if(!modelGroups[model]) modelGroups[model] = { mtsnSet: new Set(), numerator: 0 }
-    if(isEligibleNOC(r)){
-      if(r.MTSN) modelGroups[model].mtsnSet.add(r.MTSN)
-      if(isRepeatNOC(r)) modelGroups[model].numerator++
-    }
-  })
-  
-  lifecycleData = Object.entries(modelGroups).map(([model, data]) => {
-    const totalWO = data.mtsnSet.size
-    const rrrWO   = data.numerator
-    const pct     = totalWO > 0 ? (rrrWO / totalWO * 100) : 0
-    
-    // Get age from comprehensive map or estimate from data volume
-    let age = modelAgeMap[model]
-    if(!age) {
-      // Heuristic: lower volume = newer models, higher volume = older
-      age = totalWO < 30 ? 0.5 : totalWO < 100 ? 1.5 : totalWO < 300 ? 2.5 : totalWO < 600 ? 3.5 : 4.5
-    }
-    
-    // Classify failure phase based on age
-    let phase, phaseIcon
-    if(age < 1.0) {
-      phase = 'Early Lifecycle'
-      phaseIcon = '🟢'
-    } else if(age < 2.5) {
-      phase = 'Stable Operation'
-      phaseIcon = '🟢'
-    } else if(age < 4.0) {
-      phase = 'Wear-out Phase'
-      phaseIcon = '🟠'
-    } else {
-      phase = 'End-of-Life Spike'
-      phaseIcon = '🔴'
-    }
-    
-    return {model, age, phase, phaseIcon, totalWO, rrrWO, pct}
-  })
-  
-  // Separate high-volume (>15 WO) and low-volume (<=15 WO) models
-  const highVolume = lifecycleData.filter(m => m.totalWO > 15)
-  const lowVolume = lifecycleData.filter(m => m.totalWO <= 15)
-  
-  // Composite sorting: High WO + High RRR%
-  const sortByComposite = (items) => {
-    const maxWO = Math.max(...items.map(d => d.totalWO), 1)
-    return items.sort((a, b) => {
-      const scoreA = (a.totalWO / maxWO * 40) + (a.pct * 0.6)
-      const scoreB = (b.totalWO / maxWO * 40) + (b.pct * 0.6)
-      return scoreB - scoreA
-    })
-  }
-  
-  // Sort each group separately
-  sortByComposite(highVolume)
-  sortByComposite(lowVolume)
-  
-  // Combine: high-volume models first, then low-volume
-  lifecycleData = [...highVolume, ...lowVolume]
-  
-  document.getElementById('lifecycleMeta').textContent = 
-    `${lifecycleData.length} models analyzed · ${highVolume.length} high-volume (>15 WO) · Database: ${Object.keys(modelAgeMap).length} Lenovo models`
-  drawLifecycle()
-}
-
-/* ── AGENT RISK PREDICTION ── */
-let agentRiskData=[]
+/* ── AGENT RISK ── */
 function buildAgentRisk(rows){
-  // Build month-wise agent data for trend analysis
-  const agentMonthMap = {}
+  if(agentData.length === 0) return
+  const agentCombos =[]
+  const agentModelMap = {}
   rows.forEach(r => {
-    const agent = r.NAME || 'Unknown'
-    const month = r.MONTH || 'Unknown'
-    const key = `${agent}||${month}`
+    const a=r.NAME||'Unknown', m=r.SUB||'Unknown', s=r.SYMPTOM||'Unknown'
+    const k=`${a}||${m}||${s}`
+    if(!agentModelMap[k]) agentModelMap[k]={agent:a, model:m, symptom:s, mtsnMap:new Map(), num:0}
     
-    if(!agentMonthMap[key]) {
-      agentMonthMap[key] = {agent, month, mtsnSet: new Set(), numerator: 0}
-    }
-    if(isEligibleNOC(r)){
-      if(r.MTSN) agentMonthMap[key].mtsnSet.add(r.MTSN)
-      if(isRepeatNOC(r)) agentMonthMap[key].numerator++
-    }
+    const isHit = (r.FLAG === '1');
+    if(isHit) agentModelMap[k].num++
+    if(r.MTSN) agentModelMap[k].mtsnMap.set(r.MTSN, (agentModelMap[k].mtsnMap.get(r.MTSN)||0) + (isHit?1:0))
   })
-  
-  // Calculate monthly RRR for each agent
-  const agentMonthly = Object.values(agentMonthMap).map(d => ({
-    agent: d.agent,
-    month: d.month,
-    totalWO: d.mtsnSet.size,
-    rrrWO:   d.numerator,
-    pct: d.mtsnSet.size > 0 ? (d.numerator / d.mtsnSet.size * 100) : 0
-  }))
-  
-  // Group by agent for trend analysis
-  const agentTrends = {}
-  agentMonthly.forEach(d => {
-    if(!agentTrends[d.agent]) agentTrends[d.agent] = []
-    agentTrends[d.agent].push({month: d.month, pct: d.pct})
+  Object.values(agentModelMap).forEach(g=>{
+    const totalWO = g.mtsnMap.size;
+    const rrrWO = g.num;
+    agentCombos.push({...g, totalWO, rrrWO, pct:totalWO>0 ? (rrrWO/totalWO*100) : 0})
   })
-  
-  // Find problematic model-symptom combinations per agent
-  const agentModelSymptom = {}
-  rows.forEach(r => {
-    const agent = r.NAME || 'Unknown'
-    const model = r.SUB || 'Unknown'
-    const symptom = r.SYMPTOM || 'Unknown'
-    const key = `${agent}||${model}||${symptom}`
-    
-    if(!agentModelSymptom[key]) {
-      agentModelSymptom[key] = {agent, model, symptom, mtsnSet: new Set(), numerator: 0}
+  agentRiskData=agentData.slice(0,30).map(agent=>{
+    const months=[...new Set(rows.filter(r=>r.NAME===agent.name).map(r=>r.MONTH).filter(Boolean))].sort()
+    let trend='→', predictedRRR=agent.pct
+    if(months.length>=2){
+      const m1=rows.filter(r=>r.NAME===agent.name&&r.MONTH===months[months.length-2])
+      const m2=rows.filter(r=>r.NAME===agent.name&&r.MONTH===months[months.length-1])
+      const p1=calcRRR(m1).pct, p2=calcRRR(m2).pct
+      const diff=p2-p1
+      if(diff>2) trend='↑ Worsening'
+      else if(diff<-2) trend='↓ Improving'
+      else trend='→ Stable'
+      predictedRRR=p2+(diff*.5)
     }
-    if(isEligibleNOC(r)){
-      if(r.MTSN) agentModelSymptom[key].mtsnSet.add(r.MTSN)
-      if(isRepeatNOC(r)) agentModelSymptom[key].numerator++
-    }
-  })
-  
-  const modelSymptomCombo = Object.values(agentModelSymptom).map(d => ({
-    agent: d.agent,
-    model: d.model,
-    symptom: d.symptom,
-    totalWO: d.mtsnSet.size,
-    rrrWO:   d.numerator,
-    pct: d.mtsnSet.size > 0 ? (d.numerator / d.mtsnSet.size * 100) : 0
-  }))
-  
-  // Build agent risk data with predictions
-  agentRiskData = agentData.map(agent => {
-    const trends = agentTrends[agent.name] || []
-    
-    // Simple linear regression for trend prediction
-    let predictedRRR = agent.pct
-    let trend = '→'
-    if(trends.length >= 2) {
-      const sorted = trends.sort((a, b) => a.month.localeCompare(b.month))
-      const recent = sorted.slice(-3) // last 3 months
-      const avgChange = recent.length >= 2 ? 
-        (recent[recent.length - 1].pct - recent[0].pct) / (recent.length - 1) : 0
-      
-      predictedRRR = agent.pct + avgChange
-      trend = avgChange > 2 ? '📈' : avgChange < -2 ? '📉' : '→'
-    }
-    
-    // Find top problematic combinations for this agent
-    const agentCombos = modelSymptomCombo
-      .filter(c => c.agent === agent.name && c.totalWO >= 3)
-      .sort((a, b) => b.pct - a.pct)
-    
-    const topModel = agentCombos[0]?.model || 'N/A'
-    const topModelRRR = agentCombos[0]?.pct || 0
-    const topSymptom = agentCombos[0]?.symptom || 'N/A'
-    const topSymptomRRR = agentCombos[0]?.pct || 0
-    
-    const riskLevel = predictedRRR >= 20 ? '🔴 High' : 
-                      predictedRRR >= 10 ? '🟠 Medium' : '🟢 Low'
-    
-    return {
-      agent: agent.name,
-      currentRRR: agent.pct,
-      predictedRRR: Math.max(0, predictedRRR),
-      trend,
-      topModel: `${topModel} (${topModelRRR.toFixed(1)}%)`,
-      topSymptom: `${topSymptom} (${topSymptomRRR.toFixed(1)}%)`,
-      riskLevel,
-      combos: agentCombos.slice(0, 5) // top 5 for RCA
-    }
-  }).sort((a, b) => b.predictedRRR - a.predictedRRR)
-  
-  document.getElementById('agentRiskMeta').textContent = 
-    `${agentRiskData.length} agents analyzed · ${agentRiskData.filter(a => a.predictedRRR >= 15).length} high-risk predicted`
+    const combos=agentCombos.filter(c=>c.agent===agent.name&&c.totalWO>=3).sort((a,b)=>b.pct-a.pct)
+    const topModel=combos[0]?.model||'N/A'
+    const topSymptom=combos[0]?.symptom||'N/A'
+    const topModelRRR=combos[0]?.pct||0
+    const topSymptomRRR=combos[0]?.pct||0
+    const riskLevel=predictedRRR>=20?'🔴 High':predictedRRR>=10?'🟠 Medium':'🟢 Low'
+    return {agent:agent.name, currentRRR:agent.pct, predictedRRR:Math.max(0,predictedRRR), trend,
+      topModel:`${topModel} (${topModelRRR.toFixed(1)}%)`,
+      topSymptom:`${topSymptom} (${topSymptomRRR.toFixed(1)}%)`, riskLevel,
+      combos:combos.slice(0,5)}
+  }).sort((a,b)=>b.predictedRRR-a.predictedRRR)
+  document.getElementById('agentRiskMeta').textContent=
+    `${agentRiskData.length} agents analyzed · ${agentRiskData.filter(a=>a.currentRRR>=15).length} high-risk`
   drawAgentRisk()
 }
 
-/* ── DRAW TABLES ── */
-function pc(p){return p>=15?'p-bad':p>=8?'p-mid':'p-ok'}
-function rk(i){return i<3?`r${i+1}`:'rx'}
-
-/* ── MONTH SLICER STATE ── */
-let agActiveMslMonth = null   // null = "Avg", string = month name
-let tlActiveMslMonth = null
-
-/* Compute RRR for a given set of rows + optional month filter */
-function calcMonthRRR(rows, month){
-  const subset = month ? rows.filter(r => r.MONTH === month) : rows
-  return calcRRR(subset)
-}
-
-/* Build per-month data for all agents/TLs, given the current filteredData */
+/* ── MONTH SLICER ── */
+let agActiveMslMonth=null, tlActiveMslMonth=null
 function buildMonthlyAgentMap(rows){
-  /* returns { agentName: { month: {totalWO, rrrWO, pct}, ... } } */
-  const map = {}
-  rows.forEach(r => {
-    const a = r.NAME || 'Unknown'
-    const m = r.MONTH || '?'
-    if(!map[a]) map[a] = {}
-    if(!map[a][m]) map[a][m] = { mtsnSet: new Set(), numerator: 0 }
-    if(isEligibleNOC(r)){
-      if(r.MTSN) map[a][m].mtsnSet.add(r.MTSN)
-      if(isRepeatNOC(r)) map[a][m].numerator++
-    }
+  const map={}
+  rows.forEach(r=>{
+    const a=r.NAME||'Unknown', m=r.MONTH||'?'
+    if(!map[a]) map[a]={}
+    if(!map[a][m]) map[a][m]={mtsnMap:new Map(), num:0}
+    
+    const isHit = (r.FLAG === '1');
+    if(isHit) map[a][m].num++
+    if(r.MTSN) map[a][m].mtsnMap.set(r.MTSN, (map[a][m].mtsnMap.get(r.MTSN)||0) + (isHit?1:0))
   })
-  // Convert sets → numbers
-  const out = {}
-  for(const [ag, months] of Object.entries(map)){
-    out[ag] = {}
-    for(const [mo, d] of Object.entries(months)){
-      const t = d.mtsnSet.size, n = d.numerator
-      out[ag][mo] = { totalWO: t, rrrWO: n, pct: t > 0 ? n/t*100 : 0 }
+  const out={}
+  for(const [ag,months] of Object.entries(map)){
+    out[ag]={}
+    for(const [mo,d] of Object.entries(months)){
+      const t = d.mtsnMap.size;
+      const n = d.num;
+      out[ag][mo]={totalWO:t, rrrWO:n, pct:t>0?n/t*100:0}
     }
   }
   return out
 }
-
 function buildMonthlyTLMap(rows){
-  const map = {}
-  rows.forEach(r => {
-    const tl = r.TL || 'Unknown'
-    const m  = r.MONTH || '?'
-    if(!map[tl]) map[tl] = {}
-    if(!map[tl][m]) map[tl][m] = { mtsnSet: new Set(), agSet: new Set(), numerator: 0 }
+  const map={}
+  rows.forEach(r=>{
+    const tl=r.TL||'Unknown', m=r.MONTH||'?'
+    if(!map[tl]) map[tl]={}
+    if(!map[tl][m]) map[tl][m]={agSet:new Set(), mtsnMap:new Map(), num:0}
     if(r.NAME) map[tl][m].agSet.add(r.NAME)
-    if(isEligibleNOC(r)){
-      if(r.MTSN) map[tl][m].mtsnSet.add(r.MTSN)
-      if(isRepeatNOC(r)) map[tl][m].numerator++
-    }
+    
+    const isHit = (r.FLAG === '1');
+    if(isHit) map[tl][m].num++
+    if(r.MTSN) map[tl][m].mtsnMap.set(r.MTSN, (map[tl][m].mtsnMap.get(r.MTSN)||0) + (isHit?1:0))
   })
-  const out = {}
-  for(const [tl, months] of Object.entries(map)){
-    out[tl] = {}
-    for(const [mo, d] of Object.entries(months)){
-      const t = d.mtsnSet.size, n = d.numerator
-      out[tl][mo] = { totalWO: t, rrrWO: n, agents: d.agSet.size, pct: t > 0 ? n/t*100 : 0 }
+  const out={}
+  for(const [tl,months] of Object.entries(map)){
+    out[tl]={}
+    for(const [mo,d] of Object.entries(months)){
+      const t = d.mtsnMap.size;
+      const n = d.num;
+      out[tl][mo]={totalWO:t, rrrWO:n, agents:d.agSet.size, pct:t>0?n/t*100:0}
     }
   }
   return out
 }
-
-/* Cache monthly maps so we don't recompute on every pill click */
-let _agMonthMap = {}, _tlMonthMap = {}
-
+let _agMonthMap={}, _tlMonthMap={}
 function buildMonthSlicers(rows){
-  const months = [...new Set(rows.map(r=>r.MONTH).filter(Boolean))].sort()
-  _agMonthMap = buildMonthlyAgentMap(rows)
-  _tlMonthMap = buildMonthlyTLMap(rows)
-
-  ;['ag','tl'].forEach(prefix => {
-    const slicer = document.getElementById(prefix+'MonthSlicer')
+  const months=[...new Set(rows.map(r=>r.MONTH).filter(Boolean))].sort()
+  _agMonthMap=buildMonthlyAgentMap(rows)
+  _tlMonthMap=buildMonthlyTLMap(rows)
+  ;['ag','tl'].forEach(prefix=>{
+    const slicer=document.getElementById(prefix+'MonthSlicer')
     if(!slicer) return
-    // Keep the label span, rebuild pills
-    slicer.innerHTML = '<span class="month-slicer-label">Month View:</span>'
-    months.forEach(m => {
-      const pill = document.createElement('span')
-      pill.className = 'msl-pill'
-      pill.textContent = m
-      const activeMonth = prefix === 'ag' ? agActiveMslMonth : tlActiveMslMonth
-      if(activeMonth === m) pill.classList.add('active')
-      pill.onclick = () => {
-        if(prefix === 'ag'){ agActiveMslMonth = agActiveMslMonth === m ? null : m; drawAg() }
-        else               { tlActiveMslMonth = tlActiveMslMonth === m ? null : m; drawTL() }
+    slicer.innerHTML='<span class="month-slicer-label">Month View:</span>'
+    months.forEach(m=>{
+      const pill=document.createElement('span')
+      pill.className='msl-pill'
+      pill.textContent=m
+      const activeMonth=prefix==='ag'?agActiveMslMonth:tlActiveMslMonth
+      if(activeMonth===m) pill.classList.add('active')
+      pill.onclick=()=>{
+        if(prefix==='ag'){agActiveMslMonth=agActiveMslMonth===m?null:m;drawAg()}
+        else{tlActiveMslMonth=tlActiveMslMonth===m?null:m;drawTL()}
       }
       slicer.appendChild(pill)
     })
-    if(months.length > 1){
-      const avg = document.createElement('span')
-      avg.className = 'msl-pill avg-pill'
-      avg.textContent = 'Avg RRR%'
-      const activeMonth = prefix === 'ag' ? agActiveMslMonth : tlActiveMslMonth
-      if(activeMonth === '__avg__') avg.classList.add('active')
-      avg.onclick = () => {
-        if(prefix === 'ag'){ agActiveMslMonth = agActiveMslMonth === '__avg__' ? null : '__avg__'; drawAg() }
-        else               { tlActiveMslMonth = tlActiveMslMonth === '__avg__' ? null : '__avg__'; drawTL() }
+    if(months.length>1){
+      const avg=document.createElement('span')
+      avg.className='msl-pill avg-pill'
+      avg.textContent='Avg RRR%'
+      const activeMonth=prefix==='ag'?agActiveMslMonth:tlActiveMslMonth
+      if(activeMonth==='__avg__') avg.classList.add('active')
+      avg.onclick=()=>{
+        if(prefix==='ag'){agActiveMslMonth=agActiveMslMonth==='__avg__'?null:'__avg__';drawAg()}
+        else{tlActiveMslMonth=tlActiveMslMonth==='__avg__'?null:'__avg__';drawTL()}
       }
       slicer.appendChild(avg)
     }
   })
 }
 
-function drawAg(){
-  const months = [...new Set(filteredData.map(r=>r.MONTH).filter(Boolean))].sort()
-  const active = agActiveMslMonth
-  // Sync pill highlight
-  const slicer = document.getElementById('agMonthSlicer')
-  if(slicer) slicer.querySelectorAll('.msl-pill').forEach(p => {
-    p.classList.toggle('active',
-      p.classList.contains('avg-pill') ? active==='__avg__' : p.textContent === active)
-  })
-  // Update column header
-  const head = document.getElementById('agDynHead')
-  if(head) head.textContent = active==='__avg__' ? 'Avg RRR% ('+months.length+'mo)' :
-                               active ? active+' RRR%' : 'Overall RRR%'
+/* ── DRAW TABLES ── */
+function pc(p){return p>=15?'p-bad':p>=8?'p-mid':'p-ok'}
+function rk(i){return i<3?`r${i+1}`:'rx'}
 
-  document.getElementById('agTbody').innerHTML = agentData.map((a,i) => {
-    let dispPct, dispMtsn, dispRep
-    if(active === '__avg__'){
-      // Average across all months this agent appears in
-      const agMo = _agMonthMap[a.name] || {}
-      const moKeys = Object.keys(agMo).filter(m => months.includes(m))
+function drawAg(){
+  const months=[...new Set(filteredData.map(r=>r.MONTH).filter(Boolean))].sort()
+  const active=agActiveMslMonth
+  const slicer=document.getElementById('agMonthSlicer')
+  if(slicer) slicer.querySelectorAll('.msl-pill').forEach(p=>{
+    p.classList.toggle('active',p.classList.contains('avg-pill')?active==='__avg__':p.textContent===active)
+  })
+  const head=document.getElementById('agDynHead')
+  if(head) head.textContent=active==='__avg__'?'Avg RRR% ('+months.length+'mo)':active?active+' RRR%':'Overall RRR%'
+  document.getElementById('agTbody').innerHTML=agentData.map((a,i)=>{
+    let dispPct,dispMtsn,dispRep
+    if(active==='__avg__'){
+      const agMo=_agMonthMap[a.name]||{}
+      const moKeys=Object.keys(agMo).filter(m=>months.includes(m))
       if(moKeys.length){
-        dispPct  = moKeys.reduce((s,m) => s + agMo[m].pct, 0) / moKeys.length
-        dispMtsn = Math.round(moKeys.reduce((s,m) => s + agMo[m].totalWO, 0) / moKeys.length)
-        dispRep  = Math.round(moKeys.reduce((s,m) => s + agMo[m].rrrWO, 0) / moKeys.length)
-      } else { dispPct = 0; dispMtsn = 0; dispRep = 0 }
+        dispPct=moKeys.reduce((s,m)=>s+agMo[m].pct,0)/moKeys.length
+        dispMtsn=Math.round(moKeys.reduce((s,m)=>s+agMo[m].totalWO,0)/moKeys.length)
+        dispRep=Math.round(moKeys.reduce((s,m)=>s+agMo[m].rrrWO,0)/moKeys.length)
+      } else{dispPct=0;dispMtsn=0;dispRep=0}
     } else if(active){
-      const d = (_agMonthMap[a.name]||{})[active] || {pct:0,totalWO:0,rrrWO:0}
-      dispPct = d.pct; dispMtsn = d.totalWO; dispRep = d.rrrWO
-    } else {
-      dispPct = a.pct; dispMtsn = a.totalWO; dispRep = a.rrrWO
-    }
-    const mxWO = Math.max(...agentData.map(x=>x.totalWO),1)
+      const d=(_agMonthMap[a.name]||{})[active]||{pct:0,totalWO:0,rrrWO:0}
+      dispPct=d.pct;dispMtsn=d.totalWO;dispRep=d.rrrWO
+    } else{dispPct=a.pct;dispMtsn=a.totalWO;dispRep=a.rrrWO}
+    const mxWO=Math.max(...agentData.map(x=>x.totalWO),1)
     return `<tr>
       <td><span class="rnk ${rk(i)}">${i+1}</span></td>
       <td style="font-weight:600">${a.name}</td>
@@ -1770,35 +1361,28 @@ function drawAg(){
 }
 
 function drawTL(){
-  const months = [...new Set(filteredData.map(r=>r.MONTH).filter(Boolean))].sort()
-  const active = tlActiveMslMonth
-  // Sync pill highlight
-  const slicer = document.getElementById('tlMonthSlicer')
-  if(slicer) slicer.querySelectorAll('.msl-pill').forEach(p => {
-    p.classList.toggle('active',
-      p.classList.contains('avg-pill') ? active==='__avg__' : p.textContent === active)
+  const months=[...new Set(filteredData.map(r=>r.MONTH).filter(Boolean))].sort()
+  const active=tlActiveMslMonth
+  const slicer=document.getElementById('tlMonthSlicer')
+  if(slicer) slicer.querySelectorAll('.msl-pill').forEach(p=>{
+    p.classList.toggle('active',p.classList.contains('avg-pill')?active==='__avg__':p.textContent===active)
   })
-  // Update column header
-  const head = document.getElementById('tlDynHead')
-  if(head) head.textContent = active==='__avg__' ? 'Avg RRR% ('+months.length+'mo)' :
-                               active ? active+' RRR%' : 'Overall RRR%'
-
-  document.getElementById('tlTbody').innerHTML = tlData.map((t,i) => {
-    let dispPct, dispMtsn, dispRep
-    if(active === '__avg__'){
-      const tlMo = _tlMonthMap[t.name] || {}
-      const moKeys = Object.keys(tlMo).filter(m => months.includes(m))
+  const head=document.getElementById('tlDynHead')
+  if(head) head.textContent=active==='__avg__'?'Avg RRR% ('+months.length+'mo)':active?active+' RRR%':'Overall RRR%'
+  document.getElementById('tlTbody').innerHTML=tlData.map((t,i)=>{
+    let dispPct,dispMtsn,dispRep
+    if(active==='__avg__'){
+      const tlMo=_tlMonthMap[t.name]||{}
+      const moKeys=Object.keys(tlMo).filter(m=>months.includes(m))
       if(moKeys.length){
-        dispPct  = moKeys.reduce((s,m) => s + tlMo[m].pct, 0) / moKeys.length
-        dispMtsn = Math.round(moKeys.reduce((s,m) => s + tlMo[m].totalWO, 0) / moKeys.length)
-        dispRep  = Math.round(moKeys.reduce((s,m) => s + tlMo[m].rrrWO, 0) / moKeys.length)
-      } else { dispPct = 0; dispMtsn = 0; dispRep = 0 }
+        dispPct=moKeys.reduce((s,m)=>s+tlMo[m].pct,0)/moKeys.length
+        dispMtsn=Math.round(moKeys.reduce((s,m)=>s+tlMo[m].totalWO,0)/moKeys.length)
+        dispRep=Math.round(moKeys.reduce((s,m)=>s+tlMo[m].rrrWO,0)/moKeys.length)
+      } else{dispPct=0;dispMtsn=0;dispRep=0}
     } else if(active){
-      const d = (_tlMonthMap[t.name]||{})[active] || {pct:0,totalWO:0,rrrWO:0}
-      dispPct = d.pct; dispMtsn = d.totalWO; dispRep = d.rrrWO
-    } else {
-      dispPct = t.pct; dispMtsn = t.totalWO; dispRep = t.rrrWO
-    }
+      const d=(_tlMonthMap[t.name]||{})[active]||{pct:0,totalWO:0,rrrWO:0}
+      dispPct=d.pct;dispMtsn=d.totalWO;dispRep=d.rrrWO
+    } else{dispPct=t.pct;dispMtsn=t.totalWO;dispRep=t.rrrWO}
     return `<tr>
       <td><span class="rnk ${rk(i)}">${i+1}</span></td>
       <td style="font-weight:600">${t.name}</td>
@@ -1820,7 +1404,6 @@ function drawMod(){
     <td style="font-size:11px">${m.pct>=15?'🔴 High':m.pct>=8?'🟡 Moderate':'🟢 Low'}</td>
   </tr>`).join('')
 }
-
 function drawVen(){
   document.getElementById('venTbody').innerHTML=vendorData.map((v,i)=>`<tr>
     <td><span class="rnk ${rk(i)}">${i+1}</span></td>
@@ -1830,17 +1413,15 @@ function drawVen(){
     <td><span class="pill ${pc(v.pct)}">${v.pct.toFixed(1)}%</span></td>
   </tr>`).join('')
 }
-
 function drawRes(){
   document.getElementById('resTbody').innerHTML=reasonData.map((r,i)=>`<tr>
     <td><span class="rnk ${rk(i)}">${i+1}</span></td>
     <td style="font-weight:600">${r.name}</td>
     <td class="mono">${r.totalWO.toLocaleString()}</td>
-    <td class="mono">${r.count.toLocaleString()}</td>
-    <td><span class="pill ${r.pct>=15?'p-bad':r.pct>=8?'p-mid':'p-ok'}">${r.pct.toFixed(1)}%</span></td>
+    <td class="mono">${r.rrrWO.toLocaleString()}</td>
+    <td><span class="pill ${pc(r.pct)}">${r.pct.toFixed(1)}%</span></td>
   </tr>`).join('')
 }
-
 function drawSym(){
   document.getElementById('symTbody').innerHTML=symptomData.map((s,i)=>`<tr>
     <td><span class="rnk ${rk(i)}">${i+1}</span></td>
@@ -1850,7 +1431,6 @@ function drawSym(){
     <td><span class="pill ${pc(s.pct)}">${s.pct.toFixed(1)}%</span></td>
   </tr>`).join('')
 }
-
 function drawAcc(){
   document.getElementById('accTbody').innerHTML=accountData.map((a,i)=>`<tr>
     <td><span class="rnk ${rk(i)}">${i+1}</span></td>
@@ -1860,7 +1440,6 @@ function drawAcc(){
     <td><span class="pill ${pc(a.pct)}">${a.pct.toFixed(1)}%</span></td>
   </tr>`).join('')
 }
-
 function drawWk(){
   document.getElementById('wkTbody').innerHTML=weekData.map(w=>`<tr>
     <td style="font-weight:600">${w.name}</td>
@@ -1871,306 +1450,185 @@ function drawWk(){
   </tr>`).join('')
 }
 
-function drawLifecycle(){
-  document.getElementById('lifecycleTbody').innerHTML=lifecycleData.map((m,i)=>`<tr>
-    <td><span class="rnk ${rk(i)}">${i+1}</span></td>
-    <td style="font-weight:600">${m.model}</td>
-    <td class="mono">${m.age.toFixed(1)}</td>
-    <td>${m.phaseIcon} ${m.phase}</td>
-    <td class="mono">${m.totalWO.toLocaleString()}</td>
-    <td class="mono">${m.rrrWO}</td>
-    <td><span class="pill ${pc(m.pct)}">${m.pct.toFixed(1)}%</span></td>
-  </tr>`).join('')
-}
-
 function drawAgentRisk(){
   document.getElementById('agentRiskTbody').innerHTML=agentRiskData.map((a,i)=>`<tr>
     <td><span class="rnk ${rk(i)}">${i+1}</span></td>
     <td style="font-weight:600">${a.agent}</td>
     <td><span class="pill ${pc(a.currentRRR)}">${a.currentRRR.toFixed(1)}%</span></td>
-    <td><span class="pill ${pc(a.predictedRRR)}">${a.predictedRRR.toFixed(1)}%</span></td>
-    <td style="font-size:16px">${a.trend}</td>
+    <td style="font-size:14px">${a.trend}</td>
     <td style="font-size:11px">${a.topModel}</td>
     <td style="font-size:11px">${a.topSymptom}</td>
     <td>${a.riskLevel}</td>
   </tr>`).join('')
-  
-  // Build RCA section
-  const rcaHtml = agentRiskData.slice(0, 10).map(a => `
+  const rcaHtml=agentRiskData.slice(0,10).map(a=>`
     <div class="tc" style="margin-top:16px">
       <div class="tc-hd">
-        <div class="tc-title">RCA: ${a.agent} - Top Problem Combinations</div>
+        <div class="tc-title">RCA: ${a.agent} — Top Problem Combinations</div>
         <div class="tc-meta">Predicted next month: ${a.predictedRRR.toFixed(1)}%</div>
       </div>
       <div class="tw"><table>
-        <thead><tr>
-          <th>Rank</th>
-          <th>Model</th>
-          <th>Symptom</th>
-          <th>Total WO</th>
-          <th>Repeat WO</th>
-          <th>RRR %</th>
-        </tr></thead>
-        <tbody>
-          ${a.combos.map((c, i) => `<tr>
-            <td><span class="rnk ${rk(i)}">${i+1}</span></td>
-            <td style="font-weight:600">${c.model}</td>
-            <td>${c.symptom}</td>
-            <td class="mono">${c.totalWO}</td>
-            <td class="mono">${c.rrrWO}</td>
-            <td><span class="pill ${pc(c.pct)}">${c.pct.toFixed(1)}%</span></td>
-          </tr>`).join('')}
-        </tbody>
+        <thead><tr><th>Rank</th><th>Model</th><th>Symptom</th><th>Distinct MTSN</th><th>Repeat Flags</th><th>RRR %</th></tr></thead>
+        <tbody>${a.combos.map((c,i)=>`<tr>
+          <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+          <td style="font-weight:600">${c.model}</td><td>${c.symptom}</td>
+          <td class="mono">${c.totalWO}</td><td class="mono">${c.rrrWO}</td>
+          <td><span class="pill ${pc(c.pct)}">${c.pct.toFixed(1)}%</span></td>
+        </tr>`).join('')}</tbody>
       </table></div>
-    </div>
-  `).join('')
-  
-  document.getElementById('agentRCASection').innerHTML = rcaHtml
-}
-
-/* ── CHART HELPERS ── */
-const RED='#E2001A', RDA='rgba(226,0,26,0.22)'
-const GRN='#00A854', GDA='rgba(0,168,84,0.22)'
-const ORG='#F5A623', ODA='rgba(245,166,35,0.22)'
-const BLU='#0066CC', BDA='rgba(0,102,204,0.22)'
-const PAL=['#E2001A','#F5A623','#0066CC','#00A854','#9B59B6','#1ABC9C','#E67E22','#2980B9','#C0392B','#27AE60']
-
-function axX(){ return {grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#555',font:{family:"'IBM Plex Sans'",size:10}}} }
-function axY(){ return {grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#555',font:{family:"'IBM Plex Sans'",size:10}},beginAtZero:true} }
-function bOpts(){
-  return {responsive:true,plugins:{
-    legend:{labels:{color:'#666',font:{family:"'IBM Plex Sans'",size:11}}},
-    tooltip:{backgroundColor:'#181818',borderColor:RED,borderWidth:1,
-             titleColor:'#fff',bodyColor:'#aaa',padding:9}
-  }}
-}
-function kill(id){ if(CM[id]){CM[id].destroy();delete CM[id]} }
-
-function colorArr(arr,fn){
-  return {bg:arr.map(a=>fn(a)?RDA:a.pct>=8?ODA:GDA),
-          bd:arr.map(a=>fn(a)?RED:a.pct>=8?ORG:GRN)}
-}
-
-function buildCharts(rows){
-  /* monthly aggregation — MTSN denominator + FLAG_NOC numerator */
-  const mMap={}
-  rows.forEach(r=>{
-    const m=r.MONTH||'?'
-    if(!mMap[m]) mMap[m]={ mtsnSet:new Set(), numerator:0 }
-    if(isEligibleNOC(r)){
-      if(r.MTSN) mMap[m].mtsnSet.add(r.MTSN)
-      if(isRepeatNOC(r)) mMap[m].numerator++
-    }
-  })
-  const mLbls=Object.keys(mMap).sort()
-  const mPct =mLbls.map(m=>{
-    const den = mMap[m].mtsnSet.size
-    const num = mMap[m].numerator
-    return den>0?(num/den*100).toFixed(2):'0'
-  })
-  const mRep =mLbls.map(m=>mMap[m].numerator)
-  const mCln =mLbls.map(m=>Math.max(0, mMap[m].mtsnSet.size - mMap[m].numerator))
-
-  /* TREND */
-  kill('cTrend')
-  CM.cTrend=new Chart(document.getElementById('cTrend'),{type:'line',
-    data:{labels:mLbls,datasets:[{label:'RRR %',data:mPct,
-      borderColor:RED,backgroundColor:RDA,fill:true,tension:.4,
-      pointBackgroundColor:RED,pointRadius:4,borderWidth:2}]},
-    options:{...bOpts(),scales:{x:axX(),y:axY()}}
-  })
-
-  /* STACKED */
-  kill('cStack')
-  CM.cStack=new Chart(document.getElementById('cStack'),{type:'bar',
-    data:{labels:mLbls,datasets:[
-      {label:'Repeat WO',data:mRep,backgroundColor:RDA,borderColor:RED,borderWidth:1},
-      {label:'Clean WO', data:mCln,backgroundColor:GDA,borderColor:GRN,borderWidth:1}
-    ]},
-    options:{...bOpts(),scales:{x:{stacked:true,...axX()},y:{stacked:true,...axY()}}}
-  })
-
-  /* AGENT bars (overview + agents tab) */
-  const ag20=[...agentData].slice(0,20)
-  const agC=colorArr(ag20,a=>a.pct>=15)
-  const agDs={label:'RRR %',data:ag20.map(a=>a.pct.toFixed(1)),
-    backgroundColor:agC.bg,borderColor:agC.bd,borderWidth:1}
-  ;['cAgOv','cAgBar'].forEach(id=>{
-    kill(id)
-    CM[id]=new Chart(document.getElementById(id),{type:'bar',
-      data:{labels:ag20.map(a=>a.name),datasets:[{...agDs}]},
-      options:{...bOpts(),scales:{x:axX(),y:axY()}}
-    })
-  })
-
-  /* TL */
-  const tlC=colorArr(tlData,t=>t.pct>=15)
-  kill('cTLBar')
-  CM.cTLBar=new Chart(document.getElementById('cTLBar'),{type:'bar',
-    data:{labels:tlData.map(t=>t.name),datasets:[{label:'RRR %',
-      data:tlData.map(t=>t.pct.toFixed(1)),backgroundColor:tlC.bg,borderColor:tlC.bd,borderWidth:1}]},
-    options:{...bOpts(),indexAxis:'y',scales:{x:axY(),y:axX()}}
-  })
-
-  /* MODELS (top 15) */
-  const md15=modelData.slice(0,15)
-  const mdC=colorArr(md15,m=>m.pct>=15)
-  kill('cModBar')
-  CM.cModBar=new Chart(document.getElementById('cModBar'),{type:'bar',
-    data:{labels:md15.map(m=>m.name),datasets:[{label:'RRR %',
-      data:md15.map(m=>m.pct.toFixed(1)),backgroundColor:mdC.bg,borderColor:mdC.bd,borderWidth:1}]},
-    options:{...bOpts(),scales:{x:axX(),y:axY()}}
-  })
-
-  /* VENDOR */
-  const vn10=vendorData.slice(0,10)
-  kill('cVenBar')
-  CM.cVenBar=new Chart(document.getElementById('cVenBar'),{type:'bar',
-    data:{labels:vn10.map(v=>v.name),datasets:[{label:'RRR %',
-      data:vn10.map(v=>v.pct.toFixed(1)),
-      backgroundColor:PAL.map(c=>c+'33'),borderColor:PAL,borderWidth:1}]},
-    options:{...bOpts(),indexAxis:'y',scales:{x:axY(),y:axX()}}
-  })
-
-  /* REASONS */
-  const rs10=reasonData.slice(0,10)
-  kill('cResBar')
-  CM.cResBar=new Chart(document.getElementById('cResBar'),{type:'bar',
-    data:{labels:rs10.map(r=>r.name),datasets:[{label:'Count',
-      data:rs10.map(r=>r.count),backgroundColor:RDA,borderColor:RED,borderWidth:1}]},
-    options:{...bOpts(),indexAxis:'y',scales:{x:axY(),y:axX()}}
-  })
-
-  /* ACCOUNT */
-  const ac10=accountData.slice(0,10)
-  const acC=colorArr(ac10,a=>a.pct>=15)
-  kill('cAccBar')
-  CM.cAccBar=new Chart(document.getElementById('cAccBar'),{type:'bar',
-    data:{labels:ac10.map(a=>a.name),datasets:[{label:'RRR %',
-      data:ac10.map(a=>a.pct.toFixed(1)),backgroundColor:acC.bg,borderColor:acC.bd,borderWidth:1}]},
-    options:{...bOpts(),scales:{x:axX(),y:axY()}}
-  })
-
-  /* SYMPTOMS */
-  const sym10=symptomData.slice(0,10)
-  const symC=colorArr(sym10,s=>s.pct>=15)
-  kill('cSymBar')
-  CM.cSymBar=new Chart(document.getElementById('cSymBar'),{type:'bar',
-    data:{labels:sym10.map(s=>s.name),datasets:[{label:'RRR %',
-      data:sym10.map(s=>s.pct.toFixed(1)),backgroundColor:symC.bg,borderColor:symC.bd,borderWidth:1}]},
-    options:{...bOpts(),indexAxis:'y',scales:{x:axY(),y:axX()}}
-  })
-
-  /* LIFECYCLE */
-  kill('cLifecycle')
-  CM.cLifecycle=new Chart(document.getElementById('cLifecycle'),{type:'scatter',
-    data:{datasets:[{label:'Models',
-      data:lifecycleData.map(m=>({x:m.age,y:m.pct,label:m.model})),
-      backgroundColor:lifecycleData.map(m=>m.pct>=15?RDA:m.pct>=8?ODA:GDA),
-      borderColor:lifecycleData.map(m=>m.pct>=15?RED:m.pct>=8?ORG:GRN),
-      borderWidth:2,pointRadius:8}]},
-    options:{...bOpts(),scales:{
-      x:{...axX(),title:{display:true,text:'Model Age (years)',color:'#666'}},
-      y:{...axY(),title:{display:true,text:'RRR %',color:'#666'}}
-    },plugins:{
-      ...bOpts().plugins,
-      tooltip:{callbacks:{
-        label:ctx=>`${lifecycleData[ctx.dataIndex].model}: ${ctx.parsed.y.toFixed(1)}% RRR (${ctx.parsed.x.toFixed(1)} years)`
-      }}
-    }}
-  })
-
-  /* WEEKLY DUAL AXIS */
-  kill('cWkTrend')
-  CM.cWkTrend=new Chart(document.getElementById('cWkTrend'),{type:'line',
-    data:{labels:weekData.map(w=>w.name),datasets:[
-      {label:'RRR %',data:weekData.map(w=>w.pct.toFixed(2)),
-       borderColor:RED,backgroundColor:RDA,fill:true,tension:.3,
-       pointBackgroundColor:RED,pointRadius:3,borderWidth:2,yAxisID:'y'},
-      {label:'Total WO',data:weekData.map(w=>w.totalWO),
-       borderColor:BLU,backgroundColor:'transparent',tension:.3,
-       pointRadius:2,borderWidth:1.5,yAxisID:'y1'}
-    ]},
-    options:{...bOpts(),scales:{
-      x:axX(),
-      y:{...axY(),position:'left'},
-      y1:{...axY(),position:'right',grid:{display:false}}
-    }}
-  })
-
-  /* DONUT — Repeat flag count vs non-repeat MTSN */
-  let donutRep = 0, donutDen = new Set()
-  filteredData.forEach(r => {
-    if(isEligibleNOC(r)){
-      if(r.MTSN) donutDen.add(r.MTSN)
-      if(isRepeatNOC(r)) donutRep++
-    }
-  })
-  const tot=donutDen.size, rep=donutRep
-  kill('cDonut')
-  CM.cDonut=new Chart(document.getElementById('cDonut'),{type:'doughnut',
-    data:{labels:['Repeat Flag (NOC=1)','Non-Repeat MTSN'],
-      datasets:[{data:[rep, Math.max(0, tot-rep)],
-        backgroundColor:['rgba(226,0,26,0.75)','rgba(0,168,84,0.5)'],
-        borderColor:[RED,GRN],borderWidth:2}]},
-    options:{...bOpts(),plugins:{...bOpts().plugins,
-      tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw.toLocaleString()} (${tot>0?(ctx.raw/tot*100).toFixed(1):0}%)`}}
-    }}
-  })
-
-  /* REASON PIE */
-  const rp5=reasonData.slice(0,5)
-  kill('cResPie')
-  CM.cResPie=new Chart(document.getElementById('cResPie'),{type:'pie',
-    data:{labels:rp5.map(r=>r.name),
-      datasets:[{data:rp5.map(r=>r.count),
-        backgroundColor:PAL.map(c=>c+'bb'),borderColor:PAL,borderWidth:1}]},
-    options:bOpts()
-  })
-}
-
-/* ── RECOMMENDATIONS ── */
-function buildRecs(rows,rrr){
-  const hiAg=agentData.filter(a=>a.pct>=20&&a.totalWO>=5)
-  const hiMd=modelData.filter(m=>m.pct>=15).slice(0,4).map(m=>m.name)
-  const hiTL=tlData.filter(t=>t.pct>=15).map(t=>t.name)
-  const topR=reasonData[0]?.name||'N/A'
-  const hiVn=vendorData.filter(v=>v.pct>=15).slice(0,3).map(v=>v.name)
-
-  const recs=[
-    {icon:'🎯',title:`Overall RRR: ${rrr.toFixed(2)}%`,
-     body:rrr<=8?'✅ Within target (≤8%). Maintain current standards and continue monitoring weekly trends.'
-               :rrr<=15?`⚠️ Above 8% target. Reinforce case closure quality checks and review recent repeat patterns.`
-                       :`🔴 Critically high RRR (>15%). Immediate escalation and action plan required.`},
-    {icon:'🔧',title:'High-Risk Sub-Series',
-     body:hiMd.length?`Deep-diagnosis required: <strong>${hiMd.join(', ')}</strong>. Enforce hardware root-cause verification before closure.`
-                    :'✅ No sub-series exceeds 15% RRR threshold.'},
-    {icon:'👤',title:`Agent Review (${hiAg.length} flagged)`,
-     body:hiAg.length?`Agents with RRR ≥ 20%: <strong>${hiAg.slice(0,5).map(a=>a.name).join(', ')}${hiAg.length>5?' +more':''}</strong>. Schedule mentoring sessions with TL.`
-                    :'✅ All agents are within acceptable thresholds.'},
-    {icon:'📋',title:'Top Repeat Reason',
-     body:`Primary cause: <strong>${topR}</strong>. Ensure targeted training and parts verification for this failure category.`},
-    {icon:'🏢',title:'TL Team Action',
-     body:hiTL.length?`Teams with elevated RRR: <strong>${hiTL.join(', ')}</strong>. Conduct weekly team RCA and review closure practices.`
-                    :'✅ All TL teams are within benchmark thresholds.'},
-    {icon:'🏭',title:'Vendor Performance',
-     body:hiVn.length?`High-RRR vendors: <strong>${hiVn.join(', ')}</strong>. Review parts quality and warranty claims for these vendors.`
-                    :'✅ All vendors are within acceptable RRR range.'},
-    {icon:'📊',title:'Data Coverage',
-     body:`<strong>RRR MTSN 30D Flag NOC</strong>: only rows with Flag <strong>0</strong> or <strong>1</strong> are included in the denominator. Blank / null entries are excluded from the RRR% calculation entirely. Ensure all WOs carry a valid 0 or 1 flag before export.`},
-  ]
-  document.getElementById('recGrid').innerHTML=recs.map(r=>`
-    <div class="rec">
-      <div class="rec-icon">${r.icon}</div>
-      <div class="rec-title">${r.title}</div>
-      <div class="rec-body">${r.body}</div>
     </div>`).join('')
+  document.getElementById('agentRCASection').innerHTML=rcaHtml
+}
+
+/* ══════════════════════════════════════════════
+   HCS ANALYZER
+══════════════════════════════════════════════ */
+function isHCS85(hcsVal){
+  return String(hcsVal).toLowerCase().startsWith('a.')
+}
+function normaliseScenario(s){
+  const sv=String(s).trim().toLowerCase()
+  if(sv==='compliance'||sv==='compliant') return 'Compliance'
+  if(sv==='non-compliance'||sv==='non compliance'||sv==='noncompliance'||sv==='non-compliant'||sv==='non compliant') return 'Non-Compliance'
+  return s
+}
+
+function buildHCSAnalyzer(){
+  const hcsSource = filteredData.length ? filteredData : rawData
+  if(!hcsSource.length || !IDX.HCS || IDX.HCS < 0){
+    document.getElementById('hcsEmptyMsg').style.display='flex'
+    document.getElementById('hcsContent').style.display='none'
+    return 
+  }
+  document.getElementById('hcsEmptyMsg').style.display='none'
+  document.getElementById('hcsContent').style.display='block'
+
+  const monthSelect = document.getElementById('hcsMonthFilter');
+  const allMonths =[...new Set(hcsSource.map(r=>r.MONTH).filter(Boolean))].sort();
+  
+  const currentOptions = Array.from(monthSelect.options).map(o => o.value).filter(v => v !== "");
+  if (currentOptions.join(',') !== allMonths.join(',')) {
+    const savedVal = monthSelect.value;
+    monthSelect.innerHTML = '<option value="">All Months</option>' +
+      allMonths.map(m => `<option value="${m}">${m}</option>`).join('');
+    if(allMonths.includes(savedVal)) monthSelect.value = savedVal;
+  }
+
+  const selectedMonth = monthSelect.value;
+  const data = selectedMonth ? hcsSource.filter(r => r.MONTH === selectedMonth) : hcsSource;
+
+  const agMap = {}
+
+  data.forEach(r=>{
+    const agent = r.NAME || 'Unknown'
+    if(!agMap[agent]) {
+      agMap[agent] = {
+        name: agent,
+        comp85: 0,
+        nonComp85: 0,
+        comp85_rrrHits: 0,
+        comp85_reasons: {}
+      }
+    }
+    const a = agMap[agent]
+
+    const isHCS_a = isHCS85(r.HCS)
+    const sc = normaliseScenario(r.SCENARIO)
+
+    if(isHCS_a) {
+      if(sc === 'Compliance') {
+        a.comp85++
+        if(r.FLAG === '1') {
+           a.comp85_rrrHits++
+           if(r.REASON) {
+             a.comp85_reasons[r.REASON] = (a.comp85_reasons[r.REASON] || 0) + 1;
+           }
+        }
+      } else if(sc === 'Non-Compliance') {
+        a.nonComp85++
+      }
+    }
+  })
+
+  /* ── TABLE 1: Compliance × RRR Hit Mapping (Show all agents with compliance > 0) ── */
+  const compAgentsList = Object.values(agMap)
+    .filter(a => a.comp85 > 0)
+    .sort((a,b) => b.comp85_rrrHits - a.comp85_rrrHits)
+
+  document.getElementById('hcsRrrTbody').innerHTML = compAgentsList.map((a,i)=>{
+    const hitPct = (a.comp85_rrrHits / a.comp85) * 100
+    const reasonsArr = Object.entries(a.comp85_reasons)
+           .sort((x,y) => y[1] - x[1])
+           .map(x => `${x[0]} <span style="color:var(--t3);font-size:10px">(${x[1]})</span>`);
+    const reasons = reasonsArr.length > 0 ? reasonsArr.join('<br>') : '<span style="color:var(--t3)">—</span>'
+    const insight = a.comp85_rrrHits > 0 
+           ? `<span style="color:#ff4455;font-size:11px">⚠️ Compliant but has RRR hits</span>`
+           : `<span style="color:#00c96d;font-size:11px">✅ Compliant & Clean</span>`
+
+    return `<tr>
+      <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+      <td style="font-weight:600">${a.name}</td>
+      <td class="mono"><span style="color:#00c96d">${a.comp85}</span></td>
+      <td class="mono">${a.comp85_rrrHits > 0 ? `<span class="pill p-bad">${a.comp85_rrrHits}</span>` : `<span style="color:var(--t3)">0</span>`}</td>
+      <td class="mono"><span style="color:${a.comp85_rrrHits > 0 ? '#ff4455' : 'var(--t3)'}">${hitPct.toFixed(1)}%</span></td>
+      <td style="font-size:11px; max-width:280px; white-space:normal;">${reasons}</td>
+      <td>${insight}</td>
+    </tr>`
+  }).join('')
+
+  if(compAgentsList.length === 0){
+    document.getElementById('hcsRrrTbody').innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--t3);">No compliant records found.</td></tr>`
+  }
+
+  /* ── TABLE 2: HCS Compliance 85% ── */
+  const allCompAgents = Object.values(agMap)
+    .filter(a => (a.comp85 + a.nonComp85) > 0)
+    .sort((a,b) => b.comp85 - a.comp85)
+
+  document.getElementById('hcsCompTbody').innerHTML = allCompAgents.map((a,i)=>{
+    const total = a.comp85 + a.nonComp85
+    const compPct = total > 0 ? (a.comp85 / total * 100) : 0
+    const compPctBadge = compPct >= 80
+      ? `<span class="pill p-ok">${compPct.toFixed(1)}%</span>`
+      : compPct >= 50
+      ? `<span class="pill p-mid">${compPct.toFixed(1)}%</span>`
+      : `<span class="pill p-bad">${compPct.toFixed(1)}%</span>`
+    const status = compPct >= 80 ? '✅ Good' : compPct >= 50 ? '⚠️ Moderate' : '🔴 Low'
+
+    return `<tr>
+      <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+      <td style="font-weight:600">${a.name}</td>
+      <td class="mono">${total}</td>
+      <td class="mono"><span style="color:#00c96d">${a.comp85}</span></td>
+      <td class="mono"><span style="color:#ff4455">${a.nonComp85}</span></td>
+      <td style="text-align:center">${compPctBadge}</td>
+      <td>${status}</td>
+    </tr>`
+  }).join('')
+
+  if(allCompAgents.length === 0){
+    document.getElementById('hcsCompTbody').innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--t3);">No relevant HCS compliance data found.</td></tr>`
+  }
+}
+
+/* ── AUTO REPORT SCOPE UI ── */
+function updateReportScope() {
+  const type = document.getElementById('reportScopeType').value;
+  const wrap = document.getElementById('reportScopeNameWrap');
+  const nameSel = document.getElementById('reportScopeName');
+  
+  if (type === 'Overall') {
+    wrap.style.display = 'none';
+  } else {
+    wrap.style.display = 'block';
+    const names = uniq(type === 'Agent' ? 'NAME' : 'TL');
+    fillSel('reportScopeName', `Select ${type}...`, names);
+  }
 }
 
 /* ── SORT ── */
 const SS={}
 function srt(dataVar,key,defDir,tbodyId,drawFn){
-  const dm={agentData,tlData,modelData,vendorData,reasonData,symptomData,accountData,weekData,lifecycleData,agentRiskData}
+  const dm={agentData,tlData,modelData,vendorData,reasonData,symptomData,accountData,weekData,agentRiskData}
   const arr=dm[dataVar]; if(!arr) return
   const prev=SS[tbodyId]||{}
   const dir=prev.key===key&&prev.dir===1?-1:1
@@ -2218,434 +1676,193 @@ function exportCSV(){
 function generatePDFReport(){
   if(!filteredData.length){alert('No data to analyze. Please upload data first.');return}
   
-  const { jsPDF } = window.jspdf
-  const doc = new jsPDF()
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const dateStr = new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})
+  const type = document.getElementById('reportScopeType').value;
+  const targetName = document.getElementById('reportScopeName').value;
+  if((type === 'Agent' || type === 'TL') && !targetName) {
+    alert(`Please select a specific ${type} from the dropdown.`); return;
+  }
+
+  let reportRows = filteredData;
+  let titleStr = 'Overall RRR Intelligence Report';
+  if(type === 'Agent') { reportRows = filteredData.filter(r => r.NAME === targetName); titleStr = `RRR Analysis Report - Agent: ${targetName}`; }
+  if(type === 'TL') { reportRows = filteredData.filter(r => r.TL === targetName); titleStr = `RRR Analysis Report - TL: ${targetName}`; }
   
-  // Calculate overall RRR
-  const {total, rrrWO, cleanWO, pct} = calcRRR(filteredData)
+  const stats = getRRRStats(reportRows);
+  const {jsPDF}=window.jspdf
+  const doc=new jsPDF()
+  const pageWidth=doc.internal.pageSize.getWidth()
+  const dateStr=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})
+
+  doc.setFillColor(226,0,26); doc.rect(0,0,pageWidth,35,'F')
+  doc.setTextColor(255,255,255); doc.setFontSize(18); doc.setFont(undefined,'bold')
+  doc.text(titleStr, pageWidth/2, 18, {align:'center'})
+  doc.setFontSize(10); doc.setFont(undefined,'normal')
+  doc.text(`Generated: ${dateStr} | Records Analyzed: ${reportRows.length.toLocaleString()}`, pageWidth/2, 27, {align:'center'})
   
-  // Page 1: Executive Summary
-  doc.setFillColor(226, 0, 26)
-  doc.rect(0, 0, pageWidth, 35, 'F')
-  doc.setTextColor(255, 255, 255)
-  doc.setFontSize(24)
-  doc.setFont(undefined, 'bold')
-  doc.text('RRR Intelligence Report', pageWidth/2, 18, {align: 'center'})
-  doc.setFontSize(11)
-  doc.setFont(undefined, 'normal')
-  doc.text(`Generated: ${dateStr} | by Marwan Fahad`, pageWidth/2, 27, {align: 'center'})
-  
-  doc.setTextColor(0, 0, 0)
-  doc.setFontSize(16)
-  doc.setFont(undefined, 'bold')
-  doc.text('Executive Summary', 14, 50)
-  
-  doc.setFontSize(11)
-  doc.setFont(undefined, 'normal')
-  const riskLevel = pct >= 15 ? 'HIGH RISK' : pct >= 8 ? 'MODERATE' : 'ON TARGET'
-  const riskColor = pct >= 15 ? [226, 0, 26] : pct >= 8 ? [245, 166, 35] : [0, 168, 84]
-  
-  doc.setFontSize(10)
-  doc.text(`Overall RRR: ${pct.toFixed(2)}%`, 14, 60)
-  doc.setTextColor(...riskColor)
-  doc.setFont(undefined, 'bold')
-  doc.text(`Status: ${riskLevel}`, 14, 67)
-  doc.setTextColor(0, 0, 0)
-  doc.setFont(undefined, 'normal')
-  doc.text(`Total WO: ${total.toLocaleString()} | Repeat WO: ${rrrWO.toLocaleString()} | Clean WO: ${cleanWO.toLocaleString()}`, 14, 74)
-  
-  // KPI Table
+  doc.setTextColor(0,0,0); doc.setFontSize(14); doc.setFont(undefined,'bold')
+  doc.text('Executive Summary', 14, 45)
   doc.autoTable({
-    startY: 82,
-    head: [['Metric', 'Value', 'Status']],
-    body: [
-      ['Total Distinct WO', total.toLocaleString(), '—'],
-      ['Repeat WO (Flag=1)', rrrWO.toLocaleString(), '—'],
-      ['Clean WO (Flag=0)', cleanWO.toLocaleString(), '—'],
-      ['Overall RRR %', pct.toFixed(2) + '%', riskLevel],
-      ['Active Agents', agentData.length.toString(), '—'],
-      ['Sub-Series Analyzed', modelData.length.toString(), '—'],
+    startY: 50,
+    head: [['Metric', 'Value']],
+    body:[['Distinct MTSN (Denominator)', stats.totalWO.toLocaleString()],['Repeat Flags (RRR Hits)', stats.rrrWO.toLocaleString()],
+      ['Clean MTSN (0 hits)', stats.cleanWO.toLocaleString()],
+      ['Overall RRR %', stats.pct.toFixed(2)+'%']
     ],
-    theme: 'grid',
-    headStyles: {fillColor: [226, 0, 26], textColor: 255, fontStyle: 'bold'},
-    styles: {fontSize: 9}
-  })
-  
-  // Page 2: Top Models
-  doc.addPage()
-  doc.setFontSize(16)
-  doc.setFont(undefined, 'bold')
-  doc.text('High-Risk Models', 14, 20)
-  
-  const topModels = modelData.slice(0, 10)
-  doc.autoTable({
-    startY: 28,
-    head: [['Rank', 'Model', 'Total WO', 'Repeat WO', 'RRR %', 'Risk']],
-    body: topModels.map((m, i) => [
-      (i+1).toString(),
-      m.name,
-      m.totalWO.toLocaleString(),
-      m.rrrWO.toString(),
-      m.pct.toFixed(1) + '%',
-      m.pct >= 15 ? 'High' : m.pct >= 8 ? 'Med' : 'Low'
-    ]),
-    theme: 'grid',
-    headStyles: {fillColor: [226, 0, 26], textColor: 255},
-    styles: {fontSize: 9}
-  })
-  
-  // Symptoms section
-  if(symptomData.length > 0){
-    doc.setFontSize(16)
-    doc.setFont(undefined, 'bold')
-    doc.text('Top Problem Symptoms', 14, doc.lastAutoTable.finalY + 15)
-    
-    const topSymptoms = symptomData.slice(0, 8)
-    doc.autoTable({
-      startY: doc.lastAutoTable.finalY + 23,
-      head: [['Rank', 'Symptom', 'Total WO', 'Repeat WO', 'RRR %']],
-      body: topSymptoms.map((s, i) => [
-        (i+1).toString(),
-        s.name,
-        s.totalWO.toLocaleString(),
-        s.rrrWO.toString(),
-        s.pct.toFixed(1) + '%'
-      ]),
-      theme: 'grid',
-      headStyles: {fillColor: [226, 0, 26], textColor: 255},
-      styles: {fontSize: 9}
-    })
-  }
-  
-  // Page 3: Agent Performance — Overall
-  doc.addPage()
-  doc.setFontSize(16)
-  doc.setFont(undefined, 'bold')
-  doc.text('Agent Performance Analysis — Overall', 14, 20)
-  
-  const topAgents = agentData.slice(0, 20)
-  doc.autoTable({
-    startY: 28,
-    head: [['Rank', 'Agent', 'TL', 'Distinct MTSN', 'Repeat Flags', 'RRR %']],
-    body: topAgents.map((a, i) => [
-      (i+1).toString(), a.name, a.tl,
-      a.totalWO.toLocaleString(), a.rrrWO.toString(), a.pct.toFixed(1) + '%'
-    ]),
-    theme: 'grid',
-    headStyles: {fillColor: [226, 0, 26], textColor: 255},
-    styles: {fontSize: 8}
+    theme: 'grid', headStyles: {fillColor:[226,0,26]}
   })
 
-  // Page 3b: Agent Performance — Month-wise
-  const pdfMonths = [...new Set(filteredData.map(r=>r.MONTH).filter(Boolean))].sort()
-  if(pdfMonths.length > 0){
-    doc.addPage()
-    doc.setFontSize(16)
-    doc.setFont(undefined, 'bold')
-    doc.text('Agent Performance — Month-wise Breakdown', 14, 20)
-    
-    // Build month-wise pivot for agents
-    const agMonthMap = buildMonthlyAgentMap(filteredData)
-    const allAgents = agentData.slice(0, 20).map(a => a.name)
-    
-    // One table per month
-    let yStart = 28
-    pdfMonths.forEach(mo => {
-      if(yStart > 220){ doc.addPage(); yStart = 20 }
-      doc.setFontSize(11)
-      doc.setFont(undefined, 'bold')
-      doc.text('Month: ' + mo, 14, yStart)
-      const monthRows = allAgents.map((name, i) => {
-        const d = (agMonthMap[name]||{})[mo] || {pct:0,totalWO:0,rrrWO:0}
-        const ag = agentData.find(a=>a.name===name)||{}
-        return [(i+1).toString(), name, ag.tl||'—',
-                d.totalWO.toString(), d.rrrWO.toString(), d.pct.toFixed(1)+'%']
-      }).filter(r => r[3] !== '0')  // hide agents with no data this month
-      if(monthRows.length === 0){ yStart += 8; return }
-      doc.autoTable({
-        startY: yStart + 5,
-        head: [['Rank','Agent','TL','MTSN','Repeat','RRR %']],
-        body: monthRows,
-        theme: 'grid',
-        headStyles: {fillColor: [40, 40, 40], textColor: 255},
-        styles: {fontSize: 7.5}
-      })
-      yStart = doc.lastAutoTable.finalY + 12
-    })
+  let y = doc.lastAutoTable.finalY + 15;
 
-    // Average RRR% summary
-    if(yStart > 220){ doc.addPage(); yStart = 20 }
-    doc.setFontSize(11)
-    doc.setFont(undefined, 'bold')
-    doc.text('Average RRR% across ' + pdfMonths.length + ' months', 14, yStart)
-    const avgRows = allAgents.map((name, i) => {
-      const agMo = agMonthMap[name] || {}
-      const moKeys = pdfMonths.filter(m => agMo[m])
-      if(!moKeys.length) return null
-      const avgPct = moKeys.reduce((s,m)=>s+agMo[m].pct,0)/moKeys.length
-      const ag = agentData.find(a=>a.name===name)||{}
-      return [(i+1).toString(), name, ag.tl||'—', moKeys.length+'mo', avgPct.toFixed(1)+'%']
-    }).filter(Boolean)
+  // HCS Analysis for PDF
+  if(IDX.HCS >= 0) {
+    let comp85 = 0, nonComp85 = 0, rrrHits = 0;
+    reportRows.forEach(r => {
+       if(isHCS85(r.HCS)){
+         const sc = normaliseScenario(r.SCENARIO);
+         if(sc === 'Compliance'){
+           comp85++;
+           if(r.FLAG === '1') rrrHits++;
+         }
+         else if(sc === 'Non-Compliance') nonComp85++;
+       }
+    });
+    const compPct = (comp85+nonComp85)>0 ? (comp85/(comp85+nonComp85)*100) : 0;
+    const hitPct = comp85>0 ? (rrrHits/comp85*100) : 0;
+    
+    if(y > 250) { doc.addPage(); y = 20; }
+    doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text('HCS Compliance Summary (a.>=85%)', 14, y);
     doc.autoTable({
-      startY: yStart + 5,
-      head: [['Rank','Agent','TL','Months','Avg RRR %']],
-      body: avgRows,
-      theme: 'grid',
-      headStyles: {fillColor: [0, 102, 204], textColor: 255},
-      styles: {fontSize: 7.5}
-    })
+      startY: y+5,
+      head: [['Compliance', 'Non-Compliance', 'Compliance %', 'RRR Hits', '% RRR Hit']],
+      body: [[comp85, nonComp85, compPct.toFixed(1)+'%', rrrHits, hitPct.toFixed(1)+'%']],
+      theme: 'grid', headStyles: {fillColor:[0,102,204]}
+    });
+    y = doc.lastAutoTable.finalY + 15;
   }
 
-  // Page 3c: TL Performance — Overall
-  doc.addPage()
-  doc.setFontSize(16)
-  doc.setFont(undefined, 'bold')
-  doc.text('Team Leader Summary — Overall', 14, 20)
-  doc.autoTable({
-    startY: 28,
-    head: [['Rank','TL','Agents','Distinct MTSN','Repeat Flags','RRR %']],
-    body: tlData.slice(0,15).map((t,i)=>[
-      (i+1).toString(), t.name, t.agents.toString(),
-      t.totalWO.toLocaleString(), t.rrrWO.toString(), t.pct.toFixed(1)+'%'
-    ]),
-    theme: 'grid',
-    headStyles: {fillColor: [226, 0, 26], textColor: 255},
-    styles: {fontSize: 8}
-  })
+  // Monthly Breakdown
+  if(y > 250) { doc.addPage(); y = 20; }
+  const monthlyData = grp(reportRows, r=>r.MONTH).sort((a,b)=>a.name.localeCompare(b.name));
+  doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text('Monthly Breakdown', 14, y);
+  doc.autoTable({ startY: y+5, head:[['Month', 'Distinct MTSN', 'Repeat Flags', 'RRR %']], 
+    body: monthlyData.map(m=>[m.name, m.totalWO.toLocaleString(), m.rrrWO, m.pct.toFixed(1)+'%']), theme: 'grid' 
+  });
+  y = doc.lastAutoTable.finalY + 15;
 
-  if(pdfMonths.length > 0){
-    doc.addPage()
-    doc.setFontSize(16)
-    doc.setFont(undefined, 'bold')
-    doc.text('Team Leader — Month-wise Breakdown', 14, 20)
-    const tlMonthMap = buildMonthlyTLMap(filteredData)
-    const allTLs = tlData.map(t => t.name)
-    let tlY = 28
-    pdfMonths.forEach(mo => {
-      if(tlY > 230){ doc.addPage(); tlY = 20 }
-      doc.setFontSize(11); doc.setFont(undefined, 'bold')
-      doc.text('Month: ' + mo, 14, tlY)
-      const mRows = allTLs.map((name,i)=>{
-        const d = (tlMonthMap[name]||{})[mo]||{pct:0,totalWO:0,rrrWO:0,agents:0}
-        return d.totalWO>0 ? [(i+1).toString(),name,d.agents.toString(),
-                               d.totalWO.toString(),d.rrrWO.toString(),d.pct.toFixed(1)+'%'] : null
-      }).filter(Boolean)
-      if(!mRows.length){ tlY+=8; return }
-      doc.autoTable({
-        startY: tlY+5,
-        head:[['Rank','TL','Agents','MTSN','Repeat','RRR %']],
-        body: mRows,
-        theme:'grid',
-        headStyles:{fillColor:[40,40,40],textColor:255},
-        styles:{fontSize:7.5}
-      })
-      tlY = doc.lastAutoTable.finalY + 12
-    })
-    // TL Average
-    if(tlY > 220){ doc.addPage(); tlY = 20 }
-    doc.setFontSize(11); doc.setFont(undefined,'bold')
-    doc.text('TL Average RRR% across '+pdfMonths.length+' months', 14, tlY)
-    const tlAvgRows = allTLs.map((name,i)=>{
-      const tlMo = tlMonthMap[name]||{}
-      const moKeys = pdfMonths.filter(m=>tlMo[m])
-      if(!moKeys.length) return null
-      const avgPct = moKeys.reduce((s,m)=>s+tlMo[m].pct,0)/moKeys.length
-      return [(i+1).toString(), name, moKeys.length+'mo', avgPct.toFixed(1)+'%']
-    }).filter(Boolean)
-    doc.autoTable({
-      startY: tlY+5,
-      head:[['Rank','TL','Months','Avg RRR %']],
-      body: tlAvgRows,
-      theme:'grid',
-      headStyles:{fillColor:[0,102,204],textColor:255},
-      styles:{fontSize:8}
-    })
-  }
+  // Weekly Breakdown
+  if(y > 250) { doc.addPage(); y = 20; }
+  const wklyData = grp(reportRows, r=>r.WEEK).sort((a,b)=>a.name.localeCompare(b.name));
+  doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text('Weekly Breakdown', 14, y);
+  doc.autoTable({ startY: y+5, head:[['Week', 'Distinct MTSN', 'Repeat Flags', 'RRR %']], 
+    body: wklyData.map(w=>[w.name, w.totalWO.toLocaleString(), w.rrrWO, w.pct.toFixed(1)+'%']), theme: 'grid' 
+  });
+  y = doc.lastAutoTable.finalY + 15;
 
-  // Page 4: Action Plan
-  doc.addPage()
-  doc.setFontSize(16)
-  doc.setFont(undefined, 'bold')
-  doc.text('Recommended Action Plan', 14, 20)
-  
-  doc.setFontSize(10)
-  doc.setFont(undefined, 'normal')
-  let yPos = 30
-  
-  const actions = [
-    {priority: 'HIGH', action: 'Conduct immediate RCA for models with RRR > 15%', owner: 'Quality Team'},
-    {priority: 'HIGH', action: `Review top ${topAgents.filter(a=>a.pct>=20).length} agents with RRR ≥ 20%`, owner: 'TL Managers'},
-    {priority: 'MEDIUM', action: 'Implement targeted training on top 3 failure symptoms', owner: 'Training Dept'},
-    {priority: 'MEDIUM', action: 'Review parts quality for high-RRR vendors', owner: 'Supply Chain'},
-    {priority: 'LOW', action: 'Monitor lifecycle trends for aging models', owner: 'Product Team'},
-  ]
-  
-  actions.forEach(act => {
-    const color = act.priority === 'HIGH' ? [226, 0, 26] : act.priority === 'MEDIUM' ? [245, 166, 35] : [0, 168, 84]
-    doc.setFillColor(...color)
-    doc.rect(14, yPos - 4, 25, 6, 'F')
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(8)
-    doc.setFont(undefined, 'bold')
-    doc.text(act.priority, 26.5, yPos, {align: 'center'})
-    
-    doc.setTextColor(0, 0, 0)
-    doc.setFontSize(10)
-    doc.setFont(undefined, 'normal')
-    doc.text(act.action, 42, yPos)
-    doc.setFontSize(8)
-    doc.setTextColor(100, 100, 100)
-    doc.text(`Owner: ${act.owner}`, 42, yPos + 5)
-    doc.setTextColor(0, 0, 0)
-    yPos += 18
-  })
-  
-  // Footer on last page
-  doc.setFontSize(8)
-  doc.setTextColor(150, 150, 150)
-  doc.text('Lenovo RRR Intelligence Dashboard | Confidential', pageWidth/2, doc.internal.pageSize.getHeight() - 10, {align: 'center'})
-  
-  // Save PDF
-  doc.save(`RRR_Report_${new Date().toISOString().slice(0,10)}.pdf`)
+  // Symptoms & Reasons
+  const symData = grp(reportRows, r=>r.SYMPTOM).sort((a,b)=>b.totalWO - a.totalWO).slice(0, 15);
+  const resData = grp(reportRows, r=>r.REASON).filter(g=>g.name!=='Unknown'&&g.name!=='Not Specified').sort((a,b)=>b.totalWO - a.totalWO).slice(0, 15);
+
+  if(y > 240) { doc.addPage(); y = 20; }
+  doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text('Top Problem Symptoms', 14, y);
+  doc.autoTable({ startY: y+5, head:[['Symptom', 'Distinct MTSN', 'Repeat Flags', 'RRR %']], 
+    body: symData.map(s=>[s.name, s.totalWO.toLocaleString(), s.rrrWO, s.pct.toFixed(1)+'%']), theme: 'grid' 
+  });
+  y = doc.lastAutoTable.finalY + 15;
+
+  if(y > 240) { doc.addPage(); y = 20; }
+  doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text('Top Repair Reasons', 14, y);
+  doc.autoTable({ startY: y+5, head:[['Reason', 'Distinct MTSN', 'Repeat Flags', 'RRR %']], 
+    body: resData.map(r=>[r.name, r.totalWO.toLocaleString(), r.rrrWO, r.pct.toFixed(1)+'%']), theme: 'grid' 
+  });
+
+  doc.save(`RRR_Report_${targetName ? targetName.replace(/[^a-z0-9]/gi,'_') : 'Overall'}_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
 /* ── EXCEL REPORT GENERATOR ── */
 function generateExcelReport(){
-  if(!filteredData.length){alert('No data to analyze. Please upload data first.');return}
+  if(!filteredData.length){alert('No data to analyze.');return}
   
-  const wb = XLSX.utils.book_new()
-  const {total, rrrWO, cleanWO, pct} = calcRRR(filteredData)
-  
+  const type = document.getElementById('reportScopeType').value;
+  const targetName = document.getElementById('reportScopeName').value;
+  if((type === 'Agent' || type === 'TL') && !targetName) {
+    alert(`Please select a specific ${type} from the dropdown.`); return;
+  }
+
+  let reportRows = filteredData;
+  let titleStr = 'Overall RRR Intelligence Report';
+  if(type === 'Agent') { reportRows = filteredData.filter(r => r.NAME === targetName); titleStr = `RRR Analysis Report - Agent: ${targetName}`; }
+  if(type === 'TL') { reportRows = filteredData.filter(r => r.TL === targetName); titleStr = `RRR Analysis Report - TL: ${targetName}`; }
+
+  const stats = getRRRStats(reportRows);
+  const wb=XLSX.utils.book_new();
+
   // Sheet 1: Summary
-  const summaryData = [
-    ['Lenovo RRR Intelligence Report'],
-    [`Generated: ${new Date().toLocaleDateString()}`],
-    [],
-    ['Key Metrics', 'Value'],
-    ['Overall RRR %', pct.toFixed(2) + '%'],
-    ['Total Distinct WO', total],
-    ['Repeat WO', rrrWO],
-    ['Clean WO', cleanWO],
-    ['Active Agents', agentData.length],
-    ['Sub-Series', modelData.length],
-    ['Symptoms Tracked', symptomData.length],
-  ]
-  const ws1 = XLSX.utils.aoa_to_sheet(summaryData)
-  XLSX.utils.book_append_sheet(wb, ws1, 'Summary')
-  
-  // Sheet 2: Top Models
-  const modelHeaders = [['Rank', 'Model', 'Total WO', 'Repeat WO', 'Clean WO', 'RRR %', 'Risk Level']]
-  const modelRows = modelData.slice(0, 20).map((m, i) => [
-    i + 1,
-    m.name,
-    m.totalWO,
-    m.rrrWO,
-    m.cleanWO,
-    m.pct.toFixed(1) + '%',
-    m.pct >= 15 ? 'High' : m.pct >= 8 ? 'Medium' : 'Low'
+  const ws1=XLSX.utils.aoa_to_sheet([['Lenovo RRR Intelligence Report'],
+    [titleStr],[`Generated: ${new Date().toLocaleDateString()}`],[],['Metric','Value'],['Overall RRR %',stats.pct.toFixed(2)+'%'],['Distinct MTSN (Denominator)',stats.totalWO],
+    ['Repeat Flags (Hits)',stats.rrrWO],['Clean MTSN (0 hits)',stats.cleanWO]
   ])
-  const ws2 = XLSX.utils.aoa_to_sheet([...modelHeaders, ...modelRows])
-  XLSX.utils.book_append_sheet(wb, ws2, 'Top Models')
-  
-  // Sheet 3: Agent Performance — Overall
-  const agentHeaders = [['Rank', 'Agent Name', 'TL', 'Distinct MTSN', 'Repeat Flags', 'Clean', 'RRR %']]
-  const agentRows = agentData.slice(0, 50).map((a, i) => [
-    i+1, a.name, a.tl, a.totalWO, a.rrrWO, a.cleanWO, a.pct.toFixed(1)+'%'
-  ])
-  const ws3 = XLSX.utils.aoa_to_sheet([...agentHeaders, ...agentRows])
-  XLSX.utils.book_append_sheet(wb, ws3, 'Agent Performance')
+  XLSX.utils.book_append_sheet(wb,ws1,'Summary')
 
-  // Sheet 3b: Agent Month-wise
-  const xlMonths = [...new Set(filteredData.map(r=>r.MONTH).filter(Boolean))].sort()
-  if(xlMonths.length > 0){
-    const agMonthMapXL = buildMonthlyAgentMap(filteredData)
-    // Headers: Agent | TL | Month1 RRR% | Month2 RRR% | ... | Avg RRR%
-    const agMwHeaders = ['Agent','TL', ...xlMonths.map(m=>m+' RRR%'), ...xlMonths.map(m=>m+' MTSN'), 'Avg RRR%']
-    const agMwRows = agentData.slice(0,50).map(a => {
-      const agMo = agMonthMapXL[a.name] || {}
-      const moData = xlMonths.map(m => agMo[m] || {pct:0,totalWO:0,rrrWO:0})
-      const moKeys = xlMonths.filter(m=>agMo[m])
-      const avgPct = moKeys.length ? moKeys.reduce((s,m)=>s+agMo[m].pct,0)/moKeys.length : 0
-      return [
-        a.name, a.tl,
-        ...moData.map(d => d.pct.toFixed(1)+'%'),
-        ...moData.map(d => d.totalWO),
-        avgPct.toFixed(1)+'%'
-      ]
-    })
-    const wsMW = XLSX.utils.aoa_to_sheet([agMwHeaders, ...agMwRows])
-    XLSX.utils.book_append_sheet(wb, wsMW, 'Agent Monthly')
+  // Sheet 2: Monthly & Weekly Trend
+  const monthlyData = grp(reportRows, r=>r.MONTH).sort((a,b)=>a.name.localeCompare(b.name));
+  const weeklyData = grp(reportRows, r=>r.WEEK).sort((a,b)=>a.name.localeCompare(b.name));
+  const ws2=XLSX.utils.aoa_to_sheet([
+    ['--- MONTHLY TREND ---'],['Month','Distinct MTSN','Repeat Flags','Clean MTSN','RRR %'],
+    ...monthlyData.map(m=>[m.name, m.totalWO, m.rrrWO, m.cleanWO, m.pct.toFixed(1)+'%']),
+    [], ['--- WEEKLY TREND ---'],['Week','Distinct MTSN','Repeat Flags','Clean MTSN','RRR %'],
+    ...weeklyData.map(w=>[w.name, w.totalWO, w.rrrWO, w.cleanWO, w.pct.toFixed(1)+'%'])
+  ]);
+  XLSX.utils.book_append_sheet(wb,ws2,'Time Trends')
 
-    // Sheet 3c: TL Month-wise
-    const tlMonthMapXL = buildMonthlyTLMap(filteredData)
-    const tlMwHeaders = ['Team Leader','Agents', ...xlMonths.map(m=>m+' RRR%'), ...xlMonths.map(m=>m+' MTSN'), 'Avg RRR%']
-    const tlMwRows = tlData.map(t => {
-      const tlMo = tlMonthMapXL[t.name] || {}
-      const moData = xlMonths.map(m => tlMo[m] || {pct:0,totalWO:0,agents:0})
-      const moKeys = xlMonths.filter(m=>tlMo[m])
-      const avgPct = moKeys.length ? moKeys.reduce((s,m)=>s+tlMo[m].pct,0)/moKeys.length : 0
-      return [
-        t.name, t.agents,
-        ...moData.map(d => d.pct.toFixed(1)+'%'),
-        ...moData.map(d => d.totalWO),
-        avgPct.toFixed(1)+'%'
-      ]
+  // Sheet 3: Symptoms
+  const symData = grp(reportRows, r=>r.SYMPTOM).sort((a,b)=>b.totalWO - a.totalWO);
+  const ws3=XLSX.utils.aoa_to_sheet([['Symptom','Distinct MTSN','Repeat Flags','RRR %'],
+    ...symData.map(s=>[s.name, s.totalWO, s.rrrWO, s.pct.toFixed(1)+'%'])
+  ]);
+  XLSX.utils.book_append_sheet(wb,ws3,'Symptoms')
+
+  // Sheet 4: Reasons
+  const resData = grp(reportRows, r=>r.REASON).filter(g=>g.name!=='Unknown'&&g.name!=='Not Specified').sort((a,b)=>b.totalWO - a.totalWO);
+  const ws4=XLSX.utils.aoa_to_sheet([['Reason','Distinct MTSN','Repeat Flags','RRR %'],
+    ...resData.map(re=>[re.name, re.totalWO, re.rrrWO, re.pct.toFixed(1)+'%'])
+  ]);
+  XLSX.utils.book_append_sheet(wb,ws4,'Repair Reasons')
+
+  // Sheet 5: HCS Analyzer (if exists)
+  if(IDX.HCS >= 0) {
+    const agMap={}
+    reportRows.forEach(r=>{
+      const a=r.NAME||'Unknown'
+      if(!agMap[a]) agMap[a]={comp85:0,nonComp85:0,comp85_rrrHits:0,comp85_reasons:{}}
+      const isHCS_a = isHCS85(r.HCS)
+      const sc = normaliseScenario(r.SCENARIO)
+      if(isHCS_a){
+         if(sc==='Compliance'){
+            agMap[a].comp85++
+            if(r.FLAG === '1'){
+               agMap[a].comp85_rrrHits++
+               if(r.REASON) agMap[a].comp85_reasons[r.REASON] = (agMap[a].comp85_reasons[r.REASON] || 0) + 1;
+            }
+         } else if (sc==='Non-Compliance'){
+            agMap[a].nonComp85++
+         }
+      }
     })
-    const wsTLMW = XLSX.utils.aoa_to_sheet([tlMwHeaders, ...tlMwRows])
-    XLSX.utils.book_append_sheet(wb, wsTLMW, 'TL Monthly')
-  }
-  
-  // Sheet 4: Symptoms
-  if(symptomData.length > 0){
-    const symptomHeaders = [['Rank', 'Symptom', 'Total WO', 'Repeat WO', 'RRR %']]
-    const symptomRows = symptomData.slice(0, 30).map((s, i) => [
-      i + 1,
-      s.name,
-      s.totalWO,
-      s.rrrWO,
-      s.pct.toFixed(1) + '%'
+    
+    const wsHCS=XLSX.utils.aoa_to_sheet([['Agent','Compliance (a.>=85%)','Non-Compliance (a.>=85%)','Total (C+NC)','Compliance %','RRR Hits (in Compliance)','% RRR Hit','Repair Reasons (Count)'],
+      ...Object.values(agMap).filter(a => a.comp85 > 0).sort((a,b)=>b.comp85_rrrHits - a.comp85_rrrHits).map(a=>{
+        const tot=a.comp85+a.nonComp85
+        const compPct=tot>0?(a.comp85/tot*100):0
+        const hitPct=a.comp85>0?(a.comp85_rrrHits/a.comp85*100):0
+        const reasonsArr = Object.entries(a.comp85_reasons).sort((x,y) => y[1] - x[1]).map(x => `${x[0]} (${x[1]})`);
+        const reasons = reasonsArr.length > 0 ? reasonsArr.join(', ') : 'None'
+        return[a.name,a.comp85,a.nonComp85,tot,compPct.toFixed(1)+'%',a.comp85_rrrHits,hitPct.toFixed(1)+'%',reasons]
+      })
     ])
-    const ws4 = XLSX.utils.aoa_to_sheet([...symptomHeaders, ...symptomRows])
-    XLSX.utils.book_append_sheet(wb, ws4, 'Symptoms')
+    XLSX.utils.book_append_sheet(wb,wsHCS,'HCS Analyzer')
   }
-  
-  // Sheet 5: Lifecycle Intelligence
-  if(lifecycleData.length > 0){
-    const lifecycleHeaders = [['Rank', 'Model', 'Age (Years)', 'Phase', 'Total WO', 'Repeat WO', 'RRR %']]
-    const lifecycleRows = lifecycleData.slice(0, 30).map((m, i) => [
-      i + 1,
-      m.model,
-      m.age.toFixed(1),
-      m.phase,
-      m.totalWO,
-      m.rrrWO,
-      m.pct.toFixed(1) + '%'
-    ])
-    const ws5 = XLSX.utils.aoa_to_sheet([...lifecycleHeaders, ...lifecycleRows])
-    XLSX.utils.book_append_sheet(wb, ws5, 'Lifecycle Analysis')
-  }
-  
-  // Sheet 6: Agent Risk Prediction
-  if(agentRiskData.length > 0){
-    const riskHeaders = [['Rank', 'Agent', 'Current RRR %', 'Predicted RRR %', 'Trend', 'Top Model', 'Top Symptom', 'Risk Level']]
-    const riskRows = agentRiskData.slice(0, 30).map((a, i) => [
-      i + 1,
-      a.agent,
-      a.currentRRR.toFixed(1) + '%',
-      a.predictedRRR.toFixed(1) + '%',
-      a.trend,
-      a.topModel,
-      a.topSymptom,
-      a.riskLevel
-    ])
-    const ws6 = XLSX.utils.aoa_to_sheet([...riskHeaders, ...riskRows])
-    XLSX.utils.book_append_sheet(wb, ws6, 'Risk Prediction')
-  }
-  
-  // Generate Excel file
-  XLSX.writeFile(wb, `RRR_Report_${new Date().toISOString().slice(0,10)}.xlsx`)
+
+  XLSX.writeFile(wb,`RRR_Report_${targetName ? targetName.replace(/[^a-z0-9]/gi,'_') : 'Overall'}_${new Date().toISOString().slice(0,10)}.xlsx`)
 }
 </script>
 </body>
