@@ -416,9 +416,9 @@ tbody td{padding:8px 13px;color:var(--t1)}
         <div style="margin-top:18px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:14px 20px;text-align:left;max-width:500px">
           <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin-bottom:10px">HCS Analyzer Logic</div>
           <div style="font-size:11px;color:var(--t2);line-height:2">
-            <strong>HCS ≥ 85%</strong> → value starts with "a." in HCS column<br>
+            <strong>HCS ≥ 70%</strong> → value in HCS column is ">=70%"<br>
             <strong>Compliance map</strong> → Scenario = "Compliance" mapped against all agents & true RRR Hits<br>
-            <strong>HCS Compliance 85%</strong> → Compliance % = Compliance ÷ (Compliance + Non-Compliance) × 100
+            <strong>HCS Compliance 70%</strong> → Compliance % = Compliance ÷ (Compliance + Non-Compliance) × 100
           </div>
         </div>
       </div>
@@ -435,7 +435,7 @@ tbody td{padding:8px 13px;color:var(--t1)}
           <div class="tc-hd">
             <div>
               <div class="tc-title">📋 Compliance × RRR Hit Mapping (Agent-wise)</div>
-              <div class="tc-meta" id="hcsRrrMeta">Showing all agents with Compliance (a.>=85%) and their RRR hits & reasons</div>
+              <div class="tc-meta" id="hcsRrrMeta">Showing all agents with Compliance 70% and their RRR hits & reasons</div>
             </div>
             <input class="ts" id="hcsRrrSearch" placeholder="Search agent…" oninput="srch('hcsRrrTbody',this.value)"/>
           </div>
@@ -444,7 +444,7 @@ tbody td{padding:8px 13px;color:var(--t1)}
               <thead><tr>
                 <th>#</th>
                 <th>Agent Name</th>
-                <th>Compliance Count<br><span style="font-weight:400;font-size:9px">(a.≥85%)</span></th>
+                <th>Compliance Count<br><span style="font-weight:400;font-size:9px">70%</span></th>
                 <th style="background:rgba(226,0,26,0.1);color:#ff4455">RRR Hits<br><span style="font-weight:400;font-size:9px">(within Compliance)</span></th>
                 <th>% RRR Hit<br><span style="font-weight:400;font-size:9px">(Hits ÷ Compliance)</span></th>
                 <th>Repair Reasons (Count)</th>
@@ -455,12 +455,12 @@ tbody td{padding:8px 13px;color:var(--t1)}
           </div>
         </div>
 
-        <!-- Section 2: HCS Compliance 85% Summary -->
+        <!-- Section 2: HCS Compliance 70% Summary -->
         <div class="tc" style="margin-bottom:18px">
           <div class="tc-hd">
             <div>
-              <div class="tc-title">📊 HCS Compliance 85% — Compliance % Agent-wise</div>
-              <div class="tc-meta" id="hcsCompMeta">Compliance % = Compliance ÷ (Compliance + Non-Compliance) × 100 (Where HCS ≥ 85%)</div>
+              <div class="tc-title">📊 HCS Compliance 70% — Compliance % Agent-wise</div>
+              <div class="tc-meta" id="hcsCompMeta">Compliance % = Compliance ÷ (Compliance + Non-Compliance) × 100 (Where HCS ≥ 70%)</div>
             </div>
             <input class="ts" id="hcsCompSearch" placeholder="Search agent…" oninput="srch('hcsCompTbody',this.value)"/>
           </div>
@@ -1482,8 +1482,8 @@ function drawAgentRisk(){
 /* ══════════════════════════════════════════════
    HCS ANALYZER
 ══════════════════════════════════════════════ */
-function isHCS85(hcsVal){
-  return String(hcsVal).toLowerCase().startsWith('a.')
+function isHCS70(hcsVal){
+  return String(hcsVal).trim().startsWith('>=')
 }
 function normaliseScenario(s){
   const sv=String(s).trim().toLowerCase()
@@ -1523,53 +1523,53 @@ function buildHCSAnalyzer(){
     if(!agMap[agent]) {
       agMap[agent] = {
         name: agent,
-        comp85: 0,
-        nonComp85: 0,
-        comp85_rrrHits: 0,
-        comp85_reasons: {}
+        comp70: 0,
+        nonComp70: 0,
+        comp70_rrrHits: 0,
+        comp70_reasons: {}
       }
     }
     const a = agMap[agent]
 
-    const isHCS_a = isHCS85(r.HCS)
+    const isHCS_a = isHCS70(r.HCS)
     const sc = normaliseScenario(r.SCENARIO)
 
     if(isHCS_a) {
       if(sc === 'Compliance') {
-        a.comp85++
+        a.comp70++
         if(r.FLAG === '1') {
-           a.comp85_rrrHits++
+           a.comp70_rrrHits++
            if(r.REASON) {
-             a.comp85_reasons[r.REASON] = (a.comp85_reasons[r.REASON] || 0) + 1;
+             a.comp70_reasons[r.REASON] = (a.comp70_reasons[r.REASON] || 0) + 1;
            }
         }
       } else if(sc === 'Non-Compliance') {
-        a.nonComp85++
+        a.nonComp70++
       }
     }
   })
 
   /* ── TABLE 1: Compliance × RRR Hit Mapping (Show all agents with compliance > 0) ── */
   const compAgentsList = Object.values(agMap)
-    .filter(a => a.comp85 > 0)
-    .sort((a,b) => b.comp85_rrrHits - a.comp85_rrrHits)
+    .filter(a => a.comp70 > 0)
+    .sort((a,b) => b.comp70_rrrHits - a.comp70_rrrHits)
 
   document.getElementById('hcsRrrTbody').innerHTML = compAgentsList.map((a,i)=>{
-    const hitPct = (a.comp85_rrrHits / a.comp85) * 100
-    const reasonsArr = Object.entries(a.comp85_reasons)
+    const hitPct = (a.comp70_rrrHits / a.comp70) * 100
+    const reasonsArr = Object.entries(a.comp70_reasons)
            .sort((x,y) => y[1] - x[1])
            .map(x => `${x[0]} <span style="color:var(--t3);font-size:10px">(${x[1]})</span>`);
     const reasons = reasonsArr.length > 0 ? reasonsArr.join('<br>') : '<span style="color:var(--t3)">—</span>'
-    const insight = a.comp85_rrrHits > 0 
+    const insight = a.comp70_rrrHits > 0 
            ? `<span style="color:#ff4455;font-size:11px">⚠️ Compliant but has RRR hits</span>`
            : `<span style="color:#00c96d;font-size:11px">✅ Compliant & Clean</span>`
 
     return `<tr>
       <td><span class="rnk ${rk(i)}">${i+1}</span></td>
       <td style="font-weight:600">${a.name}</td>
-      <td class="mono"><span style="color:#00c96d">${a.comp85}</span></td>
-      <td class="mono">${a.comp85_rrrHits > 0 ? `<span class="pill p-bad">${a.comp85_rrrHits}</span>` : `<span style="color:var(--t3)">0</span>`}</td>
-      <td class="mono"><span style="color:${a.comp85_rrrHits > 0 ? '#ff4455' : 'var(--t3)'}">${hitPct.toFixed(1)}%</span></td>
+      <td class="mono"><span style="color:#00c96d">${a.comp70}</span></td>
+      <td class="mono">${a.comp70_rrrHits > 0 ? `<span class="pill p-bad">${a.comp70_rrrHits}</span>` : `<span style="color:var(--t3)">0</span>`}</td>
+      <td class="mono"><span style="color:${a.comp70_rrrHits > 0 ? '#ff4455' : 'var(--t3)'}">${hitPct.toFixed(1)}%</span></td>
       <td style="font-size:11px; max-width:280px; white-space:normal;">${reasons}</td>
       <td>${insight}</td>
     </tr>`
@@ -1579,14 +1579,14 @@ function buildHCSAnalyzer(){
     document.getElementById('hcsRrrTbody').innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--t3);">No compliant records found.</td></tr>`
   }
 
-  /* ── TABLE 2: HCS Compliance 85% ── */
+  /* ── TABLE 2: HCS Compliance 70% ── */
   const allCompAgents = Object.values(agMap)
-    .filter(a => (a.comp85 + a.nonComp85) > 0)
-    .sort((a,b) => b.comp85 - a.comp85)
+    .filter(a => (a.comp70 + a.nonComp70) > 0)
+    .sort((a,b) => b.comp70 - a.comp70)
 
   document.getElementById('hcsCompTbody').innerHTML = allCompAgents.map((a,i)=>{
-    const total = a.comp85 + a.nonComp85
-    const compPct = total > 0 ? (a.comp85 / total * 100) : 0
+    const total = a.comp70 + a.nonComp70
+    const compPct = total > 0 ? (a.comp70 / total * 100) : 0
     const compPctBadge = compPct >= 80
       ? `<span class="pill p-ok">${compPct.toFixed(1)}%</span>`
       : compPct >= 50
@@ -1598,8 +1598,8 @@ function buildHCSAnalyzer(){
       <td><span class="rnk ${rk(i)}">${i+1}</span></td>
       <td style="font-weight:600">${a.name}</td>
       <td class="mono">${total}</td>
-      <td class="mono"><span style="color:#00c96d">${a.comp85}</span></td>
-      <td class="mono"><span style="color:#ff4455">${a.nonComp85}</span></td>
+      <td class="mono"><span style="color:#00c96d">${a.comp70}</span></td>
+      <td class="mono"><span style="color:#ff4455">${a.nonComp70}</span></td>
       <td style="text-align:center">${compPctBadge}</td>
       <td>${status}</td>
     </tr>`
@@ -1715,26 +1715,26 @@ function generatePDFReport(){
 
   // HCS Analysis for PDF
   if(IDX.HCS >= 0) {
-    let comp85 = 0, nonComp85 = 0, rrrHits = 0;
+    let comp70 = 0, nonComp70 = 0, rrrHits = 0;
     reportRows.forEach(r => {
-       if(isHCS85(r.HCS)){
+       if(isHCS70(r.HCS)){
          const sc = normaliseScenario(r.SCENARIO);
          if(sc === 'Compliance'){
-           comp85++;
+           comp70++;
            if(r.FLAG === '1') rrrHits++;
          }
-         else if(sc === 'Non-Compliance') nonComp85++;
+         else if(sc === 'Non-Compliance') nonComp70++;
        }
     });
-    const compPct = (comp85+nonComp85)>0 ? (comp85/(comp85+nonComp85)*100) : 0;
-    const hitPct = comp85>0 ? (rrrHits/comp85*100) : 0;
+    const compPct = (comp70+nonComp70)>0 ? (comp70/(comp70+nonComp70)*100) : 0;
+    const hitPct = comp70>0 ? (rrrHits/comp70*100) : 0;
     
     if(y > 250) { doc.addPage(); y = 20; }
-    doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text('HCS Compliance Summary (a.>=85%)', 14, y);
+    doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text('HCS Compliance Summary 70%', 14, y);
     doc.autoTable({
       startY: y+5,
       head: [['Compliance', 'Non-Compliance', 'Compliance %', 'RRR Hits', '% RRR Hit']],
-      body: [[comp85, nonComp85, compPct.toFixed(1)+'%', rrrHits, hitPct.toFixed(1)+'%']],
+      body: [[comp70, nonComp70, compPct.toFixed(1)+'%', rrrHits, hitPct.toFixed(1)+'%']],
       theme: 'grid', headStyles: {fillColor:[0,102,204]}
     });
     y = doc.lastAutoTable.finalY + 15;
@@ -1833,30 +1833,30 @@ function generateExcelReport(){
     const agMap={}
     reportRows.forEach(r=>{
       const a=r.NAME||'Unknown'
-      if(!agMap[a]) agMap[a]={comp85:0,nonComp85:0,comp85_rrrHits:0,comp85_reasons:{}}
-      const isHCS_a = isHCS85(r.HCS)
+      if(!agMap[a]) agMap[a]={comp70:0,nonComp70:0,comp70_rrrHits:0,comp70_reasons:{}}
+      const isHCS_a = isHCS70(r.HCS)
       const sc = normaliseScenario(r.SCENARIO)
       if(isHCS_a){
          if(sc==='Compliance'){
-            agMap[a].comp85++
+            agMap[a].comp70++
             if(r.FLAG === '1'){
-               agMap[a].comp85_rrrHits++
-               if(r.REASON) agMap[a].comp85_reasons[r.REASON] = (agMap[a].comp85_reasons[r.REASON] || 0) + 1;
+               agMap[a].comp70_rrrHits++
+               if(r.REASON) agMap[a].comp70_reasons[r.REASON] = (agMap[a].comp70_reasons[r.REASON] || 0) + 1;
             }
          } else if (sc==='Non-Compliance'){
-            agMap[a].nonComp85++
+            agMap[a].nonComp70++
          }
       }
     })
     
-    const wsHCS=XLSX.utils.aoa_to_sheet([['Agent','Compliance (a.>=85%)','Non-Compliance (a.>=85%)','Total (C+NC)','Compliance %','RRR Hits (in Compliance)','% RRR Hit','Repair Reasons (Count)'],
-      ...Object.values(agMap).filter(a => a.comp85 > 0).sort((a,b)=>b.comp85_rrrHits - a.comp85_rrrHits).map(a=>{
-        const tot=a.comp85+a.nonComp85
-        const compPct=tot>0?(a.comp85/tot*100):0
-        const hitPct=a.comp85>0?(a.comp85_rrrHits/a.comp85*100):0
-        const reasonsArr = Object.entries(a.comp85_reasons).sort((x,y) => y[1] - x[1]).map(x => `${x[0]} (${x[1]})`);
+    const wsHCS=XLSX.utils.aoa_to_sheet([['Agent','Compliance 70%','Non-Compliance 70%','Total (C+NC)','Compliance %','RRR Hits (in Compliance)','% RRR Hit','Repair Reasons (Count)'],
+      ...Object.values(agMap).filter(a => a.comp70 > 0).sort((a,b)=>b.comp70_rrrHits - a.comp70_rrrHits).map(a=>{
+        const tot=a.comp70+a.nonComp70
+        const compPct=tot>0?(a.comp70/tot*100):0
+        const hitPct=a.comp70>0?(a.comp70_rrrHits/a.comp70*100):0
+        const reasonsArr = Object.entries(a.comp70_reasons).sort((x,y) => y[1] - x[1]).map(x => `${x[0]} (${x[1]})`);
         const reasons = reasonsArr.length > 0 ? reasonsArr.join(', ') : 'None'
-        return[a.name,a.comp85,a.nonComp85,tot,compPct.toFixed(1)+'%',a.comp85_rrrHits,hitPct.toFixed(1)+'%',reasons]
+        return[a.name,a.comp70,a.nonComp70,tot,compPct.toFixed(1)+'%',a.comp70_rrrHits,hitPct.toFixed(1)+'%',reasons]
       })
     ])
     XLSX.utils.book_append_sheet(wb,wsHCS,'HCS Analyzer')
