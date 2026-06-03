@@ -264,7 +264,7 @@ tbody td{padding:8px 13px;color:var(--t1)}
       <div class="chip" id="chip-sub">Sub Series</div>
       <div class="chip" id="chip-month">RRR Month</div>
       <div class="chip" id="chip-week">RRR Week</div>
-      <div class="chip" id="chip-flag">RRR MTSN 30D NOC x Labor</div>
+      <div class="chip" id="chip-flag">RRR MTSN 30D Flag NOC</div>
       <div class="chip" id="chip-svctype">Service Delivery Type</div>
       <div class="chip" id="chip-warranty">Service Warranty Type</div>
       <div class="chip" id="chip-lob">LOB</div>
@@ -308,6 +308,30 @@ tbody td{padding:8px 13px;color:var(--t1)}
     <select id="fAccount"><option value="">All Accounts</option></select></div>
   <div class="fg"><label>Sub Series</label>
     <select id="fSub"><option value="">All Sub-Series</option></select></div>
+  <div class="fg">
+    <label>Service Warranty Type</label>
+    <div class="ms-wrap" id="msWrapWarranty">
+      <button class="ms-btn" id="msBtnWarranty" type="button" onclick="toggleMsDropdown('Warranty')">All Warranty Types</button>
+      <div class="ms-dropdown" id="msDropWarranty"></div>
+    </div>
+    <select id="fWarranty" multiple style="display:none"></select>
+  </div>
+  <div class="fg">
+    <label>Product Group</label>
+    <div class="ms-wrap" id="msWrapProdGrp">
+      <button class="ms-btn" id="msBtnProdGrp" type="button" onclick="toggleMsDropdown('ProdGrp')">All Product Groups</button>
+      <div class="ms-dropdown" id="msDropProdGrp"></div>
+    </div>
+    <select id="fProdGrp" multiple style="display:none"></select>
+  </div>
+  <div class="fg">
+    <label>Release by LOB</label>
+    <div class="ms-wrap" id="msWrapLOB">
+      <button class="ms-btn" id="msBtnLOB" type="button" onclick="toggleMsDropdown('LOB')">All LOBs</button>
+      <div class="ms-dropdown" id="msDropLOB"></div>
+    </div>
+    <select id="fLOB" multiple style="display:none"></select>
+  </div>
   <div class="fbtns">
     <button class="btn btn-r" onclick="resetFilters()">↺ Reset</button>
     <button class="btn btn-e" onclick="exportCSV()">⬇ CSV</button>
@@ -324,7 +348,7 @@ tbody td{padding:8px 13px;color:var(--t1)}
     <div class="cols-preview">
       <div class="cols-preview-title">Required Columns (detected automatically)</div>
       <div class="cols-preview-body">
-        Machine Serial Number &nbsp;·&nbsp; RRR MTSN 30D NOC x Labor<br>
+        Machine Serial Number &nbsp;·&nbsp; RRR MTSN 30D Flag NOC<br>
         RRR Month &nbsp;·&nbsp; RRR Week &nbsp;·&nbsp; Sub Series<br>
         Service Delivery Type &nbsp;·&nbsp; Service Warranty Type<br>
         LOB &nbsp;·&nbsp; Product Group &nbsp;·&nbsp; WO Status &nbsp;·&nbsp; Labor Status<br>
@@ -333,10 +357,10 @@ tbody td{padding:8px 13px;color:var(--t1)}
       </div>
     </div>
     <div class="formula-note">
-      RRR% = <strong style="color:var(--red)">Σ RRR_MTSN_30D_NOC_x_Labor</strong>
+      RRR% = <strong style="color:var(--red)">Σ RRR MTSN 30D Flag NOC</strong>
       &nbsp;÷&nbsp; <strong style="color:#4d9fff">Distinct MTSN</strong>
       &nbsp;× 100
-      <br><small style="color:#666;font-size:10px">Scope: Onsite · Standard Warranty · Lenovo & Think Product Groups</small>
+      <br><small style="color:#666;font-size:10px">Scope: Onsite only · Warranty & Product Group selectable via filters</small>
     </div>
   </div>
 
@@ -356,7 +380,7 @@ tbody td{padding:8px 13px;color:var(--t1)}
     <div class="formula-bar">
       <strong>RRR%</strong>
       <span>=</span>
-      <span><strong>Σ RRR_MTSN_30D_NOC_x_Labor</strong></span>
+      <span><strong>Σ RRR MTSN 30D Flag NOC</strong></span>
       <span style="color:var(--t3)">÷</span>
       <span><strong>Distinct MTSN</strong></span>
       <span style="color:var(--t3)">×</span>
@@ -758,7 +782,7 @@ let symptomData=[], reasonData=[], accountData=[], weekData=[]
 let agentRiskData=[]
 
 /* ── MULTI-SELECT STATE ── */
-const msState = { Month: new Set(), Week: new Set() }
+const msState = { Month: new Set(), Week: new Set(), Warranty: new Set(), ProdGrp: new Set(), LOB: new Set() }
 
 /* ── COL ALIASES ── */
 const COL_ALIASES = {
@@ -770,7 +794,7 @@ const COL_ALIASES = {
   PROD_GRP:['Product Group','Prod Group','Product Grp'],
   LABOR_STATUS:['Labor Status','Labour Status','Labor Stat'],
   WO_STATUS:['WO Status','Work Order Status','SO Status','Order Status'],
-  FLAG:['RRR MTSN 30D NOC x Labor', 'RRR_MTSN_30D_NOC_x_Labor', 'RRR MTSN 30D Flag NOC', 'RRR MTSN 30D']
+  FLAG:['RRR MTSN 30D Flag NOC', 'RRR MTSN 30D NOC x Labor', 'RRR_MTSN_30D_NOC_x_Labor', 'RRR MTSN 30D']
 }
 
 /* ── RRR FILE UPLOAD ── */
@@ -863,18 +887,9 @@ function detectCols(headers){
 
 /* ── HARD FILTERS ── */
 function passesHardFilters(r){
-  const svc     = (r.SVC_TYPE  || '').toLowerCase()
-  const warr    = (r.WARRANTY  || '').toLowerCase()
-  const prodGrp = (r.PROD_GRP  || '').toLowerCase()
-  
-  if(!svc.includes('onsite'))   return false
-  if(!warr.includes('standard'))return false
-  
-  // Product Group must include Lenovo or Think
-  const isLenovo = prodGrp.includes('lenovo');
-  const isThink  = prodGrp.includes('think');
-  if(!(isLenovo || isThink)) return false;
-
+  const svc = (r.SVC_TYPE || '').toLowerCase()
+  // Service Delivery Type is always fixed to Onsite
+  if(!svc.includes('onsite')) return false
   return true
 }
 
@@ -932,7 +947,7 @@ function fillSel(id, blank, vals, keepSel=false){
   })
 }
 function buildMsDropdown(key, vals, blankLabel){
-  const drop = document.getElementById('msDropDown'+key) || document.getElementById('msDrop'+key)
+  const drop = document.getElementById('msDrop'+key)
   if(!drop) return
   drop.innerHTML = `<div class="ms-item" onclick="toggleMsAll('${key}')">
     <input type="checkbox" id="ms-all-${key}"/><label style="cursor:pointer">All ${blankLabel}</label></div>
@@ -951,7 +966,7 @@ function toggleMsItem(key,val,el){
   syncHiddenSelect(key); updateMsBtn(key); applyFilters()
 }
 function toggleMsAll(key){
-  const drop = document.getElementById('msDropMonth')||document.getElementById('msDrop'+key)
+  const drop = document.getElementById('msDrop'+key)
   const items = drop ? drop.querySelectorAll('.ms-item:not(:first-child)') :[]
   const allChecked = msState[key].size === items.length
   msState[key].clear()
@@ -967,12 +982,14 @@ function updateMsBtn(key){
   const btn = document.getElementById('msBtn'+key)
   if(!btn) return
   const count = msState[key].size
-  if(count===0) btn.textContent = key==='Month'?'All Months':'All Weeks'
+  const labels = {Month:'All Months', Week:'All Weeks', Warranty:'All Warranty Types', ProdGrp:'All Product Groups', LOB:'All LOBs'}
+  if(count===0) btn.textContent = labels[key] || 'All'
   else if(count===1) btn.textContent =[...msState[key]][0]
   else btn.textContent = `${count} selected`
 }
 function syncHiddenSelect(key){
-  const sel = document.getElementById('f'+key)
+  const idMap = {Month:'fMonth', Week:'fWeek', Warranty:'fWarranty', ProdGrp:'fProdGrp', LOB:'fLOB'}
+  const sel = document.getElementById(idMap[key] || 'f'+key)
   if(!sel) return
   for(let o of sel.options) o.selected = msState[key].has(o.value)
 }
@@ -994,27 +1011,38 @@ function populateFilters(){
   fillSel('fVendor','All Vendors',uniq('VENDOR'))
   fillSel('fAccount','All Accounts',uniq('ACCOUNT'))
   fillSel('fSub','All Sub-Series',uniq('SUB'))
-  const months = uniq('MONTH')
-  const weeks  = uniq('WEEK')
+  const months   = uniq('MONTH')
+  const weeks    = uniq('WEEK')
+  const warrs    = uniq('WARRANTY')
+  const prodGrps = uniq('PROD_GRP')
+  const lobs     = uniq('LOB')
   fillSel('fMonth','All Months',months,true)
   fillSel('fWeek','All Weeks',weeks,true)
+  fillSel('fWarranty','All Warranty Types',warrs,true)
+  fillSel('fProdGrp','All Product Groups',prodGrps,true)
+  fillSel('fLOB','All LOBs',lobs,true)
   buildMsDropdown('Month',months,'Months')
   buildMsDropdown('Week',weeks,'Weeks')
+  buildMsDropdown('Warranty',warrs,'Warranty Types')
+  buildMsDropdown('ProdGrp',prodGrps,'Product Groups')
+  buildMsDropdown('LOB',lobs,'LOBs')
   document.getElementById('filterBar').classList.add('show')
   ;['fTL','fAgent','fVendor','fAccount','fSub']
     .forEach(id=>document.getElementById(id).onchange=applyFilters)
   
   updateReportScope();
 }
-function getMultiSelectValues(id){
-  const key = id==='fMonth'?'Month':'Week'
+function getMultiSelectValues(key){
   const s = msState[key]
-  return s.size > 0 ? [...s] : null
+  return s && s.size > 0 ? [...s] : null
 }
 function applyFilters(){
   const tl=v('fTL'), ag=v('fAgent'), vd=v('fVendor'), ac=v('fAccount'), sb=v('fSub')
-  const months = getMultiSelectValues('fMonth')
-  const weeks  = getMultiSelectValues('fWeek')
+  const months   = getMultiSelectValues('Month')
+  const weeks    = getMultiSelectValues('Week')
+  const warrs    = getMultiSelectValues('Warranty')
+  const prodGrps = getMultiSelectValues('ProdGrp')
+  const lobs     = getMultiSelectValues('LOB')
   filteredData = rawData.filter(r=>{
     if(tl && r.TL!==tl)           return false
     if(ag && r.NAME!==ag)         return false
@@ -1023,6 +1051,9 @@ function applyFilters(){
     if(vd && r.VENDOR!==vd)       return false
     if(ac && r.ACCOUNT!==ac)      return false
     if(sb && r.SUB!==sb)          return false
+    if(warrs    && !warrs.includes(r.WARRANTY))   return false
+    if(prodGrps && !prodGrps.includes(r.PROD_GRP)) return false
+    if(lobs     && !lobs.includes(r.LOB))          return false
     return true
   })
   if(tl){
@@ -1035,6 +1066,7 @@ function applyFilters(){
 function resetFilters(){
   ;['fTL','fAgent','fVendor','fAccount','fSub'].forEach(id=>document.getElementById(id).value='')
   msState.Month.clear(); msState.Week.clear()
+  msState.Warranty.clear(); msState.ProdGrp.clear(); msState.LOB.clear()
   agActiveMslMonth=null; tlActiveMslMonth=null
   populateFilters()
   filteredData=[...rawData]
