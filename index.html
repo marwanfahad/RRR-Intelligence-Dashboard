@@ -279,6 +279,7 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
       <div class="chip" id="chip-laborstatus">Labor Status</div>
       <div class="chip" id="chip-vendor">Primary Vendor Name</div>
       <div class="chip" id="chip-reason">Repeat Repair Reason1</div>
+      <div class="chip" id="chip-nextreason">Next SO Repeat Repair Reason</div>
       <div class="chip" id="chip-symptom">Symptom1</div>
       <div class="chip" id="chip-tl">Release by TL</div>
       <div class="chip" id="chip-name">Release by Name</div>
@@ -416,7 +417,7 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
       <div class="tc">
         <div class="tc-hd">
           <div>
-            <div class="tc-title">Agent Performance</div>
+            <div class="tc-title">Agent Performance — Click row to expand repair reasons</div>
             <div class="tc-meta" id="agMeta"></div>
             <div class="month-slicer" id="agMonthSlicer">
               <span class="month-slicer-label">Month View:</span>
@@ -520,7 +521,7 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
       <div class="tc">
         <div class="tc-hd">
           <div>
-            <div class="tc-title">Team Leader Summary</div>
+            <div class="tc-title">Team Leader Summary — Click row to expand repair reasons</div>
             <div class="tc-meta" id="tlMeta"></div>
             <div class="month-slicer" id="tlMonthSlicer">
               <span class="month-slicer-label">Month View:</span>
@@ -587,7 +588,7 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
     <div class="tab" id="tab-reason">
       <div class="tc">
         <div class="tc-hd">
-          <div class="tc-title">Repair Reasons (Flag = 1 only)</div>
+          <div class="tc-title">Repair Reasons (Flag = 1 only) — Click row to see Next SO mapping</div>
           <input class="ts" id="resSearch" placeholder="Search reason…" oninput="srch('resTbody',this.value)"/>
         </div>
         <div class="tw"><table>
@@ -825,7 +826,7 @@ themeToggle.addEventListener('click', () => {
 const COLS = {
   WO_NUM:'WO Number', MTSN:'Machine Serial Number', SUB:'Sub Series',
   MONTH:'RRR Month', WEEK:'RRR Week', VENDOR:'Primary Vendor Name',
-  REASON:'Repeat Repair Reason1', SYMPTOM:'Symptom1', FLAG:'RRR MTSN 30D NOC x Labor',
+  REASON:'Repeat Repair Reason1', NEXT_REASON:'Next SO Repeat Repair Reason', SYMPTOM:'Symptom1', FLAG:'RRR MTSN 30D NOC x Labor',
   TL:'Release by TL', NAME:'Release by Name', ACCOUNT:'Account Name',
   SVC_TYPE:'Service Delivery Type', WARRANTY:'Service Warranty Type',
   LOB:'LOB', PROD_GRP:'Product Group', LABOR_STATUS:'Labor Status', WO_STATUS:'WO Status',
@@ -833,7 +834,7 @@ const COLS = {
 }
 const CHIP_IDS = {
   WO_NUM:'chip-wonum', MTSN:'chip-mtsn', SUB:'chip-sub', MONTH:'chip-month',
-  WEEK:'chip-week', VENDOR:'chip-vendor', REASON:'chip-reason', SYMPTOM:'chip-symptom',
+  WEEK:'chip-week', VENDOR:'chip-vendor', REASON:'chip-reason', NEXT_REASON:'chip-nextreason', SYMPTOM:'chip-symptom',
   FLAG:'chip-flag', TL:'chip-tl', NAME:'chip-name', ACCOUNT:'chip-account',
   SVC_TYPE:'chip-svctype', WARRANTY:'chip-warranty', LOB:'chip-lob',
   PROD_GRP:'chip-prodgrp', LABOR_STATUS:'chip-laborstatus', WO_STATUS:'chip-wostatus'
@@ -1254,10 +1255,14 @@ function buildAg(rows){
   const m={}
   rows.forEach(r=>{
     const a=r.NAME||'Unknown'
-    if(!m[a]) m[a]={name:a,tl:r.TL||'—', mtsnMap:new Map(), num:0}
+    if(!m[a]) m[a]={name:a,tl:r.TL||'—', mtsnMap:new Map(), num:0, reasons:{}, nextReasons:{}}
     
     const isHit = (r.FLAG === '1');
-    if(isHit) m[a].num++
+    if(isHit){
+      m[a].num++
+      if(r.REASON){ m[a].reasons[r.REASON]=(m[a].reasons[r.REASON]||0)+1 }
+      if(r.NEXT_REASON){ m[a].nextReasons[r.NEXT_REASON]=(m[a].nextReasons[r.NEXT_REASON]||0)+1 }
+    }
     if(r.MTSN) m[a].mtsnMap.set(r.MTSN, (m[a].mtsnMap.get(r.MTSN) || 0) + (isHit ? 1 : 0))
   })
   agentData=Object.values(m).map(g=>{
@@ -1265,7 +1270,7 @@ function buildAg(rows){
     let cleanWO = 0;
     for (const hits of g.mtsnMap.values()) if(hits === 0) cleanWO++;
     const rrrWO = g.num;
-    return {name:g.name, tl:g.tl, totalWO, rrrWO, cleanWO, pct:totalWO>0 ? (rrrWO/totalWO*100) : 0}
+    return {name:g.name, tl:g.tl, totalWO, rrrWO, cleanWO, pct:totalWO>0 ? (rrrWO/totalWO*100) : 0, reasons:g.reasons, nextReasons:g.nextReasons}
   }).sort((a,b)=>b.pct-a.pct).map((g,i)=>({...g,rank:i+1}))
   
   const mxWO = agentData.reduce((m,a)=>a.totalWO>m?a.totalWO:m, 1)
@@ -1279,11 +1284,15 @@ function buildTL(rows){
   const m={}
   rows.forEach(r=>{
     const t=r.TL||'Unknown'
-    if(!m[t]) m[t]={name:t, agSet:new Set(), mtsnMap:new Map(), num:0}
+    if(!m[t]) m[t]={name:t, agSet:new Set(), mtsnMap:new Map(), num:0, reasons:{}, nextReasons:{}}
     if(r.NAME) m[t].agSet.add(r.NAME)
     
     const isHit = (r.FLAG === '1');
-    if(isHit) m[t].num++
+    if(isHit){
+      m[t].num++
+      if(r.REASON){ m[t].reasons[r.REASON]=(m[t].reasons[r.REASON]||0)+1 }
+      if(r.NEXT_REASON){ m[t].nextReasons[r.NEXT_REASON]=(m[t].nextReasons[r.NEXT_REASON]||0)+1 }
+    }
     if(r.MTSN) m[t].mtsnMap.set(r.MTSN, (m[t].mtsnMap.get(r.MTSN) || 0) + (isHit ? 1 : 0))
   })
   tlData=Object.values(m).map(g=>{
@@ -1291,7 +1300,7 @@ function buildTL(rows){
     let cleanWO = 0;
     for (const hits of g.mtsnMap.values()) if(hits === 0) cleanWO++;
     const rrrWO = g.num;
-    return {name:g.name, agents:g.agSet.size, totalWO, rrrWO, cleanWO, pct:totalWO>0 ? (rrrWO/totalWO*100) : 0}
+    return {name:g.name, agents:g.agSet.size, totalWO, rrrWO, cleanWO, pct:totalWO>0 ? (rrrWO/totalWO*100) : 0, reasons:g.reasons, nextReasons:g.nextReasons}
   }).sort((a,b)=>b.pct-a.pct).map((g,i)=>({...g,rank:i+1}))
   
   document.getElementById('tlMeta').textContent=`${tlData.length} team leaders`
@@ -1306,8 +1315,92 @@ function buildMod(rows){
 }
 function buildVen(rows){ vendorData=grp(rows,r=>r.VENDOR); drawVen() }
 function buildRes(rows,totalRep){
-  reasonData = grp(rows, r=>r.REASON).filter(g=>g.name!=='Unknown' && g.name!=='Not Specified').map((g,i)=>({...g, rank:i+1}));
+  // Build reason data plus mapping to Next SO Repeat Repair Reason
+  const m={}
+  rows.forEach(r=>{
+    const reason = r.REASON || 'Unknown'
+    if(reason==='Unknown'||reason==='Not Specified') return
+    if(!m[reason]) m[reason]={name:reason, mtsnMap:new Map(), num:0, nextReasons:{}}
+    const isHit=(r.FLAG==='1')
+    if(isHit){
+      m[reason].num++
+      if(r.NEXT_REASON) m[reason].nextReasons[r.NEXT_REASON]=(m[reason].nextReasons[r.NEXT_REASON]||0)+1
+    }
+    if(r.MTSN) m[reason].mtsnMap.set(r.MTSN,(m[reason].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
+  })
+  reasonData = Object.values(m).map(g=>{
+    const totalWO=g.mtsnMap.size
+    let cleanWO=0
+    for(const hits of g.mtsnMap.values()) if(hits===0) cleanWO++
+    const rrrWO=g.num
+    return{name:g.name,totalWO,rrrWO,cleanWO,pct:totalWO>0?(rrrWO/totalWO*100):0,nextReasons:g.nextReasons}
+  }).sort((a,b)=>{
+    const mx=Math.max(...Object.values(m).map(g=>g.mtsnMap.size),1)
+    return((b.totalWO/mx*40)+(b.pct*.6))-((a.totalWO/mx*40)+(a.pct*.6))
+  }).map((g,i)=>({...g,rank:i+1}))
   drawRes()
+}
+
+function drawRes(){
+  document.getElementById('resTbody').innerHTML=reasonData.map((r,i)=>{
+    const keyEnc=encodeURIComponent(r.name)
+    const hasNext=Object.keys(r.nextReasons||{}).length>0
+    return`<tr class="expand-trigger" onclick="toggleResExpand(this,'${keyEnc}')" style="cursor:pointer" title="Click to see Next SO Repair Reason mapping">
+      <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+      <td style="font-weight:600">${r.name} <span style="font-size:10px;color:var(--t3);margin-left:4px">▾</span></td>
+      <td class="mono">${r.totalWO.toLocaleString()}</td>
+      <td class="mono">${r.rrrWO.toLocaleString()}</td>
+      <td><span class="pill ${pc(r.pct)}">${r.pct.toFixed(1)}%</span></td>
+    </tr>
+    <tr class="expand-detail" id="res-expand-${keyEnc}" style="display:none">
+      <td colspan="5" style="padding:0;background:var(--card2)">
+        <div id="res-expand-inner-${keyEnc}"></div>
+      </td>
+    </tr>`
+  }).join('')
+}
+
+function toggleResExpand(triggerRow, keyEnc){
+  const detailRow=document.getElementById('res-expand-'+keyEnc)
+  const inner=document.getElementById('res-expand-inner-'+keyEnc)
+  const isOpen=detailRow.style.display!=='none'
+  document.querySelectorAll('#resTbody .expand-detail').forEach(r=>r.style.display='none')
+  document.querySelectorAll('#resTbody .expand-trigger td:nth-child(2) span').forEach(s=>s.textContent='▾')
+  if(isOpen) return
+  const reasonName=decodeURIComponent(keyEnc)
+  const r=reasonData.find(x=>x.name===reasonName)
+  if(!r) return
+  const hasNextCol=IDX.NEXT_REASON>=0
+  const nextEntries=Object.entries(r.nextReasons||{}).sort((a,b)=>b[1]-a[1])
+  const thS='padding:5px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;white-space:nowrap'
+  const thR='padding:5px 10px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase'
+  const totalNextCount = nextEntries.reduce((s,x)=>s+x[1],0)
+  const nextRows=nextEntries.length ? nextEntries.map((x,i)=>`
+    <tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
+      <td style="padding:6px 12px"><span class="rnk ${rk(i)}">${i+1}</span></td>
+      <td style="padding:6px 12px;font-weight:500;font-size:12px">${x[0]}</td>
+      <td style="padding:6px 12px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600">${x[1]}</td>
+      <td style="padding:6px 12px;text-align:right;font-size:11px"><span class="pill ${pc(x[1]/Math.max(totalNextCount,1)*100)}">${(x[1]/Math.max(totalNextCount,1)*100).toFixed(1)}%</span></td>
+    </tr>`).join('') 
+    : `<tr><td colspan="4" style="padding:10px 12px;color:var(--t3);font-size:11px">${hasNextCol?'No Next SO Reason data for this repair reason.':'Column "Next SO Repeat Repair Reason" not detected in the uploaded file.'}</td></tr>`
+  inner.innerHTML=`
+  <div style="padding:14px 18px;border-top:2px solid var(--info);animation:fi .2s ease both">
+    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--info);margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      🔁 Next SO Repair Reasons — when current reason was: <span style="color:var(--t1);font-size:12px">${reasonName}</span>
+      <span style="color:var(--t2);font-weight:400;text-transform:none">${r.rrrWO} RRR hits &nbsp;·&nbsp; ${nextEntries.length} distinct next reasons &nbsp;·&nbsp; ${totalNextCount} total occurrences</span>
+    </div>
+    <table style="width:100%;max-width:700px">
+      <thead><tr style="border-bottom:1px solid var(--border)">
+        <th style="${thS}">#</th>
+        <th style="${thS}">Next SO Repair Reason</th>
+        <th style="${thR}">Exact Count</th>
+        <th style="${thR}">Share</th>
+      </tr></thead>
+      <tbody>${nextRows}</tbody>
+    </table>
+  </div>`
+  detailRow.style.display=''
+  triggerRow.querySelector('td:nth-child(2) span').textContent='▴'
 }
 function buildSym(rows){
   symptomData=grp(rows,r=>r.SYMPTOM)
@@ -1704,16 +1797,74 @@ function drawAg(){
       const d=(_agMonthMap[a.name]||{})[active]||{pct:0,totalWO:0,rrrWO:0}
       dispPct=d.pct;dispMtsn=d.totalWO;dispRep=d.rrrWO
     } else{dispPct=a.pct;dispMtsn=a.totalWO;dispRep=a.rrrWO}
-    return `<tr>
+    const keyEnc=encodeURIComponent(a.name)
+    return `<tr class="expand-trigger" onclick="toggleAgExpand(this,'${keyEnc}')" style="cursor:pointer" title="Click to see repair reasons">
       <td><span class="rnk ${rk(i)}">${i+1}</span></td>
-      <td style="font-weight:600">${a.name}</td>
+      <td style="font-weight:600">${a.name} <span style="font-size:10px;color:var(--t3);margin-left:4px">▾</span></td>
       <td style="color:var(--t2)">${a.tl}</td>
       <td><span class="pill ${pc(dispPct)}">${dispPct.toFixed(1)}%</span></td>
       <td class="mono">${dispMtsn.toLocaleString()}</td>
       <td class="mono">${dispRep}</td>
       <td><div class="ibar-w"><div class="ibar" style="width:${(a.totalWO/mxWO*80)||2}px"></div><span style="font-size:10px;color:var(--t3)">${a.totalWO}</span></div></td>
+    </tr>
+    <tr class="expand-detail" id="ag-expand-${keyEnc}" style="display:none">
+      <td colspan="7" style="padding:0;background:var(--card2)">
+        <div id="ag-expand-inner-${keyEnc}"></div>
+      </td>
     </tr>`
   }).join('')
+}
+
+function toggleAgExpand(triggerRow, keyEnc){
+  const detailRow=document.getElementById('ag-expand-'+keyEnc)
+  const inner=document.getElementById('ag-expand-inner-'+keyEnc)
+  const isOpen=detailRow.style.display!=='none'
+  document.querySelectorAll('#agTbody .expand-detail').forEach(r=>r.style.display='none')
+  document.querySelectorAll('#agTbody .expand-trigger td:nth-child(2) span').forEach(s=>s.textContent='▾')
+  if(isOpen) return
+  const agentName=decodeURIComponent(keyEnc)
+  const a=agentData.find(x=>x.name===agentName)
+  if(!a) return
+  inner.innerHTML=buildReasonExpandHtml(a.name, a.reasons, a.nextReasons, a.rrrWO)
+  detailRow.style.display=''
+  triggerRow.querySelector('td:nth-child(2) span').textContent='▴'
+}
+
+function buildReasonExpandHtml(entityName, reasons, nextReasons, totalHits){
+  const thS='padding:5px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;white-space:nowrap'
+  const thR='padding:5px 10px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase'
+  const hasNext = IDX.NEXT_REASON >= 0
+  const nextEntries=Object.entries(nextReasons||{}).sort((a,b)=>b[1]-a[1])
+  const totalNextCount = nextEntries.reduce((s,x)=>s+x[1],0)
+  if(!hasNext){
+    return`<div style="padding:12px 18px;color:var(--t3);font-size:11px">Column "Next SO Repeat Repair Reason" not detected in the uploaded file.</div>`
+  }
+  if(!nextEntries.length){
+    return`<div style="padding:12px 18px;color:var(--t3);font-size:11px">No Next SO Repair Reason data found for RRR hit WOs of <strong>${entityName}</strong>.</div>`
+  }
+  const nextRows=nextEntries.map((x,i)=>`
+    <tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
+      <td style="padding:6px 12px"><span class="rnk ${rk(i)}">${i+1}</span></td>
+      <td style="padding:6px 12px;font-weight:500;font-size:12px">${x[0]}</td>
+      <td style="padding:6px 12px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600">${x[1]}</td>
+      <td style="padding:6px 12px;text-align:right;font-size:11px"><span class="pill ${pc(x[1]/Math.max(totalNextCount,1)*100)}">${(x[1]/Math.max(totalNextCount,1)*100).toFixed(1)}%</span></td>
+    </tr>`).join('')
+  return`
+  <div style="padding:14px 18px;border-top:2px solid var(--info);animation:fi .2s ease both">
+    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--info);margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      🔁 Next SO Repeat Repair Reasons — ${entityName}
+      <span style="color:var(--t2);font-weight:400;text-transform:none">${totalHits} RRR hit WO${totalHits!==1?'s':''} &nbsp;·&nbsp; ${nextEntries.length} distinct reason${nextEntries.length!==1?'s':''} &nbsp;·&nbsp; ${totalNextCount} total occurrences</span>
+    </div>
+    <table style="width:100%;max-width:700px">
+      <thead><tr style="border-bottom:1px solid var(--border)">
+        <th style="${thS}">#</th>
+        <th style="${thS}">Next SO Repair Reason</th>
+        <th style="${thR}">Count</th>
+        <th style="${thR}">Share</th>
+      </tr></thead>
+      <tbody>${nextRows}</tbody>
+    </table>
+  </div>`
 }
 
 function drawTL(){
@@ -1739,15 +1890,36 @@ function drawTL(){
       const d=(_tlMonthMap[t.name]||{})[active]||{pct:0,totalWO:0,rrrWO:0}
       dispPct=d.pct;dispMtsn=d.totalWO;dispRep=d.rrrWO
     } else{dispPct=t.pct;dispMtsn=t.totalWO;dispRep=t.rrrWO}
-    return `<tr>
+    const keyEnc=encodeURIComponent(t.name)
+    return `<tr class="expand-trigger" onclick="toggleTLExpand(this,'${keyEnc}')" style="cursor:pointer" title="Click to see repair reasons">
       <td><span class="rnk ${rk(i)}">${i+1}</span></td>
-      <td style="font-weight:600">${t.name}</td>
+      <td style="font-weight:600">${t.name} <span style="font-size:10px;color:var(--t3);margin-left:4px">▾</span></td>
       <td class="mono">${t.agents}</td>
       <td><span class="pill ${pc(dispPct)}">${dispPct.toFixed(1)}%</span></td>
       <td class="mono">${dispMtsn.toLocaleString()}</td>
       <td class="mono">${dispRep}</td>
+    </tr>
+    <tr class="expand-detail" id="tl-expand-${keyEnc}" style="display:none">
+      <td colspan="6" style="padding:0;background:var(--card2)">
+        <div id="tl-expand-inner-${keyEnc}"></div>
+      </td>
     </tr>`
   }).join('')
+}
+
+function toggleTLExpand(triggerRow, keyEnc){
+  const detailRow=document.getElementById('tl-expand-'+keyEnc)
+  const inner=document.getElementById('tl-expand-inner-'+keyEnc)
+  const isOpen=detailRow.style.display!=='none'
+  document.querySelectorAll('#tlTbody .expand-detail').forEach(r=>r.style.display='none')
+  document.querySelectorAll('#tlTbody .expand-trigger td:nth-child(2) span').forEach(s=>s.textContent='▾')
+  if(isOpen) return
+  const tlName=decodeURIComponent(keyEnc)
+  const t=tlData.find(x=>x.name===tlName)
+  if(!t) return
+  inner.innerHTML=buildReasonExpandHtml(t.name, t.reasons, t.nextReasons, t.rrrWO)
+  detailRow.style.display=''
+  triggerRow.querySelector('td:nth-child(2) span').textContent='▴'
 }
 
 function drawMod(){
@@ -2295,96 +2467,196 @@ function generatePDFReport(){
 
   let reportRows = filteredData;
   let titleStr = 'Overall RRR Intelligence Report';
-  if(type === 'Agent') { reportRows = filteredData.filter(r => r.NAME === targetName); titleStr = `RRR Analysis Report - Agent: ${targetName}`; }
-  if(type === 'TL') { reportRows = filteredData.filter(r => r.TL === targetName); titleStr = `RRR Analysis Report - TL: ${targetName}`; }
+  if(type === 'Agent') { reportRows = filteredData.filter(r => r.NAME === targetName); titleStr = `RRR Report — Agent: ${targetName}`; }
+  if(type === 'TL')    { reportRows = filteredData.filter(r => r.TL === targetName);   titleStr = `RRR Report — TL: ${targetName}`; }
   
   const stats = getRRRStats(reportRows);
   const {jsPDF}=window.jspdf
   const doc=new jsPDF()
-  const pageWidth=doc.internal.pageSize.getWidth()
+  const pw=doc.internal.pageSize.getWidth()
   const dateStr=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})
 
-  doc.setFillColor(226,0,26); doc.rect(0,0,pageWidth,35,'F')
-  doc.setTextColor(255,255,255); doc.setFontSize(18); doc.setFont(undefined,'bold')
-  doc.text(titleStr, pageWidth/2, 18, {align:'center'})
-  doc.setFontSize(10); doc.setFont(undefined,'normal')
-  doc.text(`Generated: ${dateStr} | Records Analyzed: ${reportRows.length.toLocaleString()}`, pageWidth/2, 27, {align:'center'})
-  
-  doc.setTextColor(0,0,0); doc.setFontSize(14); doc.setFont(undefined,'bold')
-  doc.text('Executive Summary', 14, 45)
-  doc.autoTable({
-    startY: 50,
-    head: [['Metric', 'Value']],
-    body:[['Distinct MTSN (Denominator)', stats.totalWO.toLocaleString()],['Repeat Flags (RRR Hits)', stats.rrrWO.toLocaleString()],
-      ['Clean MTSN (0 hits)', stats.cleanWO.toLocaleString()],
-      ['Overall RRR %', stats.pct.toFixed(2)+'%']
-    ],
-    theme: 'grid', headStyles: {fillColor:[226,0,26]}
-  })
+  // ── COVER HEADER ──
+  doc.setFillColor(226,0,26); doc.rect(0,0,pw,38,'F')
+  doc.setTextColor(255,255,255); doc.setFontSize(16); doc.setFont(undefined,'bold')
+  doc.text(titleStr, pw/2, 17, {align:'center'})
+  doc.setFontSize(9); doc.setFont(undefined,'normal')
+  doc.text(`Generated: ${dateStr}  |  Records Analyzed: ${reportRows.length.toLocaleString()}  |  Scope: ${type}`, pw/2, 28, {align:'center'})
+  doc.setTextColor(0,0,0)
 
-  let y = doc.lastAutoTable.finalY + 15;
-
-  // HCS Analysis for PDF
-  if(IDX.HCS >= 0) {
-    let comp70 = 0, nonComp70 = 0, rrrHits = 0;
-    reportRows.forEach(r => {
-       if(isHCS70(r.HCS)){
-         const sc = normaliseScenario(r.SCENARIO);
-         if(sc === 'Compliance'){
-           comp70++;
-           if(r.FLAG === '1') rrrHits++;
-         }
-         else if(sc === 'Non-Compliance') nonComp70++;
-       }
-    });
-    const compPct = (comp70+nonComp70)>0 ? (comp70/(comp70+nonComp70)*100) : 0;
-    const hitPct = comp70>0 ? (rrrHits/comp70*100) : 0;
-    
-    if(y > 250) { doc.addPage(); y = 20; }
-    doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text('HCS Compliance Summary 70%', 14, y);
-    doc.autoTable({
-      startY: y+5,
-      head: [['Compliance', 'Non-Compliance', 'Compliance %', 'RRR Hits', '% RRR Hit']],
-      body: [[comp70, nonComp70, compPct.toFixed(1)+'%', rrrHits, hitPct.toFixed(1)+'%']],
-      theme: 'grid', headStyles: {fillColor:[0,102,204]}
-    });
-    y = doc.lastAutoTable.finalY + 15;
+  // ── HELPER ──
+  const addSection=(label, startY)=>{
+    if(startY > 255){doc.addPage(); startY=18}
+    doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.setTextColor(226,0,26)
+    doc.text(label, 14, startY); doc.setTextColor(0,0,0)
+    return startY+5
   }
 
-  // Monthly Breakdown
-  if(y > 250) { doc.addPage(); y = 20; }
-  const monthlyData = grp(reportRows, r=>r.MONTH).sort((a,b)=>a.name.localeCompare(b.name));
-  doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text('Monthly Breakdown', 14, y);
-  doc.autoTable({ startY: y+5, head:[['Month', 'Distinct MTSN', 'Repeat Flags', 'RRR %']], 
-    body: monthlyData.map(m=>[m.name, m.totalWO.toLocaleString(), m.rrrWO, m.pct.toFixed(1)+'%']), theme: 'grid' 
-  });
-  y = doc.lastAutoTable.finalY + 15;
+  // ══ 1. EXECUTIVE SUMMARY ══
+  let y = addSection('1. Executive Summary', 46)
+  doc.autoTable({startY:y, theme:'grid', headStyles:{fillColor:[226,0,26]},
+    head:[['Metric','Value']],
+    body:[
+      ['Distinct MTSN (Denominator)', stats.totalWO.toLocaleString()],
+      ['Repeat Flags (RRR Hits)', stats.rrrWO.toLocaleString()],
+      ['Clean MTSN (0 hits)', stats.cleanWO.toLocaleString()],
+      ['Overall RRR %', stats.pct.toFixed(2)+'%'],
+      ['Risk Level', stats.pct>=15?'HIGH RISK':stats.pct>=8?'MODERATE':'ON TARGET']
+    ]
+  })
+  y = doc.lastAutoTable.finalY + 12
 
-  // Weekly Breakdown
-  if(y > 250) { doc.addPage(); y = 20; }
-  const wklyData = grp(reportRows, r=>r.WEEK).sort((a,b)=>a.name.localeCompare(b.name));
-  doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text('Weekly Breakdown', 14, y);
-  doc.autoTable({ startY: y+5, head:[['Week', 'Distinct MTSN', 'Repeat Flags', 'RRR %']], 
-    body: wklyData.map(w=>[w.name, w.totalWO.toLocaleString(), w.rrrWO, w.pct.toFixed(1)+'%']), theme: 'grid' 
-  });
-  y = doc.lastAutoTable.finalY + 15;
+  // ══ 2. AGENT PERFORMANCE (for TL scope) or AGENT SELF STATS ══
+  if(type==='TL'){
+    // List all agents under this TL
+    const agMap={}
+    reportRows.forEach(r=>{
+      const a=r.NAME||'Unknown'
+      if(!agMap[a]) agMap[a]={mtsnMap:new Map(),num:0}
+      const isHit=(r.FLAG==='1')
+      if(isHit) agMap[a].num++
+      if(r.MTSN) agMap[a].mtsnMap.set(r.MTSN,(agMap[a].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
+    })
+    const agList=Object.entries(agMap).map(([name,g])=>{
+      const t=g.mtsnMap.size,n=g.num
+      return[name,t,n,(t>0?(n/t*100):0).toFixed(1)+'%']
+    }).sort((a,b)=>parseFloat(b[3])-parseFloat(a[3]))
+    y = addSection('2. Agent Breakdown Under TL: '+targetName, y)
+    doc.autoTable({startY:y, theme:'grid', headStyles:{fillColor:[60,60,60]},
+      head:[['Agent','Distinct MTSN','RRR Hits','RRR %']],
+      body:agList
+    })
+    y = doc.lastAutoTable.finalY + 12
+  }
 
-  // Symptoms & Reasons
-  const symData = grp(reportRows, r=>r.SYMPTOM).sort((a,b)=>b.totalWO - a.totalWO).slice(0, 15);
-  const resData = grp(reportRows, r=>r.REASON).filter(g=>g.name!=='Unknown'&&g.name!=='Not Specified').sort((a,b)=>b.totalWO - a.totalWO).slice(0, 15);
+  // ══ 3. MONTHLY TREND ══
+  if(y>250){doc.addPage();y=18}
+  y = addSection((type==='TL'?'3':'2')+'. Monthly RRR Trend', y)
+  const monthlyData=grp(reportRows,r=>r.MONTH).sort((a,b)=>a.name.localeCompare(b.name))
+  doc.autoTable({startY:y, theme:'grid', headStyles:{fillColor:[0,102,204]},
+    head:[['Month','Distinct MTSN','Repeat Flags','Clean MTSN','RRR %']],
+    body:monthlyData.map(m=>[m.name,m.totalWO.toLocaleString(),m.rrrWO,m.cleanWO,m.pct.toFixed(1)+'%'])
+  })
+  y = doc.lastAutoTable.finalY + 12
 
-  if(y > 240) { doc.addPage(); y = 20; }
-  doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text('Top Problem Symptoms', 14, y);
-  doc.autoTable({ startY: y+5, head:[['Symptom', 'Distinct MTSN', 'Repeat Flags', 'RRR %']], 
-    body: symData.map(s=>[s.name, s.totalWO.toLocaleString(), s.rrrWO, s.pct.toFixed(1)+'%']), theme: 'grid' 
-  });
-  y = doc.lastAutoTable.finalY + 15;
+  // ══ 4. WEEKLY TREND ══
+  if(y>250){doc.addPage();y=18}
+  const secN=(type==='TL'?4:3)
+  y = addSection(secN+'. Weekly RRR Trend', y)
+  const weeklyData=grp(reportRows,r=>r.WEEK).sort((a,b)=>String(a.name).localeCompare(String(b.name)))
+  doc.autoTable({startY:y, theme:'grid', headStyles:{fillColor:[0,102,204]},
+    head:[['Week','Distinct MTSN','Repeat Flags','Clean MTSN','RRR %']],
+    body:weeklyData.map(w=>[w.name,w.totalWO.toLocaleString(),w.rrrWO,w.cleanWO,w.pct.toFixed(1)+'%'])
+  })
+  y = doc.lastAutoTable.finalY + 12
 
-  if(y > 240) { doc.addPage(); y = 20; }
-  doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text('Top Repair Reasons', 14, y);
-  doc.autoTable({ startY: y+5, head:[['Reason', 'Distinct MTSN', 'Repeat Flags', 'RRR %']], 
-    body: resData.map(r=>[r.name, r.totalWO.toLocaleString(), r.rrrWO, r.pct.toFixed(1)+'%']), theme: 'grid' 
-  });
+  // ══ 5. HCS ANALYSIS ══
+  if(IDX.HCS>=0){
+    if(y>250){doc.addPage();y=18}
+    const secH=(type==='TL'?5:4)
+    y = addSection(secH+'. HCS Compliance Analysis (HCS ≥ 70%)', y)
+    // Per-agent HCS breakdown for the scope
+    const hcsAgMap={}
+    reportRows.forEach(r=>{
+      const a=type==='Agent'?targetName:(r.NAME||'Unknown')
+      if(!hcsAgMap[a]) hcsAgMap[a]={comp70:0,nonComp70:0,rrrHits:0}
+      if(isHCS70(r.HCS)){
+        const sc=normaliseScenario(r.SCENARIO)
+        if(sc==='Compliance'){hcsAgMap[a].comp70++;if(r.FLAG==='1')hcsAgMap[a].rrrHits++}
+        else if(sc==='Non-Compliance')hcsAgMap[a].nonComp70++
+      }
+    })
+    const hcsRows=Object.entries(hcsAgMap).map(([name,d])=>{
+      const tot=d.comp70+d.nonComp70
+      const compPct=tot>0?(d.comp70/tot*100):0
+      const hitPct=d.comp70>0?(d.rrrHits/d.comp70*100):0
+      return[name,d.comp70,d.nonComp70,tot,compPct.toFixed(1)+'%',d.rrrHits,hitPct.toFixed(1)+'%',
+        compPct>=80?'Good':compPct>=50?'Moderate':'Low']
+    }).sort((a,b)=>parseFloat(b[6])-parseFloat(a[6]))
+    doc.autoTable({startY:y, theme:'grid', headStyles:{fillColor:[0,102,204]},
+      head:[['Agent','Compliance','Non-Compliance','Total','Compliance %','RRR Hits','% Hit','Status']],
+      body:hcsRows, styles:{fontSize:8}, columnStyles:{4:{halign:'right'},5:{halign:'right'},6:{halign:'right'}}
+    })
+    y = doc.lastAutoTable.finalY + 12
+  }
+
+  // ══ 6. AGENT RISK DETAILS ══
+  if(y>250){doc.addPage();y=18}
+  const secR=(type==='TL'?(IDX.HCS>=0?6:5):(IDX.HCS>=0?5:4))
+  y = addSection(secR+'. Agent Risk Profile (Last 3 Months)', y)
+  // Build risk data for this scope
+  const allMonths=[...new Set(reportRows.map(r=>r.MONTH).filter(Boolean))].sort()
+  const last3=allMonths.slice(-3)
+  const rows3m=last3.length?reportRows.filter(r=>last3.includes(r.MONTH)):reportRows
+  const riskAgMap={}
+  rows3m.forEach(r=>{
+    const a=r.NAME||'Unknown'
+    if(!riskAgMap[a]) riskAgMap[a]={mtsnMap:new Map(),num:0,monthMap:{}}
+    const isHit=(r.FLAG==='1')
+    if(isHit) riskAgMap[a].num++
+    if(r.MTSN) riskAgMap[a].mtsnMap.set(r.MTSN,(riskAgMap[a].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
+    const mo=r.MONTH||'?'
+    if(!riskAgMap[a].monthMap[mo]) riskAgMap[a].monthMap[mo]={mtsnMap:new Map(),num:0}
+    if(isHit) riskAgMap[a].monthMap[mo].num++
+    if(r.MTSN) riskAgMap[a].monthMap[mo].mtsnMap.set(r.MTSN,(riskAgMap[a].monthMap[mo].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
+  })
+  const riskRows=Object.entries(riskAgMap).map(([name,g])=>{
+    const vol3m=g.mtsnMap.size, rrrWO=g.num
+    const pctOverall=vol3m>0?(rrrWO/vol3m*100):0
+    const moKeys=Object.keys(g.monthMap).sort()
+    const latestMo=moKeys[moKeys.length-1], prevMo=moKeys[moKeys.length-2]
+    const latestD=latestMo?g.monthMap[latestMo]:null
+    const prevD=prevMo?g.monthMap[prevMo]:null
+    const latPct=latestD?(latestD.num/Math.max(latestD.mtsnMap.size,1)*100):pctOverall
+    const prevPct=prevD?(prevD.num/Math.max(prevD.mtsnMap.size,1)*100):null
+    const mom=prevPct!=null?(latPct-prevPct):null
+    const predicted=prevPct!=null?Math.max(0,latPct+(mom*.5)):latPct
+    const risk=predicted>=20?'High':predicted>=10?'Medium':'Low'
+    const trend=mom==null?'Stable':mom>=5?'Spiked':mom>=2?'Worsening':mom<=-2?'Improving':'Stable'
+    return[name,vol3m,rrrWO,pctOverall.toFixed(1)+'%',latPct.toFixed(1)+'%',
+      mom!=null?((mom>=0?'+':'')+mom.toFixed(1)+'pp'):'—',trend,risk]
+  }).sort((a,b)=>parseFloat(b[3])-parseFloat(a[3]))
+  doc.autoTable({startY:y, theme:'grid', headStyles:{fillColor:[60,60,60]},
+    head:[['Agent','3M MTSN','RRR Hits','Overall RRR%','Latest RRR%','MoM Chg','Trend','Risk']],
+    body:riskRows, styles:{fontSize:8}
+  })
+  y = doc.lastAutoTable.finalY + 12
+
+  // ══ 7. TOP SYMPTOMS ══
+  if(y>250){doc.addPage();y=18}
+  const secS=secR+1
+  y = addSection(secS+'. Top Problem Symptoms', y)
+  const symData=grp(reportRows,r=>r.SYMPTOM).sort((a,b)=>b.totalWO-a.totalWO).slice(0,15)
+  doc.autoTable({startY:y, theme:'grid', headStyles:{fillColor:[60,60,60]},
+    head:[['Symptom','Distinct MTSN','Repeat Flags','RRR %']],
+    body:symData.map(s=>[s.name,s.totalWO.toLocaleString(),s.rrrWO,s.pct.toFixed(1)+'%'])
+  })
+  y = doc.lastAutoTable.finalY + 12
+
+  // ══ 8. REPAIR REASONS (from NEXT_REASON column) ══
+  if(y>250){doc.addPage();y=18}
+  const secRR=secS+1
+  y = addSection(secRR+'. Next SO Repeat Repair Reasons', y)
+  // Aggregate NEXT_REASON from RRR hit rows in scope
+  const nextReasonsMap={}
+  reportRows.forEach(r=>{
+    if(r.FLAG==='1' && r.NEXT_REASON){
+      nextReasonsMap[r.NEXT_REASON]=(nextReasonsMap[r.NEXT_REASON]||0)+1
+    }
+  })
+  const nextReasonEntries=Object.entries(nextReasonsMap).sort((a,b)=>b[1]-a[1])
+  const totalNextHits=nextReasonEntries.reduce((s,x)=>s+x[1],0)
+  if(nextReasonEntries.length){
+    doc.autoTable({startY:y, theme:'grid', headStyles:{fillColor:[0,102,204]},
+      head:[['Next SO Repair Reason','Count','Share %']],
+      body:nextReasonEntries.map(x=>[x[0],x[1],(x[1]/Math.max(totalNextHits,1)*100).toFixed(1)+'%'])
+    })
+  } else {
+    doc.setFontSize(9); doc.setFont(undefined,'italic'); doc.setTextColor(150,150,150)
+    doc.text(IDX.NEXT_REASON>=0?'No Next SO Repair Reason data found for this scope.':'Column "Next SO Repeat Repair Reason" not detected in the file.', 14, y+4)
+    doc.setTextColor(0,0,0); doc.setFont(undefined,'normal')
+    y += 12
+  }
 
   doc.save(`RRR_Report_${targetName ? targetName.replace(/[^a-z0-9]/gi,'_') : 'Overall'}_${new Date().toISOString().slice(0,10)}.pdf`);
 }
