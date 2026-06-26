@@ -146,11 +146,6 @@ main{padding:26px 32px}
 .tab{display:none}
 .tab.on{display:block}
 
-/* CHART GRID */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
-@media(max-width:900px){.g2{grid-template-columns:1fr}}
-.span2{grid-column:1/-1}
-
 /* TABLE */
 .tc{background:var(--card);border:1px solid var(--border);border-radius:6px;margin-bottom:18px;overflow:hidden}
 .tc-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px}
@@ -215,7 +210,7 @@ tbody td{padding:8px 13px;color:var(--t1)}
 .ms-divider{height:1px;background:var(--border);margin:3px 0}
 
 /* EXPAND ROWS */
-tr.expand-trigger:hover td { background: rgba(226,0,26,0.07) !important; }
+tr.expand-trigger:hover td { background: rgba(226,0,26,0.07) !important; cursor: pointer; }
 tr.expand-trigger td:nth-child(2) span { transition: transform .15s; display:inline-block; }
 tr.expand-detail td { padding: 0 !important; }
 tr.expand-detail > td > div { animation: fi .2s ease both; }
@@ -242,7 +237,7 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
   <div class="topbar-r">
     <div class="live-dot"></div>
     <div id="liveClock">--:--:--</div>
-    <div class="vtag">v2.5</div>
+    <div class="vtag">v3.3</div>
     <button id="themeToggle" class="theme-toggle" title="Toggle Dark/Light Mode">
       <span class="theme-icon">☀️</span>
     </button>
@@ -279,11 +274,15 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
       <div class="chip" id="chip-laborstatus">Labor Status</div>
       <div class="chip" id="chip-vendor">Primary Vendor Name</div>
       <div class="chip" id="chip-reason">Repeat Repair Reason1</div>
-      <div class="chip" id="chip-nextreason">Next SO Repeat Repair Reason</div>
+      <div class="chip" id="chip-nextreason" style="border-color:var(--info);color:#4d9fff">Next SO Repeat Reason</div>
       <div class="chip" id="chip-symptom">Symptom1</div>
       <div class="chip" id="chip-tl">Release by TL</div>
       <div class="chip" id="chip-name">Release by Name</div>
       <div class="chip" id="chip-account">Account Name</div>
+      <div class="chip" id="chip-probcat1" style="border-color:var(--info);color:#4d9fff">Problem Category 1</div>
+      <div class="chip" id="chip-nextsym" style="border-color:var(--info);color:#4d9fff">Next WO Symptom</div>
+      <div class="chip" id="chip-firstcomm" style="border-color:var(--info);color:#4d9fff">First WO Commodity</div>
+      <div class="chip" id="chip-nextcomm" style="border-color:var(--info);color:#4d9fff">Next SO Commodity</div>
     </div>
   </div>
 
@@ -399,6 +398,7 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
     <div class="tab-nav">
       <button class="tbtn on"  onclick="sw('agents',this)">By Agent</button>
       <button class="tbtn" id="hcsTabBtn" onclick="sw('hcsanalyzer',this)" style="color:var(--info)">🔬 HCS Analyzer</button>
+      <button class="tbtn"     onclick="sw('actionplan',this)" style="color:#f5a623">🛠️ RRR Action Plan</button>
       <button class="tbtn"     onclick="sw('tl',this)">By TL</button>
       <button class="tbtn"     onclick="sw('models',this)">Sub-Series</button>
       <button class="tbtn"     onclick="sw('vendor',this)">Vendor</button>
@@ -417,7 +417,7 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
       <div class="tc">
         <div class="tc-hd">
           <div>
-            <div class="tc-title">Agent Performance — Click row to expand repair reasons</div>
+            <div class="tc-title">Agent Performance</div>
             <div class="tc-meta" id="agMeta"></div>
             <div class="month-slicer" id="agMonthSlicer">
               <span class="month-slicer-label">Month View:</span>
@@ -440,104 +440,74 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
       </div>
     </div>
 
+    <!-- TAB: RRR ACTION PLAN -->
+    <div class="tab" id="tab-actionplan">
+      <div class="tc">
+        <div class="tc-hd">
+          <div>
+            <div class="tc-title">🛠️ RRR Action Plan (Root Cause Map)</div>
+            <div class="tc-meta" id="apMeta">Analyzes global dataset. Excludes DOA. Links First WO Part to Next WO Part when symptoms match.</div>
+          </div>
+          <input class="ts" id="apSearch" placeholder="Search model…" oninput="srch('apTbody',this.value)"/>
+        </div>
+        <div class="tw">
+          <table id="apTable">
+            <thead><tr>
+              <th>#</th>
+              <th>Sub Series (Model)</th>
+              <th>Actionable RRR Hits</th>
+            </tr></thead>
+            <tbody id="apTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- TAB: HCS ANALYZER -->
     <div class="tab" id="tab-hcsanalyzer">
       <div id="hcsEmptyMsg" style="display:flex;flex-direction:column;align-items:center;padding:48px 20px;text-align:center">
         <div style="font-size:48px;opacity:.25;margin-bottom:14px">🔬</div>
         <div style="font-size:16px;font-weight:600;color:var(--t2);margin-bottom:7px">HCS File Not Loaded</div>
         <div style="font-size:12px;color:var(--t3);max-width:440px;line-height:1.65">Upload your RRR file — the HCS Analyzer will activate automatically if the file contains <strong>HCS</strong> and <strong>Scenario</strong> columns.</div>
-        <div style="margin-top:18px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:14px 20px;text-align:left;max-width:500px">
-          <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin-bottom:10px">HCS Analyzer Logic</div>
-          <div style="font-size:11px;color:var(--t2);line-height:2">
-            <strong>HCS ≥ 70%</strong> → value in HCS column is ">=70%"<br>
-            <strong>Compliance map</strong> → Scenario = "Compliance" mapped against all agents & true RRR Hits<br>
-            <strong>HCS Compliance 70%</strong> → Compliance % = Compliance ÷ (Compliance + Non-Compliance) × 100
-          </div>
-        </div>
       </div>
-
       <div id="hcsContent" style="display:none">
-        
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;background:var(--card);padding:12px 16px;border:1px solid var(--border);border-radius:6px;">
           <label style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:1.5px;">HCS Month Filter:</label>
           <select id="hcsMonthFilter" class="ts" onchange="buildHCSAnalyzer()" style="min-width:160px;"></select>
         </div>
-
-        <!-- Section 1: Compliance × RRR Hit Mapping -->
         <div class="tc" style="margin-bottom:18px">
           <div class="tc-hd">
-            <div>
-              <div class="tc-title">📋 Compliance × RRR Hit Mapping (Agent-wise)</div>
-              <div class="tc-meta" id="hcsRrrMeta">Showing all agents with Compliance 70% and their RRR hits & reasons</div>
-            </div>
+            <div><div class="tc-title">📋 Compliance × RRR Hit Mapping (Agent-wise)</div><div class="tc-meta" id="hcsRrrMeta">Showing all agents with Compliance 70% and their RRR hits & reasons</div></div>
             <input class="ts" id="hcsRrrSearch" placeholder="Search agent…" oninput="srch('hcsRrrTbody',this.value)"/>
           </div>
-          <div class="tw">
-            <table>
-              <thead><tr>
-                <th>#</th>
-                <th>Agent Name</th>
-                <th>Compliance Count<br><span style="font-weight:400;font-size:9px">70%</span></th>
-                <th style="background:rgba(226,0,26,0.1);color:#ff4455">RRR Hits<br><span style="font-weight:400;font-size:9px">(within Compliance)</span></th>
-                <th>% RRR Hit<br><span style="font-weight:400;font-size:9px">(Hits ÷ Compliance)</span></th>
-                <th>Repair Reasons (Count)</th>
-                <th>Insight</th>
-              </tr></thead>
-              <tbody id="hcsRrrTbody"></tbody>
-            </table>
-          </div>
+          <div class="tw"><table>
+            <thead><tr><th>#</th><th>Agent Name</th><th>Compliance Count<br><span style="font-weight:400;font-size:9px">70%</span></th><th style="background:rgba(226,0,26,0.1);color:#ff4455">RRR Hits<br><span style="font-weight:400;font-size:9px">(within Compliance)</span></th><th>% RRR Hit<br><span style="font-weight:400;font-size:9px">(Hits ÷ Compliance)</span></th><th>Repair Reasons (Count)</th><th>Insight</th></tr></thead>
+            <tbody id="hcsRrrTbody"></tbody>
+          </table></div>
         </div>
-
-        <!-- Section 2: HCS Compliance 70% Summary -->
         <div class="tc" style="margin-bottom:18px">
           <div class="tc-hd">
-            <div>
-              <div class="tc-title">📊 HCS Compliance 70% — Compliance % Agent-wise</div>
-              <div class="tc-meta" id="hcsCompMeta">Compliance % = Compliance ÷ (Compliance + Non-Compliance) × 100 (Where HCS ≥ 70%)</div>
-            </div>
+            <div><div class="tc-title">📊 HCS Compliance 70% — Compliance % Agent-wise</div><div class="tc-meta" id="hcsCompMeta">Compliance % = Compliance ÷ (Compliance + Non-Compliance) × 100</div></div>
             <input class="ts" id="hcsCompSearch" placeholder="Search agent…" oninput="srch('hcsCompTbody',this.value)"/>
           </div>
-          <div class="tw">
-            <table>
-              <thead><tr>
-                <th>#</th>
-                <th>Agent Name</th>
-                <th>Total<br><span style="font-weight:400;font-size:9px">(Compliance + Non-Compliance)</span></th>
-                <th style="color:#00c96d">Compliance</th>
-                <th style="color:#ff4455">Non-Compliance</th>
-                <th style="background:rgba(0,102,204,0.12)">Compliance %</th>
-                <th>Status</th>
-              </tr></thead>
-              <tbody id="hcsCompTbody"></tbody>
-            </table>
-          </div>
+          <div class="tw"><table>
+            <thead><tr><th>#</th><th>Agent Name</th><th>Total<br><span style="font-weight:400;font-size:9px">(Compliance + Non-Compliance)</span></th><th style="color:#00c96d">Compliance</th><th style="color:#ff4455">Non-Compliance</th><th style="background:rgba(0,102,204,0.12)">Compliance %</th><th>Status</th></tr></thead>
+            <tbody id="hcsCompTbody"></tbody>
+          </table></div>
         </div>
-
-      </div><!-- /hcsContent -->
-    </div><!-- /tab-hcsanalyzer -->
+      </div>
+    </div>
 
     <!-- TAB: TL -->
     <div class="tab" id="tab-tl">
       <div class="tc">
         <div class="tc-hd">
-          <div>
-            <div class="tc-title">Team Leader Summary — Click row to expand repair reasons</div>
-            <div class="tc-meta" id="tlMeta"></div>
-            <div class="month-slicer" id="tlMonthSlicer">
-              <span class="month-slicer-label">Month View:</span>
-            </div>
-          </div>
+          <div><div class="tc-title">Team Leader Summary</div><div class="tc-meta" id="tlMeta"></div>
+            <div class="month-slicer" id="tlMonthSlicer"><span class="month-slicer-label">Month View:</span></div></div>
           <input class="ts" id="tlSearch" placeholder="Search TL…" oninput="srch('tlTbody',this.value)"/>
         </div>
         <div class="tw"><table id="tlTable">
-          <thead id="tlThead"><tr>
-            <th>#</th>
-            <th>Team Leader</th>
-            <th>Agents</th>
-            <th id="tlDynHead">RRR %</th>
-            <th>Distinct MTSN</th>
-            <th>Repeat Flags</th>
-          </tr></thead>
+          <thead id="tlThead"><tr><th>#</th><th>Team Leader</th><th>Agents</th><th id="tlDynHead">RRR %</th><th>Distinct MTSN</th><th>Repeat Flags</th></tr></thead>
           <tbody id="tlTbody"></tbody>
         </table></div>
       </div>
@@ -551,14 +521,7 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
           <input class="ts" id="modSearch" placeholder="Search model…" oninput="srch('modTbody',this.value)"/>
         </div>
         <div class="tw"><table>
-          <thead><tr>
-            <th onclick="srt('modelData','rank',1,'modTbody',drawMod)">#</th>
-            <th onclick="srt('modelData','name',-1,'modTbody',drawMod)">Sub Series</th>
-            <th onclick="srt('modelData','totalWO',-1,'modTbody',drawMod)">Distinct MTSN</th>
-            <th onclick="srt('modelData','rrrWO',-1,'modTbody',drawMod)">Repeat Flags</th>
-            <th onclick="srt('modelData','pct',-1,'modTbody',drawMod)">RRR %</th>
-            <th>Risk</th>
-          </tr></thead>
+          <thead><tr><th onclick="srt('modelData','rank',1,'modTbody',drawMod)">#</th><th onclick="srt('modelData','name',-1,'modTbody',drawMod)">Sub Series</th><th onclick="srt('modelData','totalWO',-1,'modTbody',drawMod)">Distinct MTSN</th><th onclick="srt('modelData','rrrWO',-1,'modTbody',drawMod)">Repeat Flags</th><th onclick="srt('modelData','pct',-1,'modTbody',drawMod)">RRR %</th><th>Risk</th></tr></thead>
           <tbody id="modTbody"></tbody>
         </table></div>
       </div>
@@ -572,13 +535,7 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
           <input class="ts" id="venSearch" placeholder="Search vendor…" oninput="srch('venTbody',this.value)"/>
         </div>
         <div class="tw"><table>
-          <thead><tr>
-            <th onclick="srt('vendorData','rank',1,'venTbody',drawVen)">#</th>
-            <th onclick="srt('vendorData','name',-1,'venTbody',drawVen)">Primary Vendor</th>
-            <th onclick="srt('vendorData','totalWO',-1,'venTbody',drawVen)">Distinct MTSN</th>
-            <th onclick="srt('vendorData','rrrWO',-1,'venTbody',drawVen)">Repeat Flags</th>
-            <th onclick="srt('vendorData','pct',-1,'venTbody',drawVen)">RRR %</th>
-          </tr></thead>
+          <thead><tr><th onclick="srt('vendorData','rank',1,'venTbody',drawVen)">#</th><th onclick="srt('vendorData','name',-1,'venTbody',drawVen)">Primary Vendor</th><th onclick="srt('vendorData','totalWO',-1,'venTbody',drawVen)">Distinct MTSN</th><th onclick="srt('vendorData','rrrWO',-1,'venTbody',drawVen)">Repeat Flags</th><th onclick="srt('vendorData','pct',-1,'venTbody',drawVen)">RRR %</th></tr></thead>
           <tbody id="venTbody"></tbody>
         </table></div>
       </div>
@@ -588,17 +545,11 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
     <div class="tab" id="tab-reason">
       <div class="tc">
         <div class="tc-hd">
-          <div class="tc-title">Repair Reasons (Flag = 1 only) — Click row to see Next SO mapping</div>
+          <div class="tc-title">Repair Reasons (Flag = 1 only)</div>
           <input class="ts" id="resSearch" placeholder="Search reason…" oninput="srch('resTbody',this.value)"/>
         </div>
         <div class="tw"><table>
-          <thead><tr>
-            <th onclick="srt('reasonData','rank',1,'resTbody',drawRes)">#</th>
-            <th onclick="srt('reasonData','name',-1,'resTbody',drawRes)">Repeat Repair Reason</th>
-            <th onclick="srt('reasonData','totalWO',-1,'resTbody',drawRes)">Distinct MTSN</th>
-            <th onclick="srt('reasonData','rrrWO',-1,'resTbody',drawRes)">Repeat Flags</th>
-            <th onclick="srt('reasonData','pct',-1,'resTbody',drawRes)">RRR %</th>
-          </tr></thead>
+          <thead><tr><th onclick="srt('reasonData','rank',1,'resTbody',drawRes)">#</th><th onclick="srt('reasonData','name',-1,'resTbody',drawRes)">Repeat Repair Reason</th><th onclick="srt('reasonData','totalWO',-1,'resTbody',drawRes)">Distinct MTSN</th><th onclick="srt('reasonData','rrrWO',-1,'resTbody',drawRes)">Repeat Flags</th><th onclick="srt('reasonData','pct',-1,'resTbody',drawRes)">RRR %</th></tr></thead>
           <tbody id="resTbody"></tbody>
         </table></div>
       </div>
@@ -608,18 +559,11 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
     <div class="tab" id="tab-symptom">
       <div class="tc">
         <div class="tc-hd">
-          <div class="tc-title">Symptoms (All records)</div>
-          <div class="tc-meta" id="symMeta">—</div>
+          <div><div class="tc-title">Symptoms Analysis</div><div class="tc-meta" id="symMeta">Click a symptom row to view top models causing the issue.</div></div>
           <input class="ts" id="symSearch" placeholder="Search symptom…" oninput="srch('symTbody',this.value)"/>
         </div>
         <div class="tw"><table>
-          <thead><tr>
-            <th onclick="srt('symptomData','rank',1,'symTbody',drawSym)">#</th>
-            <th onclick="srt('symptomData','name',-1,'symTbody',drawSym)">Symptom</th>
-            <th onclick="srt('symptomData','totalWO',-1,'symTbody',drawSym)">Distinct MTSN</th>
-            <th onclick="srt('symptomData','rrrWO',-1,'symTbody',drawSym)">Repeat Flags</th>
-            <th onclick="srt('symptomData','pct',-1,'symTbody',drawSym)">RRR %</th>
-          </tr></thead>
+          <thead><tr><th onclick="srt('symptomData','rank',1,'symTbody',drawSym)">#</th><th onclick="srt('symptomData','name',-1,'symTbody',drawSym)">Symptom</th><th onclick="srt('symptomData','totalWO',-1,'symTbody',drawSym)">Distinct MTSN</th><th onclick="srt('symptomData','rrrWO',-1,'symTbody',drawSym)">Repeat Flags</th><th onclick="srt('symptomData','pct',-1,'symTbody',drawSym)">RRR %</th></tr></thead>
           <tbody id="symTbody"></tbody>
         </table></div>
       </div>
@@ -633,13 +577,7 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
           <input class="ts" id="accSearch" placeholder="Search account…" oninput="srch('accTbody',this.value)"/>
         </div>
         <div class="tw"><table>
-          <thead><tr>
-            <th onclick="srt('accountData','rank',1,'accTbody',drawAcc)">#</th>
-            <th onclick="srt('accountData','name',-1,'accTbody',drawAcc)">Account Name</th>
-            <th onclick="srt('accountData','totalWO',-1,'accTbody',drawAcc)">Distinct MTSN</th>
-            <th onclick="srt('accountData','rrrWO',-1,'accTbody',drawAcc)">Repeat Flags</th>
-            <th onclick="srt('accountData','pct',-1,'accTbody',drawAcc)">RRR %</th>
-          </tr></thead>
+          <thead><tr><th onclick="srt('accountData','rank',1,'accTbody',drawAcc)">#</th><th onclick="srt('accountData','name',-1,'accTbody',drawAcc)">Account Name</th><th onclick="srt('accountData','totalWO',-1,'accTbody',drawAcc)">Distinct MTSN</th><th onclick="srt('accountData','rrrWO',-1,'accTbody',drawAcc)">Repeat Flags</th><th onclick="srt('accountData','pct',-1,'accTbody',drawAcc)">RRR %</th></tr></thead>
           <tbody id="accTbody"></tbody>
         </table></div>
       </div>
@@ -649,23 +587,11 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
     <div class="tab" id="tab-vendortrend">
       <div class="tc">
         <div class="tc-hd">
-          <div>
-            <div class="tc-title">📈 Vendor Trend — Month-on-Month RRR Analysis</div>
-            <div class="tc-meta" id="venTrendMeta">Click a vendor row to expand month-by-month breakdown with symptoms &amp; models</div>
-          </div>
+          <div><div class="tc-title">📈 Vendor Trend — Month-on-Month RRR Analysis</div><div class="tc-meta" id="venTrendMeta">Click a vendor row to expand month-by-month breakdown with symptoms &amp; models</div></div>
           <input class="ts" id="venTrendSearch" placeholder="Search vendor…" oninput="srch('venTrendTbody',this.value)"/>
         </div>
         <div class="tw"><table>
-          <thead><tr>
-            <th>#</th>
-            <th>Vendor</th>
-            <th>Months Active</th>
-            <th>Latest RRR%</th>
-            <th>Prev Month RRR%</th>
-            <th>MoM Change</th>
-            <th>Trend Signal</th>
-            <th>Peak Month</th>
-          </tr></thead>
+          <thead><tr><th>#</th><th>Vendor</th><th>Months Active</th><th>Latest RRR%</th><th>Prev Month RRR%</th><th>MoM Change</th><th>Trend Signal</th><th>Peak Month</th></tr></thead>
           <tbody id="venTrendTbody"></tbody>
         </table></div>
       </div>
@@ -675,23 +601,11 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
     <div class="tab" id="tab-accounttrend">
       <div class="tc">
         <div class="tc-hd">
-          <div>
-            <div class="tc-title">📈 Account Trend — Month-on-Month RRR Analysis</div>
-            <div class="tc-meta" id="accTrendMeta">Click an account row to expand month-by-month breakdown with models &amp; symptoms</div>
-          </div>
+          <div><div class="tc-title">📈 Account Trend — Month-on-Month RRR Analysis</div><div class="tc-meta" id="accTrendMeta">Click an account row to expand month-by-month breakdown with models &amp; symptoms</div></div>
           <input class="ts" id="accTrendSearch" placeholder="Search account…" oninput="srch('accTrendTbody',this.value)"/>
         </div>
         <div class="tw"><table>
-          <thead><tr>
-            <th>#</th>
-            <th>Account</th>
-            <th>Months Active</th>
-            <th>Latest RRR%</th>
-            <th>Prev Month RRR%</th>
-            <th>MoM Change</th>
-            <th>Trend Signal</th>
-            <th>Peak Month</th>
-          </tr></thead>
+          <thead><tr><th>#</th><th>Account</th><th>Months Active</th><th>Latest RRR%</th><th>Prev Month RRR%</th><th>MoM Change</th><th>Trend Signal</th><th>Peak Month</th></tr></thead>
           <tbody id="accTrendTbody"></tbody>
         </table></div>
       </div>
@@ -705,13 +619,7 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
           <input class="ts" id="wkSearch" placeholder="Search week…" oninput="srch('wkTbody',this.value)"/>
         </div>
         <div class="tw"><table>
-          <thead><tr>
-            <th onclick="srt('weekData','name',-1,'wkTbody',drawWk)">RRR Week</th>
-            <th onclick="srt('weekData','totalWO',-1,'wkTbody',drawWk)">Distinct MTSN</th>
-            <th onclick="srt('weekData','rrrWO',-1,'wkTbody',drawWk)">Repeat Flags</th>
-            <th onclick="srt('weekData','cleanWO',-1,'wkTbody',drawWk)">Clean MTSN</th>
-            <th onclick="srt('weekData','pct',-1,'wkTbody',drawWk)">RRR %</th>
-          </tr></thead>
+          <thead><tr><th onclick="srt('weekData','name',-1,'wkTbody',drawWk)">RRR Week</th><th onclick="srt('weekData','totalWO',-1,'wkTbody',drawWk)">Distinct MTSN</th><th onclick="srt('weekData','rrrWO',-1,'wkTbody',drawWk)">Repeat Flags</th><th onclick="srt('weekData','cleanWO',-1,'wkTbody',drawWk)">Clean MTSN</th><th onclick="srt('weekData','pct',-1,'wkTbody',drawWk)">RRR %</th></tr></thead>
           <tbody id="wkTbody"></tbody>
         </table></div>
       </div>
@@ -721,25 +629,11 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
     <div class="tab" id="tab-agentrisk">
       <div class="tc">
         <div class="tc-hd">
-          <div>
-            <div class="tc-title">📊 Agent Risk — Spike Detection & Deep Analysis</div>
-            <div class="tc-meta" id="agentRiskMeta">High-volume agents · Last 3 months · Click any agent to expand full breakdown</div>
-          </div>
+          <div><div class="tc-title">📊 Agent Risk — Spike Detection & Deep Analysis</div><div class="tc-meta" id="agentRiskMeta">High-volume agents · Last 3 months · Click any agent to expand full breakdown</div></div>
           <input class="ts" id="agentRiskSearch" placeholder="Search agent…" oninput="srch('agentRiskTbody',this.value)"/>
         </div>
         <div class="tw"><table>
-          <thead><tr>
-            <th>Rank</th>
-            <th onclick="srt('agentRiskData','agent',-1,'agentRiskTbody',drawAgentRisk)">Agent</th>
-            <th>TL</th>
-            <th onclick="srt('agentRiskData','vol3m',-1,'agentRiskTbody',drawAgentRisk)">3M Volume</th>
-            <th onclick="srt('agentRiskData','currentRRR',-1,'agentRiskTbody',drawAgentRisk)">Latest RRR%</th>
-            <th>MoM Change</th>
-            <th onclick="srt('agentRiskData','trend',-1,'agentRiskTbody',drawAgentRisk)">Trend</th>
-            <th>Top Model (Vol)</th>
-            <th>Top Symptom (Vol)</th>
-            <th>Risk Level</th>
-          </tr></thead>
+          <thead><tr><th>Rank</th><th onclick="srt('agentRiskData','agent',-1,'agentRiskTbody',drawAgentRisk)">Agent</th><th>TL</th><th onclick="srt('agentRiskData','vol3m',-1,'agentRiskTbody',drawAgentRisk)">3M Volume</th><th onclick="srt('agentRiskData','currentRRR',-1,'agentRiskTbody',drawAgentRisk)">Latest RRR%</th><th>MoM Change</th><th onclick="srt('agentRiskData','trend',-1,'agentRiskTbody',drawAgentRisk)">Trend</th><th>Top Model (Vol)</th><th>Top Symptom (Vol)</th><th>Risk Level</th></tr></thead>
           <tbody id="agentRiskTbody"></tbody>
         </table></div>
       </div>
@@ -750,36 +644,24 @@ tr.expand-detail > td > div { animation: fi .2s ease both; }
       <div class="tc">
         <div class="tc-hd">
           <div class="tc-title">📄 Auto Report Generator</div>
-          <div class="tc-meta">Generate comprehensive RRR analysis reports based on scope</div>
+          <div class="tc-meta">Generate comprehensive RRR analysis reports based on scope. Full trend data will be included.</div>
         </div>
         <div style="padding:24px">
           <div style="max-width:800px;margin:0 auto">
             <div style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:24px;margin-bottom:20px">
               <h3 style="font-size:14px;font-weight:600;margin-bottom:16px;color:var(--t1)">📊 Scope Selection</h3>
-              
               <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;background:var(--card);padding:14px;border:1px solid var(--border);border-radius:6px;">
-                 <div class="fg" style="margin-right:8px;">
-                    <label>Report Target:</label>
-                    <select id="reportScopeType" onchange="updateReportScope()" style="width:160px;padding:8px;font-size:13px;">
-                       <option value="Overall">Overall / All</option>
-                       <option value="Agent">Specific Agent</option>
-                       <option value="TL">Specific TL</option>
-                    </select>
-                 </div>
-                 <div class="fg" id="reportScopeNameWrap" style="display:none; flex-grow:1;">
-                    <label>Select Name:</label>
-                    <select id="reportScopeName" style="width:100%;padding:8px;font-size:13px;"></select>
-                 </div>
+                 <div class="fg" style="margin-right:8px;"><label>Report Target:</label><select id="reportScopeType" onchange="updateReportScope()" style="width:160px;padding:8px;font-size:13px;"><option value="Overall">Overall / All</option><option value="Agent">Specific Agent</option><option value="TL">Specific TL</option></select></div>
+                 <div class="fg" id="reportScopeNameWrap" style="display:none; flex-grow:1;"><label>Select Name:</label><select id="reportScopeName" style="width:100%;padding:8px;font-size:13px;"></select></div>
               </div>
-
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-                <button onclick="generatePDFReport()" class="btn-e" style="padding:14px 24px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px">
-                  <span style="font-size:18px">📄</span><span>Download PDF Report</span>
-                </button>
-                <button onclick="generateExcelReport()" class="btn-r" style="padding:14px 24px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px">
-                  <span style="font-size:18px">📊</span><span>Download Excel Report</span>
-                </button>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                <button onclick="generatePDFReport()" class="btn-e" style="padding:14px 24px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px"><span style="font-size:18px">📄</span><span>Download PDF Report</span></button>
+                <button onclick="generateExcelReport()" class="btn-r" style="padding:14px 24px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px"><span style="font-size:18px">📊</span><span>Download Excel Report</span></button>
               </div>
+              <!-- Power Automate Email Button -->
+              <button onclick="triggerPowerAutomateEmail()" class="btn-e" style="width:100%;padding:14px 24px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px;background:#0066cc;border-color:#0066cc;transition:.2s;">
+                <span style="font-size:18px">📧</span><span>Send Executive Report to Email (mjabbar@lenovo.com)</span>
+              </button>
             </div>
           </div>
         </div>
@@ -805,19 +687,11 @@ setInterval(()=>{
 const themeToggle = document.getElementById('themeToggle');
 const themeIcon = document.querySelector('.theme-icon');
 let currentTheme = localStorage.getItem('theme') || 'dark';
-if (currentTheme === 'light') {
-  document.body.classList.add('light-mode');
-  themeIcon.textContent = '🌙';
-}
+if (currentTheme === 'light') { document.body.classList.add('light-mode'); themeIcon.textContent = '🌙'; }
 themeToggle.addEventListener('click', () => {
   document.body.classList.toggle('light-mode');
-  if (document.body.classList.contains('light-mode')) {
-    themeIcon.textContent = '🌙';
-    localStorage.setItem('theme', 'light');
-  } else {
-    themeIcon.textContent = '☀️';
-    localStorage.setItem('theme', 'dark');
-  }
+  if (document.body.classList.contains('light-mode')) { themeIcon.textContent = '🌙'; localStorage.setItem('theme', 'light'); } 
+  else { themeIcon.textContent = '☀️'; localStorage.setItem('theme', 'dark'); }
 });
 
 /* ══════════════════════════════
@@ -831,13 +705,16 @@ const COLS = {
   SVC_TYPE:'Service Delivery Type', WARRANTY:'Service Warranty Type',
   LOB:'LOB', PROD_GRP:'Product Group', LABOR_STATUS:'Labor Status', WO_STATUS:'WO Status',
   HCS:'HCS', SCENARIO:'Scenario',
+  PROB_CAT1:'Problem Category 1', NEXT_SYM:'Next WO Symptom',
+  FIRST_COMM:'First WO Commodity Name', NEXT_COMM:'Next SO Commodity Name'
 }
 const CHIP_IDS = {
   WO_NUM:'chip-wonum', MTSN:'chip-mtsn', SUB:'chip-sub', MONTH:'chip-month',
   WEEK:'chip-week', VENDOR:'chip-vendor', REASON:'chip-reason', NEXT_REASON:'chip-nextreason', SYMPTOM:'chip-symptom',
   FLAG:'chip-flag', TL:'chip-tl', NAME:'chip-name', ACCOUNT:'chip-account',
   SVC_TYPE:'chip-svctype', WARRANTY:'chip-warranty', LOB:'chip-lob',
-  PROD_GRP:'chip-prodgrp', LABOR_STATUS:'chip-laborstatus', WO_STATUS:'chip-wostatus'
+  PROD_GRP:'chip-prodgrp', LABOR_STATUS:'chip-laborstatus', WO_STATUS:'chip-wostatus',
+  PROB_CAT1:'chip-probcat1', NEXT_SYM:'chip-nextsym', FIRST_COMM:'chip-firstcomm', NEXT_COMM:'chip-nextcomm'
 }
 let IDX = {}
 
@@ -845,7 +722,7 @@ let IDX = {}
 let rawData=[], filteredData=[]
 let agentData=[], tlData=[], modelData=[], vendorData=[]
 let symptomData=[], reasonData=[], accountData=[], weekData=[]
-let agentRiskData=[]
+let agentRiskData=[], actionPlanData=[]
 
 /* ── MULTI-SELECT STATE ── */
 const msState = { Month: new Set(), Week: new Set(), Warranty: new Set(), ProdGrp: new Set(), LOB: new Set() }
@@ -860,7 +737,12 @@ const COL_ALIASES = {
   PROD_GRP:['Product Group','Prod Group','Product Grp'],
   LABOR_STATUS:['Labor Status','Labour Status','Labor Stat'],
   WO_STATUS:['WO Status','Work Order Status','SO Status','Order Status'],
-  FLAG:['RRR MTSN 30D Flag NOC', 'RRR MTSN 30D NOC x Labor', 'RRR_MTSN_30D_NOC_x_Labor', 'RRR MTSN 30D']
+  FLAG:['RRR MTSN 30D Flag NOC', 'RRR MTSN 30D NOC x Labor', 'RRR_MTSN_30D_NOC_x_Labor', 'RRR MTSN 30D'],
+  NEXT_REASON:['Next SO Repeat Repair Reason', 'Next WO Repeat Repair Reason', 'Next Repeat Repair Reason'],
+  PROB_CAT1:['Problem Category 1', 'Problem Category', 'First WO Symptom'],
+  NEXT_SYM:['Next WO Symptom', 'Next SO Symptom', 'Second WO Symptom'],
+  FIRST_COMM:['First WO Commodity Name', 'First WO Commodity', 'First SO Commodity Name'],
+  NEXT_COMM:['Next SO Commodity Name', 'Next WO Commodity Name', 'Next Commodity Name']
 }
 
 /* ── RRR FILE UPLOAD ── */
@@ -884,19 +766,14 @@ document.getElementById('uploadInput').addEventListener('change', function(e){
       const CHUNK = 50000
       rawData =[]
       let i = 1
-      const schedule = typeof requestIdleCallback==='function'
-        ? cb => requestIdleCallback(cb, {timeout:200})
-        : cb => setTimeout(cb, 0)
+      const schedule = typeof requestIdleCallback==='function' ? cb => requestIdleCallback(cb, {timeout:200}) : cb => setTimeout(cb, 0)
       function processChunk(){
         const end = Math.min(i + CHUNK, aoa.length)
         for(; i < end; i++){
           const row = aoa[i]
           if(!row || row.every(c=>c===''||c==null)) continue
           const obj = {}
-          for(const k in IDX){
-            const idx = IDX[k]
-            obj[k] = idx >= 0 ? String(row[idx]??'').trim() : ''
-          }
+          for(const k in IDX){ const idx = IDX[k]; obj[k] = idx >= 0 ? String(row[idx]??'').trim() : '' }
           if(passesHardFilters(obj)) rawData.push(obj)
         }
         const pct = 65 + Math.round((i/aoa.length)*25)
@@ -905,7 +782,6 @@ document.getElementById('uploadInput').addEventListener('change', function(e){
         else {
           prog(92,'Building dashboard…')
           filteredData = [...rawData]
-          // Show shell immediately, then pipeline the builds
           document.getElementById('emptyState').style.display='none'
           document.getElementById('dashboard').style.display='block'
           populateFilters()
@@ -920,15 +796,10 @@ document.getElementById('uploadInput').addEventListener('change', function(e){
 
 /* ── PROGRESS ── */
 function prog(pct, msg){
-  document.getElementById('pbWrap').style.display='block'
-  document.getElementById('pbFill').style.width=pct+'%'
-  document.getElementById('progMsg').style.display='block'
-  document.getElementById('progMsg').textContent='⏳ '+msg+' ('+pct+'%)'
+  document.getElementById('pbWrap').style.display='block'; document.getElementById('pbFill').style.width=pct+'%';
+  document.getElementById('progMsg').style.display='block'; document.getElementById('progMsg').textContent='⏳ '+msg+' ('+pct+'%)'
 }
-function noProg(){
-  document.getElementById('pbWrap').style.display='none'
-  document.getElementById('progMsg').style.display='none'
-}
+function noProg(){ document.getElementById('pbWrap').style.display='none'; document.getElementById('progMsg').style.display='none' }
 
 /* ── COLUMN DETECTION ── */
 function detectCols(headers){
@@ -952,218 +823,103 @@ function detectCols(headers){
   document.getElementById('colBanner').classList.add('show')
 }
 
-/* ── HARD FILTERS ── */
-function passesHardFilters(r){
-  const svc = (r.SVC_TYPE || '').toLowerCase()
-  // Service Delivery Type is always fixed to Onsite
-  if(!svc.includes('onsite')) return false
-  return true
-}
+function passesHardFilters(r){ return (r.SVC_TYPE || '').toLowerCase().includes('onsite') }
 
-/* ── UNIVERSAL RRR CALCULATION LOGIC ── 
-   RRR% = Sum of "RRR MTSN 30D NOC x Labor" hits / Distinct MTSN * 100 
-   Where "RRR MTSN 30D NOC x Labor" = 1 is a hit, 0 or blank is Non-hit.
-*/
+/* ── UNIVERSAL RRR CALCULATION LOGIC ── */
 function getRRRStats(rows) {
-  const mtsnMap = new Map(); // MTSN -> Count of hits
-  let rrrWO = 0;
-  
+  const mtsnMap = new Map(); let rrrWO = 0;
   rows.forEach(r => {
-    const isHit = (r.FLAG === '1');
-    if(isHit) {
-      rrrWO++;
-    }
-    if(r.MTSN) {
-      mtsnMap.set(r.MTSN, (mtsnMap.get(r.MTSN) || 0) + (isHit ? 1 : 0));
-    }
+    const isHit = (r.FLAG === '1'); if(isHit) rrrWO++;
+    if(r.MTSN) mtsnMap.set(r.MTSN, (mtsnMap.get(r.MTSN) || 0) + (isHit ? 1 : 0));
   });
-  
-  const totalWO = mtsnMap.size; // Distinct MTSN
-  
-  // Calculate cleanWO (Distinct MTSN with 0 hits)
-  let cleanWO = 0;
-  for (const hits of mtsnMap.values()) {
-    if (hits === 0) cleanWO++;
-  }
-  
-  return {
-    totalWO, 
-    rrrWO, 
-    cleanWO, 
-    pct: totalWO > 0 ? (rrrWO / totalWO * 100) : 0
-  };
+  const totalWO = mtsnMap.size; let cleanWO = 0;
+  for (const hits of mtsnMap.values()) { if (hits === 0) cleanWO++; }
+  return { totalWO, rrrWO, cleanWO, pct: totalWO > 0 ? (rrrWO / totalWO * 100) : 0 };
 }
-
-function calcRRR(rows){
-  const stats = getRRRStats(rows);
-  return { total: stats.totalWO, rrrWO: stats.rrrWO, cleanWO: stats.cleanWO, pct: stats.pct };
-}
+function calcRRR(rows){ const stats = getRRRStats(rows); return { total: stats.totalWO, rrrWO: stats.rrrWO, cleanWO: stats.cleanWO, pct: stats.pct }; }
 
 /* ── MULTI-SELECT HELPERS ── */
 function uniq(key){ return[...new Set(rawData.map(r=>r[key]).filter(Boolean))].sort() }
 function fillSel(id, blank, vals, keepSel=false){
-  const el=document.getElementById(id)
-  if(!el) return;
+  const el=document.getElementById(id); if(!el) return;
   const prev = keepSel ? [...el.options].filter(o=>o.selected).map(o=>o.value) :[]
   el.innerHTML=`<option value="">${blank}</option>`
-  vals.forEach(v=>{
-    const o=document.createElement('option')
-    o.value=o.textContent=v
-    if(keepSel && prev.includes(v)) o.selected=true
-    el.appendChild(o)
-  })
+  vals.forEach(v=>{ const o=document.createElement('option'); o.value=o.textContent=v; if(keepSel && prev.includes(v)) o.selected=true; el.appendChild(o) })
 }
 function buildMsDropdown(key, vals, blankLabel){
-  const drop = document.getElementById('msDrop'+key)
-  if(!drop) return
-  drop.innerHTML = `<div class="ms-item" onclick="toggleMsAll('${key}')">
-    <input type="checkbox" id="ms-all-${key}"/><label style="cursor:pointer">All ${blankLabel}</label></div>
-    <div class="ms-divider"></div>`
-  vals.forEach(v=>{
-    const checked = msState[key].has(v)
-    drop.innerHTML += `<div class="ms-item ${checked?'checked':''}" onclick="toggleMsItem('${key}','${v}',this)">
-      <input type="checkbox" ${checked?'checked':''}/>${v}</div>`
-  })
+  const drop = document.getElementById('msDrop'+key); if(!drop) return
+  drop.innerHTML = `<div class="ms-item" onclick="toggleMsAll('${key}')"><input type="checkbox" id="ms-all-${key}"/><label style="cursor:pointer">All ${blankLabel}</label></div><div class="ms-divider"></div>`
+  vals.forEach(v=>{ const checked = msState[key].has(v); drop.innerHTML += `<div class="ms-item ${checked?'checked':''}" onclick="toggleMsItem('${key}','${v}',this)"><input type="checkbox" ${checked?'checked':''}/>${v}</div>` })
   updateMsBtn(key)
 }
 function toggleMsItem(key,val,el){
-  if(msState[key].has(val)){msState[key].delete(val);el.classList.remove('checked')}
-  else{msState[key].add(val);el.classList.add('checked')}
-  el.querySelector('input').checked = msState[key].has(val)
-  syncHiddenSelect(key); updateMsBtn(key); applyFilters()
+  if(msState[key].has(val)){msState[key].delete(val);el.classList.remove('checked')} else{msState[key].add(val);el.classList.add('checked')}
+  el.querySelector('input').checked = msState[key].has(val); syncHiddenSelect(key); updateMsBtn(key); applyFilters()
 }
 function toggleMsAll(key){
-  const drop = document.getElementById('msDrop'+key)
-  const items = drop ? drop.querySelectorAll('.ms-item:not(:first-child)') :[]
-  const allChecked = msState[key].size === items.length
-  msState[key].clear()
-  items.forEach(item=>{
-    const val = item.textContent.trim()
-    item.classList.remove('checked')
-    item.querySelector('input').checked = false
-    if(!allChecked){ msState[key].add(val); item.classList.add('checked'); item.querySelector('input').checked=true }
-  })
+  const drop = document.getElementById('msDrop'+key); const items = drop ? drop.querySelectorAll('.ms-item:not(:first-child)') :[]
+  const allChecked = msState[key].size === items.length; msState[key].clear()
+  items.forEach(item=>{ const val = item.textContent.trim(); item.classList.remove('checked'); item.querySelector('input').checked = false; if(!allChecked){ msState[key].add(val); item.classList.add('checked'); item.querySelector('input').checked=true } })
   syncHiddenSelect(key); updateMsBtn(key); applyFilters()
 }
 function updateMsBtn(key){
-  const btn = document.getElementById('msBtn'+key)
-  if(!btn) return
-  const count = msState[key].size
-  const labels = {Month:'All Months', Week:'All Weeks', Warranty:'All Warranty Types', ProdGrp:'All Product Groups', LOB:'All LOBs'}
-  if(count===0) btn.textContent = labels[key] || 'All'
-  else if(count===1) btn.textContent =[...msState[key]][0]
-  else btn.textContent = `${count} selected`
+  const btn = document.getElementById('msBtn'+key); if(!btn) return
+  const count = msState[key].size; const labels = {Month:'All Months', Week:'All Weeks', Warranty:'All Warranty Types', ProdGrp:'All Product Groups', LOB:'All LOBs'}
+  if(count===0) btn.textContent = labels[key] || 'All'; else if(count===1) btn.textContent =[...msState[key]][0]; else btn.textContent = `${count} selected`
 }
 function syncHiddenSelect(key){
-  const idMap = {Month:'fMonth', Week:'fWeek', Warranty:'fWarranty', ProdGrp:'fProdGrp', LOB:'fLOB'}
-  const sel = document.getElementById(idMap[key] || 'f'+key)
-  if(!sel) return
+  const idMap = {Month:'fMonth', Week:'fWeek', Warranty:'fWarranty', ProdGrp:'fProdGrp', LOB:'fLOB'}; const sel = document.getElementById(idMap[key] || 'f'+key); if(!sel) return
   for(let o of sel.options) o.selected = msState[key].has(o.value)
 }
 function toggleMsDropdown(key){
-  const wrap = document.getElementById('msWrap'+key)
-  const isOpen = wrap.classList.contains('open')
-  document.querySelectorAll('.ms-wrap.open').forEach(w=>w.classList.remove('open'))
-  if(!isOpen) wrap.classList.add('open')
+  const wrap = document.getElementById('msWrap'+key); const isOpen = wrap.classList.contains('open')
+  document.querySelectorAll('.ms-wrap.open').forEach(w=>w.classList.remove('open')); if(!isOpen) wrap.classList.add('open')
 }
-document.addEventListener('click', e=>{
-  if(!e.target.closest('.ms-wrap'))
-    document.querySelectorAll('.ms-wrap.open').forEach(w=>w.classList.remove('open'))
-})
+document.addEventListener('click', e=>{ if(!e.target.closest('.ms-wrap')) document.querySelectorAll('.ms-wrap.open').forEach(w=>w.classList.remove('open')) })
 
 /* ── FILTERS ── */
 function populateFilters(){
-  fillSel('fTL','All TLs',uniq('TL'))
-  fillSel('fAgent','All Agents',uniq('NAME'))
-  fillSel('fVendor','All Vendors',uniq('VENDOR'))
-  fillSel('fAccount','All Accounts',uniq('ACCOUNT'))
-  fillSel('fSub','All Sub-Series',uniq('SUB'))
-  const months   = uniq('MONTH')
-  const weeks    = uniq('WEEK')
-  const warrs    = uniq('WARRANTY')
-  const prodGrps = uniq('PROD_GRP')
-  const lobs     = uniq('LOB')
-  fillSel('fMonth','All Months',months,true)
-  fillSel('fWeek','All Weeks',weeks,true)
-  fillSel('fWarranty','All Warranty Types',warrs,true)
-  fillSel('fProdGrp','All Product Groups',prodGrps,true)
-  fillSel('fLOB','All LOBs',lobs,true)
-  buildMsDropdown('Month',months,'Months')
-  buildMsDropdown('Week',weeks,'Weeks')
-  buildMsDropdown('Warranty',warrs,'Warranty Types')
-  buildMsDropdown('ProdGrp',prodGrps,'Product Groups')
-  buildMsDropdown('LOB',lobs,'LOBs')
+  fillSel('fTL','All TLs',uniq('TL')); fillSel('fAgent','All Agents',uniq('NAME')); fillSel('fVendor','All Vendors',uniq('VENDOR')); fillSel('fAccount','All Accounts',uniq('ACCOUNT')); fillSel('fSub','All Sub-Series',uniq('SUB'))
+  const months=uniq('MONTH'), weeks=uniq('WEEK'), warrs=uniq('WARRANTY'), prodGrps=uniq('PROD_GRP'), lobs=uniq('LOB')
+  fillSel('fMonth','All Months',months,true); fillSel('fWeek','All Weeks',weeks,true); fillSel('fWarranty','All Warranty Types',warrs,true); fillSel('fProdGrp','All Product Groups',prodGrps,true); fillSel('fLOB','All LOBs',lobs,true)
+  buildMsDropdown('Month',months,'Months'); buildMsDropdown('Week',weeks,'Weeks'); buildMsDropdown('Warranty',warrs,'Warranty Types'); buildMsDropdown('ProdGrp',prodGrps,'Product Groups'); buildMsDropdown('LOB',lobs,'LOBs')
   document.getElementById('filterBar').classList.add('show')
-  ;['fTL','fAgent','fVendor','fAccount','fSub']
-    .forEach(id=>document.getElementById(id).onchange=applyFilters)
-  
+  ;['fTL','fAgent','fVendor','fAccount','fSub'].forEach(id=>document.getElementById(id).onchange=applyFilters)
   updateReportScope();
 }
-function getMultiSelectValues(key){
-  const s = msState[key]
-  return s && s.size > 0 ? [...s] : null
-}
+function getMultiSelectValues(key){ const s = msState[key]; return s && s.size > 0 ? [...s] : null }
 function applyFilters(){
   const tl=v('fTL'), ag=v('fAgent'), vd=v('fVendor'), ac=v('fAccount'), sb=v('fSub')
-  const months   = getMultiSelectValues('Month')
-  const weeks    = getMultiSelectValues('Week')
-  const warrs    = getMultiSelectValues('Warranty')
-  const prodGrps = getMultiSelectValues('ProdGrp')
-  const lobs     = getMultiSelectValues('LOB')
+  const months=getMultiSelectValues('Month'), weeks=getMultiSelectValues('Week'), warrs=getMultiSelectValues('Warranty'), prodGrps=getMultiSelectValues('ProdGrp'), lobs=getMultiSelectValues('LOB')
   filteredData = rawData.filter(r=>{
-    if(tl && r.TL!==tl)           return false
-    if(ag && r.NAME!==ag)         return false
-    if(months && !months.includes(r.MONTH)) return false
-    if(weeks  && !weeks.includes(r.WEEK))   return false
-    if(vd && r.VENDOR!==vd)       return false
-    if(ac && r.ACCOUNT!==ac)      return false
-    if(sb && r.SUB!==sb)          return false
-    if(warrs    && !warrs.includes(r.WARRANTY))   return false
-    if(prodGrps && !prodGrps.includes(r.PROD_GRP)) return false
-    if(lobs     && !lobs.includes(r.LOB))          return false
-    return true
+    if(tl && r.TL!==tl) return false; if(ag && r.NAME!==ag) return false; if(months && !months.includes(r.MONTH)) return false; if(weeks && !weeks.includes(r.WEEK)) return false
+    if(vd && r.VENDOR!==vd) return false; if(ac && r.ACCOUNT!==ac) return false; if(sb && r.SUB!==sb) return false; if(warrs && !warrs.includes(r.WARRANTY)) return false
+    if(prodGrps && !prodGrps.includes(r.PROD_GRP)) return false; if(lobs && !lobs.includes(r.LOB)) return false; return true
   })
-  if(tl){
-    const ag4tl=[...new Set(rawData.filter(r=>r.TL===tl).map(r=>r.NAME).filter(Boolean))].sort()
-    fillSel('fAgent','All Agents',ag4tl)
-    document.getElementById('fAgent').onchange=applyFilters
-  }
+  if(tl){ const ag4tl=[...new Set(rawData.filter(r=>r.TL===tl).map(r=>r.NAME).filter(Boolean))].sort(); fillSel('fAgent','All Agents',ag4tl); document.getElementById('fAgent').onchange=applyFilters }
   analyzeDebounced()
 }
 function resetFilters(){
   ;['fTL','fAgent','fVendor','fAccount','fSub'].forEach(id=>document.getElementById(id).value='')
-  msState.Month.clear(); msState.Week.clear()
-  msState.Warranty.clear(); msState.ProdGrp.clear(); msState.LOB.clear()
-  agActiveMslMonth=null; tlActiveMslMonth=null
-  populateFilters()
-  filteredData=[...rawData]
-  analyzeDebounced()
+  msState.Month.clear(); msState.Week.clear(); msState.Warranty.clear(); msState.ProdGrp.clear(); msState.LOB.clear()
+  agActiveMslMonth=null; tlActiveMslMonth=null; populateFilters(); filteredData=[...rawData]; analyzeDebounced()
 }
 function v(id){ return document.getElementById(id).value }
 
-/* ── DEBOUNCED ANALYZE for filter changes ── */
 let _analyzeTimer = null
-function analyzeDebounced(){
-  clearTimeout(_analyzeTimer)
-  prog(50,'Applying filters…')
-  _analyzeTimer = setTimeout(()=>{ analyze() }, 80)
-}
+function analyzeDebounced(){ clearTimeout(_analyzeTimer); prog(50,'Applying filters…'); _analyzeTimer = setTimeout(()=>{ analyze() }, 80) }
 
-/* ── ANALYZE — async pipeline, never blocks UI ── */
+/* ── ANALYZE ── */
 function analyze(){
   const rows = filteredData
   if(!rows.length) return
-  // Show KPIs and header instantly from fast stats
   const {total,rrrWO,cleanWO,pct} = calcRRR(rows)
-  document.getElementById('footerMeta').textContent=
-    `${total.toLocaleString()} distinct MTSN · ${rrrWO.toLocaleString()} repeat flag · ${pct.toFixed(2)}% RRR`
-  document.getElementById('formulaLive').textContent=
-    `${rrrWO.toLocaleString()} ÷ ${total.toLocaleString()} = ${pct.toFixed(2)}%`
+  document.getElementById('footerMeta').textContent=`${total.toLocaleString()} distinct MTSN · ${rrrWO.toLocaleString()} repeat flag · ${pct.toFixed(2)}% RRR`
+  document.getElementById('formulaLive').textContent=`${rrrWO.toLocaleString()} ÷ ${total.toLocaleString()} = ${pct.toFixed(2)}%`
   buildKPIs(rows,total,rrrWO,cleanWO,pct)
 
-  // Pipeline: each task runs in its own idle/timeout slice so the browser never hangs
   const tasks = [
-    ['Month maps…',      ()=>{ buildMonthSlicers(rows) }],  // must be first — Ag/TL depend on it
+    ['Month maps…',      ()=>{ buildMonthSlicers(rows) }], 
     ['Agents…',          ()=>{ buildAg(rows) }],
     ['Team Leaders…',    ()=>{ buildTL(rows) }],
     ['Sub-Series…',      ()=>{ buildMod(rows) }],
@@ -1175,16 +931,14 @@ function analyze(){
     ['Weekly…',          ()=>{ buildWk(rows) }],
     ['Agent Risk…',      ()=>{ buildAgentRisk(rows) }],
     ['HCS…',             ()=>{ buildHCSAnalyzer() }],
+    ['Action Plan…',     ()=>{ buildActionPlanData(rawData); drawActionPlan() }],
   ]
-  const sched = typeof requestIdleCallback==='function'
-    ? cb => requestIdleCallback(cb,{timeout:300})
-    : cb => setTimeout(cb,0)
+  const sched = typeof requestIdleCallback==='function' ? cb => requestIdleCallback(cb,{timeout:300}) : cb => setTimeout(cb,0)
   let t = 0
   function runNext(){
     if(t >= tasks.length){ noProg(); return }
     const [label, fn] = tasks[t++]
-    const pct = 92 + Math.round((t / tasks.length) * 8)
-    prog(pct, label)
+    prog(92 + Math.round((t / tasks.length) * 8), label)
     sched(()=>{ try{ fn() } catch(e){ console.error(label, e) } runNext() })
   }
   runNext()
@@ -1192,226 +946,71 @@ function analyze(){
 
 /* ── KPIs ── */
 function buildKPIs(rows,total,rrrWO,cleanWO,pct){
-  const bc=pct>=15?'b-bad':pct>=8?'b-mid':'b-ok'
-  const bl=pct>=15?'HIGH RISK':pct>=8?'MODERATE':'ON TARGET'
-  const months=new Set(rows.map(r=>r.MONTH).filter(Boolean)).size
-  const agents=new Set(rows.map(r=>r.NAME).filter(Boolean)).size
-  const tls=new Set(rows.map(r=>r.TL).filter(Boolean)).size
-  const subs=new Set(rows.map(r=>r.SUB).filter(Boolean)).size
-  const weeks=new Set(rows.map(r=>r.WEEK).filter(Boolean)).size
-  const accs=new Set(rows.map(r=>r.ACCOUNT).filter(Boolean)).size
+  const bc=pct>=15?'b-bad':pct>=8?'b-mid':'b-ok'; const bl=pct>=15?'HIGH RISK':pct>=8?'MODERATE':'ON TARGET'
+  const months=new Set(rows.map(r=>r.MONTH).filter(Boolean)).size, agents=new Set(rows.map(r=>r.NAME).filter(Boolean)).size
+  const tls=new Set(rows.map(r=>r.TL).filter(Boolean)).size, subs=new Set(rows.map(r=>r.SUB).filter(Boolean)).size
+  const weeks=new Set(rows.map(r=>r.WEEK).filter(Boolean)).size, accs=new Set(rows.map(r=>r.ACCOUNT).filter(Boolean)).size
   const kpis=[
-    {l:'Overall RRR %',     v:pct.toFixed(2)+'%', s:`<span class="badge ${bc}">${bl}</span>`, d:'d1'},
-    {l:'Distinct MTSN',     v:total.toLocaleString(), s:'Denominator (All Valid)', d:'d2'},
-    {l:'Repeat Flag Count', v:rrrWO.toLocaleString(), s:'Numerator — FLAG = 1', d:'d3'},
-    {l:'Clean MTSN',        v:cleanWO.toLocaleString(), s:'MTSNs with 0 hits', d:'d4'},
-    {l:'Active Agents',     v:agents, s:`Across ${tls} TL${tls!==1?'s':''}`, d:'d5'},
-    {l:'Months',            v:months, s:`${weeks} week${weeks!==1?'s':''} covered`, d:'d6'},
-    {l:'Sub-Series',        v:subs, s:'Distinct models', d:'d1'},
-    {l:'Accounts',          v:accs, s:'Distinct accounts', d:'d2'},
+    {l:'Overall RRR %', v:pct.toFixed(2)+'%', s:`<span class="badge ${bc}">${bl}</span>`, d:'d1'}, {l:'Distinct MTSN', v:total.toLocaleString(), s:'Denominator (All Valid)', d:'d2'},
+    {l:'Repeat Flag Count', v:rrrWO.toLocaleString(), s:'Numerator — FLAG = 1', d:'d3'}, {l:'Clean MTSN', v:cleanWO.toLocaleString(), s:'MTSNs with 0 hits', d:'d4'},
+    {l:'Active Agents', v:agents, s:`Across ${tls} TL${tls!==1?'s':''}`, d:'d5'}, {l:'Months', v:months, s:`${weeks} week${weeks!==1?'s':''} covered`, d:'d6'},
+    {l:'Sub-Series', v:subs, s:'Distinct models', d:'d1'}, {l:'Accounts', v:accs, s:'Distinct accounts', d:'d2'},
   ]
-  document.getElementById('kpiStrip').innerHTML=kpis.map(k=>`
-    <div class="kpi fade ${k.d}">
-      <div class="kpi-lbl">${k.l}</div>
-      <div class="kpi-val">${k.v}</div>
-      <div class="kpi-sub">${k.s}</div>
-    </div>`).join('')
+  document.getElementById('kpiStrip').innerHTML=kpis.map(k=>`<div class="kpi fade ${k.d}"><div class="kpi-lbl">${k.l}</div><div class="kpi-val">${k.v}</div><div class="kpi-sub">${k.s}</div></div>`).join('')
 }
 
 /* ── GROUP BY ── */
 function grp(rows,keyFn){
   const m={}
   rows.forEach(r=>{
-    const k=keyFn(r)||'Unknown'
-    if(!m[k]) m[k]={name:k, mtsnMap:new Map(), num:0}
-    
-    const isHit = (r.FLAG === '1');
-    if(isHit) {
-      m[k].num++
-    }
-    if(r.MTSN) {
-      m[k].mtsnMap.set(r.MTSN, (m[k].mtsnMap.get(r.MTSN) || 0) + (isHit ? 1 : 0))
-    }
+    const k=keyFn(r)||'Unknown'; if(!m[k]) m[k]={name:k, mtsnMap:new Map(), num:0}
+    const isHit = (r.FLAG === '1'); if(isHit) m[k].num++; if(r.MTSN) m[k].mtsnMap.set(r.MTSN, (m[k].mtsnMap.get(r.MTSN) || 0) + (isHit ? 1 : 0))
   })
   const results=Object.values(m).map(g=>{
-    const totalWO = g.mtsnMap.size;
-    let cleanWO = 0;
+    const totalWO = g.mtsnMap.size; let cleanWO = 0;
     for (const hits of g.mtsnMap.values()) if (hits === 0) cleanWO++;
-    const rrrWO = g.num;
-    return {...g, totalWO, rrrWO, cleanWO, pct: totalWO>0 ? (rrrWO/totalWO*100) : 0}
+    return {...g, totalWO, rrrWO: g.num, cleanWO, pct: totalWO>0 ? (g.num/totalWO*100) : 0}
   })
   const high=results.filter(r=>r.totalWO>15), low=results.filter(r=>r.totalWO<=15)
-  const sortC=items=>{
-    if(!items.length) return
-    const mx=items.reduce((m,r)=>r.totalWO>m?r.totalWO:m,1)
-    items.sort((a,b)=>((b.totalWO/mx*40)+(b.pct*.6))-((a.totalWO/mx*40)+(a.pct*.6)))
-  }
-  sortC(high); sortC(low)
-  return[...high,...low].map((g,i)=>({...g,rank:i+1}))
+  const sortC=items=>{ if(!items.length) return; const mx=items.reduce((m,r)=>r.totalWO>m?r.totalWO:m,1); items.sort((a,b)=>((b.totalWO/mx*40)+(b.pct*.6))-((a.totalWO/mx*40)+(a.pct*.6))) }
+  sortC(high); sortC(low); return[...high,...low].map((g,i)=>({...g,rank:i+1}))
 }
 
 /* ── DATA BUILDERS ── */
 function buildAg(rows){
   const m={}
   rows.forEach(r=>{
-    const a=r.NAME||'Unknown'
-    if(!m[a]) m[a]={name:a,tl:r.TL||'—', mtsnMap:new Map(), num:0, reasons:{}, nextReasons:{}}
-    
-    const isHit = (r.FLAG === '1');
-    if(isHit){
-      m[a].num++
-      if(r.REASON){ m[a].reasons[r.REASON]=(m[a].reasons[r.REASON]||0)+1 }
-      if(r.NEXT_REASON){ m[a].nextReasons[r.NEXT_REASON]=(m[a].nextReasons[r.NEXT_REASON]||0)+1 }
-    }
-    if(r.MTSN) m[a].mtsnMap.set(r.MTSN, (m[a].mtsnMap.get(r.MTSN) || 0) + (isHit ? 1 : 0))
+    const a=r.NAME||'Unknown'; if(!m[a]) m[a]={name:a,tl:r.TL||'—', mtsnMap:new Map(), num:0}
+    const isHit = (r.FLAG === '1'); if(isHit) m[a].num++; if(r.MTSN) m[a].mtsnMap.set(r.MTSN, (m[a].mtsnMap.get(r.MTSN) || 0) + (isHit ? 1 : 0))
   })
   agentData=Object.values(m).map(g=>{
-    const totalWO = g.mtsnMap.size;
-    let cleanWO = 0;
-    for (const hits of g.mtsnMap.values()) if(hits === 0) cleanWO++;
-    const rrrWO = g.num;
-    return {name:g.name, tl:g.tl, totalWO, rrrWO, cleanWO, pct:totalWO>0 ? (rrrWO/totalWO*100) : 0, reasons:g.reasons, nextReasons:g.nextReasons}
+    const totalWO = g.mtsnMap.size; let cleanWO = 0; for (const hits of g.mtsnMap.values()) if(hits === 0) cleanWO++;
+    return {name:g.name, tl:g.tl, totalWO, rrrWO: g.num, cleanWO, pct:totalWO>0 ? (g.num/totalWO*100) : 0}
   }).sort((a,b)=>b.pct-a.pct).map((g,i)=>({...g,rank:i+1}))
-  
-  const mxWO = agentData.reduce((m,a)=>a.totalWO>m?a.totalWO:m, 1)
-  agentData.forEach(a=>a.barW=a.totalWO/mxWO*80)
-  document.getElementById('agMeta').textContent=
-    `${agentData.length} agents · ${agentData.filter(a=>a.pct>=15).length} high-risk`
-  drawAg()
+  const mxWO = agentData.reduce((m,a)=>a.totalWO>m?a.totalWO:m, 1); agentData.forEach(a=>a.barW=a.totalWO/mxWO*80)
+  document.getElementById('agMeta').textContent=`${agentData.length} agents · ${agentData.filter(a=>a.pct>=15).length} high-risk`; drawAg()
 }
 
 function buildTL(rows){
   const m={}
   rows.forEach(r=>{
-    const t=r.TL||'Unknown'
-    if(!m[t]) m[t]={name:t, agSet:new Set(), mtsnMap:new Map(), num:0, reasons:{}, nextReasons:{}}
+    const t=r.TL||'Unknown'; if(!m[t]) m[t]={name:t, agSet:new Set(), mtsnMap:new Map(), num:0}
     if(r.NAME) m[t].agSet.add(r.NAME)
-    
-    const isHit = (r.FLAG === '1');
-    if(isHit){
-      m[t].num++
-      if(r.REASON){ m[t].reasons[r.REASON]=(m[t].reasons[r.REASON]||0)+1 }
-      if(r.NEXT_REASON){ m[t].nextReasons[r.NEXT_REASON]=(m[t].nextReasons[r.NEXT_REASON]||0)+1 }
-    }
-    if(r.MTSN) m[t].mtsnMap.set(r.MTSN, (m[t].mtsnMap.get(r.MTSN) || 0) + (isHit ? 1 : 0))
+    const isHit = (r.FLAG === '1'); if(isHit) m[t].num++; if(r.MTSN) m[t].mtsnMap.set(r.MTSN, (m[t].mtsnMap.get(r.MTSN) || 0) + (isHit ? 1 : 0))
   })
   tlData=Object.values(m).map(g=>{
-    const totalWO = g.mtsnMap.size;
-    let cleanWO = 0;
-    for (const hits of g.mtsnMap.values()) if(hits === 0) cleanWO++;
-    const rrrWO = g.num;
-    return {name:g.name, agents:g.agSet.size, totalWO, rrrWO, cleanWO, pct:totalWO>0 ? (rrrWO/totalWO*100) : 0, reasons:g.reasons, nextReasons:g.nextReasons}
+    const totalWO = g.mtsnMap.size; let cleanWO = 0; for (const hits of g.mtsnMap.values()) if(hits === 0) cleanWO++;
+    return {name:g.name, agents:g.agSet.size, totalWO, rrrWO: g.num, cleanWO, pct:totalWO>0 ? (g.num/totalWO*100) : 0}
   }).sort((a,b)=>b.pct-a.pct).map((g,i)=>({...g,rank:i+1}))
-  
-  document.getElementById('tlMeta').textContent=`${tlData.length} team leaders`
-  drawTL()
+  document.getElementById('tlMeta').textContent=`${tlData.length} team leaders`; drawTL()
 }
 
-function buildMod(rows){
-  modelData=grp(rows,r=>r.SUB)
-  document.getElementById('modMeta').textContent=
-    `${modelData.length} sub-series · ${modelData.filter(m=>m.pct>=15).length} high-risk`
-  drawMod()
-}
+function buildMod(rows){ modelData=grp(rows,r=>r.SUB); document.getElementById('modMeta').textContent=`${modelData.length} sub-series · ${modelData.filter(m=>m.pct>=15).length} high-risk`; drawMod() }
 function buildVen(rows){ vendorData=grp(rows,r=>r.VENDOR); drawVen() }
-function buildRes(rows,totalRep){
-  // Build reason data plus mapping to Next SO Repeat Repair Reason
-  const m={}
-  rows.forEach(r=>{
-    const reason = r.REASON || 'Unknown'
-    if(reason==='Unknown'||reason==='Not Specified') return
-    if(!m[reason]) m[reason]={name:reason, mtsnMap:new Map(), num:0, nextReasons:{}}
-    const isHit=(r.FLAG==='1')
-    if(isHit){
-      m[reason].num++
-      if(r.NEXT_REASON) m[reason].nextReasons[r.NEXT_REASON]=(m[reason].nextReasons[r.NEXT_REASON]||0)+1
-    }
-    if(r.MTSN) m[reason].mtsnMap.set(r.MTSN,(m[reason].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
-  })
-  reasonData = Object.values(m).map(g=>{
-    const totalWO=g.mtsnMap.size
-    let cleanWO=0
-    for(const hits of g.mtsnMap.values()) if(hits===0) cleanWO++
-    const rrrWO=g.num
-    return{name:g.name,totalWO,rrrWO,cleanWO,pct:totalWO>0?(rrrWO/totalWO*100):0,nextReasons:g.nextReasons}
-  }).sort((a,b)=>{
-    const mx=Math.max(...Object.values(m).map(g=>g.mtsnMap.size),1)
-    return((b.totalWO/mx*40)+(b.pct*.6))-((a.totalWO/mx*40)+(a.pct*.6))
-  }).map((g,i)=>({...g,rank:i+1}))
-  drawRes()
-}
-
-function drawRes(){
-  document.getElementById('resTbody').innerHTML=reasonData.map((r,i)=>{
-    const keyEnc=encodeURIComponent(r.name)
-    const hasNext=Object.keys(r.nextReasons||{}).length>0
-    return`<tr class="expand-trigger" onclick="toggleResExpand(this,'${keyEnc}')" style="cursor:pointer" title="Click to see Next SO Repair Reason mapping">
-      <td><span class="rnk ${rk(i)}">${i+1}</span></td>
-      <td style="font-weight:600">${r.name} <span style="font-size:10px;color:var(--t3);margin-left:4px">▾</span></td>
-      <td class="mono">${r.totalWO.toLocaleString()}</td>
-      <td class="mono">${r.rrrWO.toLocaleString()}</td>
-      <td><span class="pill ${pc(r.pct)}">${r.pct.toFixed(1)}%</span></td>
-    </tr>
-    <tr class="expand-detail" id="res-expand-${keyEnc}" style="display:none">
-      <td colspan="5" style="padding:0;background:var(--card2)">
-        <div id="res-expand-inner-${keyEnc}"></div>
-      </td>
-    </tr>`
-  }).join('')
-}
-
-function toggleResExpand(triggerRow, keyEnc){
-  const detailRow=document.getElementById('res-expand-'+keyEnc)
-  const inner=document.getElementById('res-expand-inner-'+keyEnc)
-  const isOpen=detailRow.style.display!=='none'
-  document.querySelectorAll('#resTbody .expand-detail').forEach(r=>r.style.display='none')
-  document.querySelectorAll('#resTbody .expand-trigger td:nth-child(2) span').forEach(s=>s.textContent='▾')
-  if(isOpen) return
-  const reasonName=decodeURIComponent(keyEnc)
-  const r=reasonData.find(x=>x.name===reasonName)
-  if(!r) return
-  const hasNextCol=IDX.NEXT_REASON>=0
-  const nextEntries=Object.entries(r.nextReasons||{}).sort((a,b)=>b[1]-a[1])
-  const thS='padding:5px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;white-space:nowrap'
-  const thR='padding:5px 10px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase'
-  const totalNextCount = nextEntries.reduce((s,x)=>s+x[1],0)
-  const nextRows=nextEntries.length ? nextEntries.map((x,i)=>`
-    <tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
-      <td style="padding:6px 12px"><span class="rnk ${rk(i)}">${i+1}</span></td>
-      <td style="padding:6px 12px;font-weight:500;font-size:12px">${x[0]}</td>
-      <td style="padding:6px 12px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600">${x[1]}</td>
-      <td style="padding:6px 12px;text-align:right;font-size:11px"><span class="pill ${pc(x[1]/Math.max(totalNextCount,1)*100)}">${(x[1]/Math.max(totalNextCount,1)*100).toFixed(1)}%</span></td>
-    </tr>`).join('') 
-    : `<tr><td colspan="4" style="padding:10px 12px;color:var(--t3);font-size:11px">${hasNextCol?'No Next SO Reason data for this repair reason.':'Column "Next SO Repeat Repair Reason" not detected in the uploaded file.'}</td></tr>`
-  inner.innerHTML=`
-  <div style="padding:14px 18px;border-top:2px solid var(--info);animation:fi .2s ease both">
-    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--info);margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      🔁 Next SO Repair Reasons — when current reason was: <span style="color:var(--t1);font-size:12px">${reasonName}</span>
-      <span style="color:var(--t2);font-weight:400;text-transform:none">${r.rrrWO} RRR hits &nbsp;·&nbsp; ${nextEntries.length} distinct next reasons &nbsp;·&nbsp; ${totalNextCount} total occurrences</span>
-    </div>
-    <table style="width:100%;max-width:700px">
-      <thead><tr style="border-bottom:1px solid var(--border)">
-        <th style="${thS}">#</th>
-        <th style="${thS}">Next SO Repair Reason</th>
-        <th style="${thR}">Exact Count</th>
-        <th style="${thR}">Share</th>
-      </tr></thead>
-      <tbody>${nextRows}</tbody>
-    </table>
-  </div>`
-  detailRow.style.display=''
-  triggerRow.querySelector('td:nth-child(2) span').textContent='▴'
-}
-function buildSym(rows){
-  symptomData=grp(rows,r=>r.SYMPTOM)
-  document.getElementById('symMeta').textContent=`${symptomData.length} symptoms`
-  drawSym()
-}
+function buildRes(rows){ reasonData=grp(rows,r=>r.REASON).filter(g=>g.name!=='Unknown'&&g.name!=='Not Specified').map((g,i)=>({...g, rank:i+1})); drawRes() }
+function buildSym(rows){ symptomData=grp(rows,r=>r.SYMPTOM); document.getElementById('symMeta').textContent=`${symptomData.length} symptoms — Click any row to view top models causing the issue.`; drawSym() }
 function buildAcc(rows){ accountData=grp(rows,r=>r.ACCOUNT); drawAcc() }
-function buildWk(rows){
-  weekData=grp(rows,r=>r.WEEK).sort((a,b)=>String(a.name).localeCompare(String(b.name)))
-  drawWk()
-}
+function buildWk(rows){ weekData=grp(rows,r=>r.WEEK).sort((a,b)=>String(a.name).localeCompare(String(b.name))); drawWk() }
 
 /* ── TREND BUILDER HELPER ── */
 function buildEntityMonthlyTrend(rows, entityKey){
@@ -1419,355 +1018,276 @@ function buildEntityMonthlyTrend(rows, entityKey){
   rows.forEach(r=>{
     const ent=r[entityKey]||'Unknown', mo=r.MONTH||'?'
     if(!map[ent]) map[ent]={name:ent, months:{}}
-    if(!map[ent].months[mo]) map[ent].months[mo]={
-      mtsnMap:new Map(), num:0, modMap:{}, symMap:{}
-    }
-    const d=map[ent].months[mo]
-    const isHit=(r.FLAG==='1')
-    if(isHit) d.num++
-    if(r.MTSN) d.mtsnMap.set(r.MTSN,(d.mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
-    const mod=r.SUB||'Unknown'
-    if(!d.modMap[mod]) d.modMap[mod]={mtsnMap:new Map(),num:0}
-    if(isHit) d.modMap[mod].num++
-    if(r.MTSN) d.modMap[mod].mtsnMap.set(r.MTSN,(d.modMap[mod].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
-    const sym=r.SYMPTOM||'Unknown'
-    if(!d.symMap[sym]) d.symMap[sym]={mtsnMap:new Map(),num:0}
-    if(isHit) d.symMap[sym].num++
-    if(r.MTSN) d.symMap[sym].mtsnMap.set(r.MTSN,(d.symMap[sym].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
+    if(!map[ent].months[mo]) map[ent].months[mo]={mtsnMap:new Map(), num:0, modMap:{}, symMap:{}}
+    const d=map[ent].months[mo]; const isHit=(r.FLAG==='1'); if(isHit) d.num++; if(r.MTSN) d.mtsnMap.set(r.MTSN,(d.mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
+    const mod=r.SUB||'Unknown'; if(!d.modMap[mod]) d.modMap[mod]={mtsnMap:new Map(),num:0}; if(isHit) d.modMap[mod].num++; if(r.MTSN) d.modMap[mod].mtsnMap.set(r.MTSN,(d.modMap[mod].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
+    const sym=r.SYMPTOM||'Unknown'; if(!d.symMap[sym]) d.symMap[sym]={mtsnMap:new Map(),num:0}; if(isHit) d.symMap[sym].num++; if(r.MTSN) d.symMap[sym].mtsnMap.set(r.MTSN,(d.symMap[sym].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
   })
-
   return Object.values(map).map(ent=>{
-    const moKeys=Object.keys(ent.months).sort()
-    const moStats={}
+    const moKeys=Object.keys(ent.months).sort(); const moStats={}
     for(const mo of moKeys){
-      const d=ent.months[mo]
-      const t=d.mtsnMap.size, n=d.num
+      const d=ent.months[mo]; const t=d.mtsnMap.size, n=d.num
       const modList=Object.entries(d.modMap).map(([name,x])=>{const t2=x.mtsnMap.size,n2=x.num;return{name,totalWO:t2,rrrWO:n2,pct:t2>0?(n2/t2*100):0}}).sort((a,b)=>b.totalWO-a.totalWO).slice(0,6)
       const symList=Object.entries(d.symMap).map(([name,x])=>{const t2=x.mtsnMap.size,n2=x.num;return{name,totalWO:t2,rrrWO:n2,pct:t2>0?(n2/t2*100):0}}).sort((a,b)=>b.totalWO-a.totalWO).slice(0,6)
       moStats[mo]={totalWO:t,rrrWO:n,pct:t>0?(n/t*100):0,modList,symList}
     }
-    const latestMo=moKeys[moKeys.length-1]
-    const prevMo=moKeys[moKeys.length-2]
-    const latestPct=latestMo?moStats[latestMo].pct:0
-    const prevPct=prevMo?moStats[prevMo].pct:null
-    const momChange=prevPct!=null?(latestPct-prevPct):null
-    // Peak month
+    const latestMo=moKeys[moKeys.length-1], prevMo=moKeys[moKeys.length-2]
+    const latestPct=latestMo?moStats[latestMo].pct:0, prevPct=prevMo?moStats[prevMo].pct:null, momChange=prevPct!=null?(latestPct-prevPct):null
     const peakMo=moKeys.reduce((best,mo)=>(!best||moStats[mo].pct>moStats[best].pct)?mo:best,null)
     let trendSignal='→ Stable', trendColor='var(--t2)'
-    if(momChange!=null){
-      if(momChange>=10){trendSignal='🔺 Spike';trendColor='#ff4455'}
-      else if(momChange>=4){trendSignal='↑ Rising';trendColor='#f5a623'}
-      else if(momChange<=-4){trendSignal='↓ Falling';trendColor='#00c96d'}
-    }
+    if(momChange!=null){ if(momChange>=10){trendSignal='🔺 Spike';trendColor='#ff4455'} else if(momChange>=4){trendSignal='↑ Rising';trendColor='#f5a623'} else if(momChange<=-4){trendSignal='↓ Falling';trendColor='#00c96d'} }
     const totalVol=moKeys.reduce((s,mo)=>s+moStats[mo].totalWO,0)
     return{name:ent.name,moKeys,moStats,latestMo,prevMo,latestPct,prevPct,momChange,peakMo,trendSignal,trendColor,totalVol}
-  }).map(e=>({...e, _spike:(e.trendSignal.includes('Spike')?3:e.trendSignal.includes('Rising')?1:0)*e.totalVol}))
-  .sort((a,b)=>b._spike-a._spike||b.totalVol-a.totalVol)
-  .slice(0, 200) // cap at 200 for rendering performance
+  }).map(e=>({...e, _spike:(e.trendSignal.includes('Spike')?3:e.trendSignal.includes('Rising')?1:0)*e.totalVol})).sort((a,b)=>b._spike-a._spike||b.totalVol-a.totalVol).slice(0, 200)
 }
 
-let venTrendData=[], accTrendData=[]
-
-function buildVendorTrend(rows){
-  venTrendData=buildEntityMonthlyTrend(rows,'VENDOR')
-  document.getElementById('venTrendMeta').textContent=
-    `${venTrendData.length} vendors · Sorted by spike signal + volume · Click to expand month-by-month`
-  drawVenTrend()
-}
-function buildAccountTrend(rows){
-  accTrendData=buildEntityMonthlyTrend(rows,'ACCOUNT')
-  document.getElementById('accTrendMeta').textContent=
-    `${accTrendData.length} accounts · Sorted by spike signal + volume · Click to expand month-by-month`
-  drawAccTrend()
-}
+function buildVendorTrend(rows){ venTrendData=buildEntityMonthlyTrend(rows,'VENDOR'); document.getElementById('venTrendMeta').textContent=`${venTrendData.length} vendors · Sorted by spike signal + volume`; drawVenTrend() }
+function buildAccountTrend(rows){ accTrendData=buildEntityMonthlyTrend(rows,'ACCOUNT'); document.getElementById('accTrendMeta').textContent=`${accTrendData.length} accounts · Sorted by spike signal + volume`; drawAccTrend() }
 
 function trendTableRows(data, tbodyId, expandFn){
   return data.map((e,i)=>{
-    const momHtml=e.momChange!=null
-      ?`<span style="font-weight:700;font-family:'IBM Plex Mono',monospace;color:${e.trendColor}">${e.momChange>=0?'+':''}${e.momChange.toFixed(1)}pp</span>`
-      :`<span style="color:var(--t3)">—</span>`
+    const momHtml=e.momChange!=null ?`<span style="font-weight:700;font-family:'IBM Plex Mono',monospace;color:${e.trendColor}">${e.momChange>=0?'+':''}${e.momChange.toFixed(1)}pp</span>`:`<span style="color:var(--t3)">—</span>`
     return`
     <tr class="expand-trigger" onclick="${expandFn}(this,'${encodeURIComponent(e.name)}')" style="cursor:pointer" title="Click to expand month breakdown">
-      <td><span class="rnk ${rk(i)}">${i+1}</span></td>
-      <td style="font-weight:600">${e.name} <span style="font-size:10px;color:var(--t3);margin-left:4px">▾</span></td>
-      <td class="mono">${e.moKeys.length}</td>
-      <td><span class="pill ${pc(e.latestPct)}">${e.latestPct.toFixed(1)}%</span></td>
+      <td><span class="rnk ${rk(i)}">${i+1}</span></td><td style="font-weight:600">${e.name} <span style="font-size:10px;color:var(--t3);margin-left:4px">▾</span></td>
+      <td class="mono">${e.moKeys.length}</td><td><span class="pill ${pc(e.latestPct)}">${e.latestPct.toFixed(1)}%</span></td>
       <td>${e.prevPct!=null?`<span class="pill ${pc(e.prevPct)}">${e.prevPct.toFixed(1)}%</span>`:`<span style="color:var(--t3)">—</span>`}</td>
-      <td>${momHtml}</td>
-      <td style="font-weight:700;color:${e.trendColor}">${e.trendSignal}</td>
+      <td>${momHtml}</td><td style="font-weight:700;color:${e.trendColor}">${e.trendSignal}</td>
       <td style="font-family:'IBM Plex Mono',monospace;color:var(--t2);font-size:11px">${e.peakMo||'—'} ${e.peakMo?`<span class="pill ${pc(e.moStats[e.peakMo].pct)}" style="font-size:10px">${e.moStats[e.peakMo].pct.toFixed(1)}%</span>`:''}</td>
     </tr>
-    <tr class="expand-detail" id="${tbodyId}-expand-${encodeURIComponent(e.name)}" style="display:none">
-      <td colspan="8" style="padding:0;background:var(--card2)">
-        <div id="${tbodyId}-expand-inner-${encodeURIComponent(e.name)}"></div>
-      </td>
-    </tr>`
+    <tr class="expand-detail" id="${tbodyId}-expand-${encodeURIComponent(e.name)}" style="display:none"><td colspan="8" style="padding:0;background:var(--card2)"><div id="${tbodyId}-expand-inner-${encodeURIComponent(e.name)}"></div></td></tr>`
   }).join('')
 }
 
-function drawVenTrend(){
-  document.getElementById('venTrendTbody').innerHTML=trendTableRows(venTrendData,'venTrend','toggleVenTrendExpand')
-}
-function drawAccTrend(){
-  document.getElementById('accTrendTbody').innerHTML=trendTableRows(accTrendData,'accTrend','toggleAccTrendExpand')
-}
+function drawVenTrend(){ document.getElementById('venTrendTbody').innerHTML=trendTableRows(venTrendData,'venTrend','toggleVenTrendExpand') }
+function drawAccTrend(){ document.getElementById('accTrendTbody').innerHTML=trendTableRows(accTrendData,'accTrend','toggleAccTrendExpand') }
 
 function buildTrendExpandHtml(e, entityLabel){
-  const thS='padding:4px 8px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;white-space:nowrap'
-  const thR='padding:4px 8px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase'
-
-  // Month rows with inline top model+symptom
   const moSections=e.moKeys.map((mo,i)=>{
-    const d=e.moStats[mo]
-    const prev=i>0?e.moStats[e.moKeys[i-1]]:null
-    const chg=prev?(d.pct-prev.pct):null
-    const isPeak=(mo===e.peakMo)
-    const isSpike=chg!=null&&chg>=5
+    const d=e.moStats[mo], prev=i>0?e.moStats[e.moKeys[i-1]]:null, chg=prev?(d.pct-prev.pct):null, isPeak=(mo===e.peakMo), isSpike=chg!=null&&chg>=5
     const chgHtml=chg!=null?`<span style="font-weight:700;color:${chg>=5?'#ff4455':chg>=2?'#f5a623':chg<=-2?'#00c96d':'var(--t2)'}">${chg>=0?'+':''}${chg.toFixed(1)}pp</span>`:'<span style="color:var(--t3)">—</span>'
-    const badges=(isPeak?` <span style="font-size:9px;background:rgba(245,166,35,0.2);color:#f5a623;padding:1px 6px;border-radius:3px;font-weight:700">PEAK</span>`:'')
-               +(isSpike?` <span style="font-size:9px;background:var(--bad-d);color:#ff4455;padding:1px 6px;border-radius:3px;font-weight:700">SPIKE</span>`:'')
-
-    // top 4 models
+    const badges=(isPeak?` <span style="font-size:9px;background:rgba(245,166,35,0.2);color:#f5a623;padding:1px 6px;border-radius:3px;font-weight:700">PEAK</span>`:'')+(isSpike?` <span style="font-size:9px;background:var(--bad-d);color:#ff4455;padding:1px 6px;border-radius:3px;font-weight:700">SPIKE</span>`:'')
     const topMods=d.modList.slice(0,4).map(m=>`<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.05);padding:2px 7px;border-radius:3px;margin:2px;font-size:10px">${m.name}<span class="pill ${pc(m.pct)}" style="font-size:9px">${m.pct.toFixed(0)}%</span><span style="color:var(--t3)">${m.totalWO}</span></span>`).join('')
     const topSyms=d.symList.slice(0,4).map(s=>`<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.05);padding:2px 7px;border-radius:3px;margin:2px;font-size:10px">${s.name}<span class="pill ${pc(s.pct)}" style="font-size:9px">${s.pct.toFixed(0)}%</span><span style="color:var(--t3)">${s.totalWO}</span></span>`).join('')
-
     return`
     <div style="border:1px solid ${isPeak?'rgba(245,166,35,0.4)':isSpike?'rgba(226,0,26,0.3)':'var(--border)'};border-radius:6px;padding:12px 14px;background:${isPeak?'rgba(245,166,35,0.05)':isSpike?'rgba(226,0,26,0.05)':'var(--card)'};margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
         <span style="font-weight:700;font-family:'IBM Plex Mono',monospace;font-size:13px">${mo}</span>${badges}
-        <span class="pill ${pc(d.pct)}">${d.pct.toFixed(1)}% RRR</span>
-        <span style="color:var(--t2);font-size:11px">MTSN: <strong>${d.totalWO}</strong></span>
-        <span style="color:var(--t2);font-size:11px">Flags: <strong>${d.rrrWO}</strong></span>
-        <span style="margin-left:auto">${chgHtml} vs prev</span>
+        <span class="pill ${pc(d.pct)}">${d.pct.toFixed(1)}% RRR</span><span style="color:var(--t2);font-size:11px">MTSN: <strong>${d.totalWO}</strong></span>
+        <span style="color:var(--t2);font-size:11px">Flags: <strong>${d.rrrWO}</strong></span><span style="margin-left:auto">${chgHtml} vs prev</span>
       </div>
-      <div style="margin-bottom:4px">
-        <span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--warn);margin-right:6px">Models:</span>${topMods||'<span style="color:var(--t3);font-size:10px">—</span>'}
-      </div>
-      <div>
-        <span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--ok);margin-right:6px">Symptoms:</span>${topSyms||'<span style="color:var(--t3);font-size:10px">—</span>'}
-      </div>
+      <div style="margin-bottom:4px"><span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--warn);margin-right:6px">Models:</span>${topMods||'<span style="color:var(--t3);font-size:10px">—</span>'}</div>
+      <div><span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--ok);margin-right:6px">Symptoms:</span>${topSyms||'<span style="color:var(--t3);font-size:10px">—</span>'}</div>
     </div>`
   }).join('')
-
   return`
   <div style="padding:16px 18px;border-top:2px solid var(--red);animation:fi .2s ease both">
     <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--red);margin-bottom:14px;text-transform:uppercase;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       ▸ Month-on-Month Analysis — ${e.name}
-      <span style="font-weight:400;color:var(--t2);text-transform:none">Total volume: <strong>${e.totalVol.toLocaleString()}</strong> MTSN across ${e.moKeys.length} month${e.moKeys.length!==1?'s':''}</span>
+      <span style="font-weight:400;color:var(--t2);text-transform:none">Total volume: <strong>${e.totalVol.toLocaleString()}</strong> MTSN</span>
       <span style="font-weight:400;color:${e.trendColor};text-transform:none">${e.trendSignal}</span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:8px">
-      ${moSections}
-    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:8px">${moSections}</div>
   </div>`
 }
 
 function toggleVenTrendExpand(triggerRow, keyEnc){
-  const tbodyId='venTrend'
-  const detailRow=document.getElementById(tbodyId+'-expand-'+keyEnc)
-  const inner=document.getElementById(tbodyId+'-expand-inner-'+keyEnc)
-  const isOpen=detailRow.style.display!=='none'
-  document.querySelectorAll('#venTrendTbody .expand-detail').forEach(r=>r.style.display='none')
-  document.querySelectorAll('#venTrendTbody .expand-trigger td:nth-child(2) span').forEach(s=>s.textContent='▾')
+  const detailRow=document.getElementById('venTrend-expand-'+keyEnc), inner=document.getElementById('venTrend-expand-inner-'+keyEnc); const isOpen=detailRow.style.display!=='none'
+  document.querySelectorAll('#venTrendTbody .expand-detail').forEach(r=>r.style.display='none'); document.querySelectorAll('#venTrendTbody .expand-trigger td:nth-child(2) span').forEach(s=>s.textContent='▾')
   if(isOpen) return
-  const e=venTrendData.find(x=>encodeURIComponent(x.name)===keyEnc)
-  if(!e) return
-  inner.innerHTML=buildTrendExpandHtml(e,'Vendor')
-  detailRow.style.display=''
-  triggerRow.querySelector('td:nth-child(2) span').textContent='▴'
+  const e=venTrendData.find(x=>encodeURIComponent(x.name)===keyEnc); if(!e) return
+  inner.innerHTML=buildTrendExpandHtml(e,'Vendor'); detailRow.style.display=''; triggerRow.querySelector('td:nth-child(2) span').textContent='▴'
 }
 function toggleAccTrendExpand(triggerRow, keyEnc){
-  const tbodyId='accTrend'
-  const detailRow=document.getElementById(tbodyId+'-expand-'+keyEnc)
-  const inner=document.getElementById(tbodyId+'-expand-inner-'+keyEnc)
-  const isOpen=detailRow.style.display!=='none'
-  document.querySelectorAll('#accTrendTbody .expand-detail').forEach(r=>r.style.display='none')
-  document.querySelectorAll('#accTrendTbody .expand-trigger td:nth-child(2) span').forEach(s=>s.textContent='▾')
+  const detailRow=document.getElementById('accTrend-expand-'+keyEnc), inner=document.getElementById('accTrend-expand-inner-'+keyEnc); const isOpen=detailRow.style.display!=='none'
+  document.querySelectorAll('#accTrendTbody .expand-detail').forEach(r=>r.style.display='none'); document.querySelectorAll('#accTrendTbody .expand-trigger td:nth-child(2) span').forEach(s=>s.textContent='▾')
   if(isOpen) return
-  const e=accTrendData.find(x=>encodeURIComponent(x.name)===keyEnc)
-  if(!e) return
-  inner.innerHTML=buildTrendExpandHtml(e,'Account')
-  detailRow.style.display=''
-  triggerRow.querySelector('td:nth-child(2) span').textContent='▴'
+  const e=accTrendData.find(x=>encodeURIComponent(x.name)===keyEnc); if(!e) return
+  inner.innerHTML=buildTrendExpandHtml(e,'Account'); detailRow.style.display=''; triggerRow.querySelector('td:nth-child(2) span').textContent='▴'
 }
 
-/* ── AGENT RISK — 3-Month Volume-First Spike Detection ── */
+/* ── AGENT RISK ── */
 function buildAgentRisk(rows){
-  const allMonths = [...new Set(rows.map(r=>r.MONTH).filter(Boolean))].sort()
-  // Use last 3 months only
-  const last3 = allMonths.slice(-3)
-  const rows3m = last3.length ? rows.filter(r=>last3.includes(r.MONTH)) : rows
-
-  // Build per-agent data from 3m rows
-  const agMap = {}
+  const allMonths = [...new Set(rows.map(r=>r.MONTH).filter(Boolean))].sort(), last3 = allMonths.slice(-3)
+  const rows3m = last3.length ? rows.filter(r=>last3.includes(r.MONTH)) : rows; const agMap = {}
   rows3m.forEach(r=>{
-    const a=r.NAME||'Unknown'
-    if(!agMap[a]) agMap[a]={name:a, tl:r.TL||'—', mtsnMap:new Map(), num:0,
-      modelMap:{}, symMap:{}, monthMap:{}}
-    const isHit=(r.FLAG==='1')
-    if(isHit) agMap[a].num++
-    if(r.MTSN) agMap[a].mtsnMap.set(r.MTSN,(agMap[a].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
-
-    // Model breakdown (volume-first)
-    const mod=r.SUB||'Unknown'
-    if(!agMap[a].modelMap[mod]) agMap[a].modelMap[mod]={mtsnMap:new Map(),num:0}
-    if(isHit) agMap[a].modelMap[mod].num++
-    if(r.MTSN) agMap[a].modelMap[mod].mtsnMap.set(r.MTSN,(agMap[a].modelMap[mod].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
-
-    // Symptom breakdown (volume-first)
-    const sym=r.SYMPTOM||'Unknown'
-    if(!agMap[a].symMap[sym]) agMap[a].symMap[sym]={mtsnMap:new Map(),num:0}
-    if(isHit) agMap[a].symMap[sym].num++
-    if(r.MTSN) agMap[a].symMap[sym].mtsnMap.set(r.MTSN,(agMap[a].symMap[sym].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
-
-    // Month breakdown
-    const mo=r.MONTH||'?'
-    if(!agMap[a].monthMap[mo]) agMap[a].monthMap[mo]={mtsnMap:new Map(),num:0}
-    if(isHit) agMap[a].monthMap[mo].num++
-    if(r.MTSN) agMap[a].monthMap[mo].mtsnMap.set(r.MTSN,(agMap[a].monthMap[mo].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
+    const a=r.NAME||'Unknown'; if(!agMap[a]) agMap[a]={name:a, tl:r.TL||'—', mtsnMap:new Map(), num:0, modelMap:{}, symMap:{}, monthMap:{}}
+    const isHit=(r.FLAG==='1'); if(isHit) agMap[a].num++; if(r.MTSN) agMap[a].mtsnMap.set(r.MTSN,(agMap[a].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
+    const mod=r.SUB||'Unknown'; if(!agMap[a].modelMap[mod]) agMap[a].modelMap[mod]={mtsnMap:new Map(),num:0}; if(isHit) agMap[a].modelMap[mod].num++; if(r.MTSN) agMap[a].modelMap[mod].mtsnMap.set(r.MTSN,(agMap[a].modelMap[mod].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
+    const sym=r.SYMPTOM||'Unknown'; if(!agMap[a].symMap[sym]) agMap[a].symMap[sym]={mtsnMap:new Map(),num:0}; if(isHit) agMap[a].symMap[sym].num++; if(r.MTSN) agMap[a].symMap[sym].mtsnMap.set(r.MTSN,(agMap[a].symMap[sym].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
+    const mo=r.MONTH||'?'; if(!agMap[a].monthMap[mo]) agMap[a].monthMap[mo]={mtsnMap:new Map(),num:0}; if(isHit) agMap[a].monthMap[mo].num++; if(r.MTSN) agMap[a].monthMap[mo].mtsnMap.set(r.MTSN,(agMap[a].monthMap[mo].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
   })
-
   agentRiskData = Object.values(agMap).map(g=>{
-    const vol3m = g.mtsnMap.size
-    const rrrWO = g.num
-    const overallPct = vol3m>0?(rrrWO/vol3m*100):0
-
-    // Per-month stats
-    const moStats = {}
-    for(const [mo,d] of Object.entries(g.monthMap)){
-      const t=d.mtsnMap.size, n=d.num
-      moStats[mo]={totalWO:t, rrrWO:n, pct:t>0?(n/t*100):0}
-    }
-    const moKeys = Object.keys(moStats).sort()
-    const latestMo = moKeys[moKeys.length-1]
-    const prevMo   = moKeys[moKeys.length-2]
-    const latestPct = latestMo ? moStats[latestMo].pct : overallPct
-    const prevPct   = prevMo   ? moStats[prevMo].pct   : null
-    const momChange = prevPct!=null ? (latestPct - prevPct) : null
-    let trend='→ Stable', trendClass='color:var(--t2)'
-    if(momChange!=null){
-      if(momChange>=5){trend='🔺 Spiked';trendClass='color:#ff4455'}
-      else if(momChange>=2){trend='↑ Worsening';trendClass='color:#f5a623'}
-      else if(momChange<=-2){trend='↓ Improving';trendClass='color:#00c96d'}
-    }
+    const vol3m = g.mtsnMap.size, rrrWO = g.num, overallPct = vol3m>0?(rrrWO/vol3m*100):0; const moStats = {}
+    for(const [mo,d] of Object.entries(g.monthMap)){ const t=d.mtsnMap.size, n=d.num; moStats[mo]={totalWO:t, rrrWO:n, pct:t>0?(n/t*100):0} }
+    const moKeys = Object.keys(moStats).sort(), latestMo = moKeys[moKeys.length-1], prevMo = moKeys[moKeys.length-2]
+    const latestPct = latestMo ? moStats[latestMo].pct : overallPct, prevPct = prevMo ? moStats[prevMo].pct : null, momChange = prevPct!=null ? (latestPct - prevPct) : null
+    let trend='→ Stable', trendClass='color:var(--t2)'; if(momChange!=null){ if(momChange>=5){trend='🔺 Spiked';trendClass='color:#ff4455'} else if(momChange>=2){trend='↑ Worsening';trendClass='color:#f5a623'} else if(momChange<=-2){trend='↓ Improving';trendClass='color:#00c96d'} }
     const predictedRRR = prevPct!=null ? latestPct+(momChange*.5) : latestPct
-
-    // Top model by volume (MTSN)
-    const modList = Object.entries(g.modelMap).map(([name,d])=>{
-      const t=d.mtsnMap.size,n=d.num
-      return{name,totalWO:t,rrrWO:n,pct:t>0?(n/t*100):0}
-    }).sort((a,b)=>b.totalWO-a.totalWO)
-
-    // Top symptom by volume
-    const symList = Object.entries(g.symMap).map(([name,d])=>{
-      const t=d.mtsnMap.size,n=d.num
-      return{name,totalWO:t,rrrWO:n,pct:t>0?(n/t*100):0}
-    }).sort((a,b)=>b.totalWO-a.totalWO)
-
-    const topMod = modList[0]||{name:'N/A',totalWO:0,pct:0}
-    const topSym = symList[0]||{name:'N/A',totalWO:0,pct:0}
+    const modList = Object.entries(g.modelMap).map(([name,d])=>{const t=d.mtsnMap.size,n=d.num;return{name,totalWO:t,rrrWO:n,pct:t>0?(n/t*100):0}}).sort((a,b)=>b.totalWO-a.totalWO)
+    const symList = Object.entries(g.symMap).map(([name,d])=>{const t=d.mtsnMap.size,n=d.num;return{name,totalWO:t,rrrWO:n,pct:t>0?(n/t*100):0}}).sort((a,b)=>b.totalWO-a.totalWO)
+    const topMod = modList[0]||{name:'N/A',totalWO:0,pct:0}, topSym = symList[0]||{name:'N/A',totalWO:0,pct:0}
     const riskLevel = predictedRRR>=20?'🔴 High':predictedRRR>=10?'🟠 Medium':'🟢 Low'
-
-    return{
-      agent:g.name, tl:g.tl,
-      vol3m, rrrWO, currentRRR:overallPct, latestPct, prevPct,
-      momChange, trend, trendClass, predictedRRR:Math.max(0,predictedRRR),
-      riskLevel, modList:modList.slice(0,10), symList:symList.slice(0,10),
-      moStats, moKeys, latestMo, prevMo,
-      topMod, topSym
-    }
-  })
-  // Sort: spiked + high volume first
-  .filter(a=>a.vol3m>=5)
-  .map(a=>({...a, _spike:(a.trend.includes('Spiked')?3:a.trend.includes('Worsening')?1:0)*a.vol3m}))
-  .sort((a,b)=>b._spike-a._spike||b.vol3m-a.vol3m)
-
-  document.getElementById('agentRiskMeta').textContent=
-    `${agentRiskData.length} agents · Last 3 months: ${last3.join(', ')||'all'} · Volume ≥5 MTSN · Sorted by spike + volume`
-  drawAgentRisk()
+    return{ agent:g.name, tl:g.tl, vol3m, rrrWO, currentRRR:overallPct, latestPct, prevPct, momChange, trend, trendClass, predictedRRR:Math.max(0,predictedRRR), riskLevel, modList:modList.slice(0,10), symList:symList.slice(0,10), moStats, moKeys, latestMo, prevMo, topMod, topSym }
+  }).filter(a=>a.vol3m>=5).map(a=>({...a, _spike:(a.trend.includes('Spiked')?3:a.trend.includes('Worsening')?1:0)*a.vol3m})).sort((a,b)=>b._spike-a._spike||b.vol3m-a.vol3m)
+  document.getElementById('agentRiskMeta').textContent=`${agentRiskData.length} agents · Last 3 months: ${last3.join(', ')||'all'} · Sorted by spike + volume`; drawAgentRisk()
 }
+
 /* ── MONTH SLICER ── */
 let agActiveMslMonth=null, tlActiveMslMonth=null
 function buildMonthlyAgentMap(rows){
-  const map={}
-  rows.forEach(r=>{
-    const a=r.NAME||'Unknown', m=r.MONTH||'?'
-    if(!map[a]) map[a]={}
-    if(!map[a][m]) map[a][m]={mtsnMap:new Map(), num:0}
-    
-    const isHit = (r.FLAG === '1');
-    if(isHit) map[a][m].num++
-    if(r.MTSN) map[a][m].mtsnMap.set(r.MTSN, (map[a][m].mtsnMap.get(r.MTSN)||0) + (isHit?1:0))
-  })
-  const out={}
-  for(const [ag,months] of Object.entries(map)){
-    out[ag]={}
-    for(const [mo,d] of Object.entries(months)){
-      const t = d.mtsnMap.size;
-      const n = d.num;
-      out[ag][mo]={totalWO:t, rrrWO:n, pct:t>0?n/t*100:0}
-    }
-  }
+  const map={}; rows.forEach(r=>{ const a=r.NAME||'Unknown', m=r.MONTH||'?'; if(!map[a]) map[a]={}; if(!map[a][m]) map[a][m]={mtsnMap:new Map(), num:0}; const isHit = (r.FLAG === '1'); if(isHit) map[a][m].num++; if(r.MTSN) map[a][m].mtsnMap.set(r.MTSN, (map[a][m].mtsnMap.get(r.MTSN)||0) + (isHit?1:0)) })
+  const out={}; for(const [ag,months] of Object.entries(map)){ out[ag]={}; for(const [mo,d] of Object.entries(months)){ const t = d.mtsnMap.size; const n = d.num; out[ag][mo]={totalWO:t, rrrWO:n, pct:t>0?n/t*100:0} } }
   return out
 }
 function buildMonthlyTLMap(rows){
-  const map={}
-  rows.forEach(r=>{
-    const tl=r.TL||'Unknown', m=r.MONTH||'?'
-    if(!map[tl]) map[tl]={}
-    if(!map[tl][m]) map[tl][m]={agSet:new Set(), mtsnMap:new Map(), num:0}
-    if(r.NAME) map[tl][m].agSet.add(r.NAME)
-    
-    const isHit = (r.FLAG === '1');
-    if(isHit) map[tl][m].num++
-    if(r.MTSN) map[tl][m].mtsnMap.set(r.MTSN, (map[tl][m].mtsnMap.get(r.MTSN)||0) + (isHit?1:0))
-  })
-  const out={}
-  for(const [tl,months] of Object.entries(map)){
-    out[tl]={}
-    for(const [mo,d] of Object.entries(months)){
-      const t = d.mtsnMap.size;
-      const n = d.num;
-      out[tl][mo]={totalWO:t, rrrWO:n, agents:d.agSet.size, pct:t>0?n/t*100:0}
-    }
-  }
+  const map={}; rows.forEach(r=>{ const tl=r.TL||'Unknown', m=r.MONTH||'?'; if(!map[tl]) map[tl]={}; if(!map[tl][m]) map[tl][m]={agSet:new Set(), mtsnMap:new Map(), num:0}; if(r.NAME) map[tl][m].agSet.add(r.NAME); const isHit = (r.FLAG === '1'); if(isHit) map[tl][m].num++; if(r.MTSN) map[tl][m].mtsnMap.set(r.MTSN, (map[tl][m].mtsnMap.get(r.MTSN)||0) + (isHit?1:0)) })
+  const out={}; for(const [tl,months] of Object.entries(map)){ out[tl]={}; for(const [mo,d] of Object.entries(months)){ const t = d.mtsnMap.size; const n = d.num; out[tl][mo]={totalWO:t, rrrWO:n, agents:d.agSet.size, pct:t>0?n/t*100:0} } }
   return out
 }
 let _agMonthMap={}, _tlMonthMap={}
 function buildMonthSlicers(rows){
-  const months=[...new Set(rows.map(r=>r.MONTH).filter(Boolean))].sort()
-  _agMonthMap=buildMonthlyAgentMap(rows)
-  _tlMonthMap=buildMonthlyTLMap(rows)
+  const months=[...new Set(rows.map(r=>r.MONTH).filter(Boolean))].sort(); _agMonthMap=buildMonthlyAgentMap(rows); _tlMonthMap=buildMonthlyTLMap(rows)
   ;['ag','tl'].forEach(prefix=>{
-    const slicer=document.getElementById(prefix+'MonthSlicer')
-    if(!slicer) return
+    const slicer=document.getElementById(prefix+'MonthSlicer'); if(!slicer) return
     slicer.innerHTML='<span class="month-slicer-label">Month View:</span>'
     months.forEach(m=>{
-      const pill=document.createElement('span')
-      pill.className='msl-pill'
-      pill.textContent=m
-      const activeMonth=prefix==='ag'?agActiveMslMonth:tlActiveMslMonth
-      if(activeMonth===m) pill.classList.add('active')
-      pill.onclick=()=>{
-        if(prefix==='ag'){agActiveMslMonth=agActiveMslMonth===m?null:m;drawAg()}
-        else{tlActiveMslMonth=tlActiveMslMonth===m?null:m;drawTL()}
-      }
-      slicer.appendChild(pill)
+      const pill=document.createElement('span'); pill.className='msl-pill'; pill.textContent=m; const activeMonth=prefix==='ag'?agActiveMslMonth:tlActiveMslMonth
+      if(activeMonth===m) pill.classList.add('active'); pill.onclick=()=>{ if(prefix==='ag'){agActiveMslMonth=agActiveMslMonth===m?null:m;drawAg()} else{tlActiveMslMonth=tlActiveMslMonth===m?null:m;drawTL()} }; slicer.appendChild(pill)
     })
     if(months.length>1){
-      const avg=document.createElement('span')
-      avg.className='msl-pill avg-pill'
-      avg.textContent='Avg RRR%'
-      const activeMonth=prefix==='ag'?agActiveMslMonth:tlActiveMslMonth
-      if(activeMonth==='__avg__') avg.classList.add('active')
-      avg.onclick=()=>{
-        if(prefix==='ag'){agActiveMslMonth=agActiveMslMonth==='__avg__'?null:'__avg__';drawAg()}
-        else{tlActiveMslMonth=tlActiveMslMonth==='__avg__'?null:'__avg__';drawTL()}
-      }
-      slicer.appendChild(avg)
+      const avg=document.createElement('span'); avg.className='msl-pill avg-pill'; avg.textContent='Avg RRR%'; const activeMonth=prefix==='ag'?agActiveMslMonth:tlActiveMslMonth
+      if(activeMonth==='__avg__') avg.classList.add('active'); avg.onclick=()=>{ if(prefix==='ag'){agActiveMslMonth=agActiveMslMonth==='__avg__'?null:'__avg__';drawAg()} else{tlActiveMslMonth=tlActiveMslMonth==='__avg__'?null:'__avg__';drawTL()} }; slicer.appendChild(avg)
     }
   })
 }
+
+/* ── ACTION PLAN (NEW) ── */
+function looseMatch(s1, s2) {
+  if (!s1 || !s2) return false;
+  const stopWords = new Set(['issue','failure','error','not','working','the','a','is','on','with','problem','failed','bad','no']);
+  const w1 = s1.toLowerCase().replace(/[^a-z0-9]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
+  const w2 = s2.toLowerCase().replace(/[^a-z0-9]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
+  if (w1.length === 0 || w2.length === 0) return s1.toLowerCase().includes(s2.toLowerCase()) || s2.toLowerCase().includes(s1.toLowerCase());
+  return w1.some(w => w2.includes(w));
+}
+
+function buildActionPlanData(rows) {
+  const map = {};
+  rows.forEach(r => {
+    if (r.FLAG !== '1') return;
+    const reason = (r.REASON || '').toUpperCase();
+    if (reason.includes('DOA')) return;
+    
+    const s1 = r.PROB_CAT1 || r.SYMPTOM || '';
+    const s2 = r.NEXT_SYM || '';
+    if (!s1 || !s2 || !looseMatch(s1, s2)) return;
+
+    const p1 = r.FIRST_COMM ? r.FIRST_COMM.trim() : '';
+    const p2 = r.NEXT_COMM ? r.NEXT_COMM.trim() : '';
+    
+    // Core Constraint: Parts must be different, and must exist.
+    if (!p1 || !p2 || p1.toLowerCase() === p2.toLowerCase() || p1.toLowerCase() === 'no part logged' || p2.toLowerCase() === 'no part logged') return;
+
+    const mod = r.SUB || 'Unknown';
+
+    if (!map[mod]) map[mod] = { name: mod, hits: 0, combos: {} };
+    map[mod].hits++;
+    
+    const cKey = s1 + '|||' + p1 + '|||' + p2;
+    if (!map[mod].combos[cKey]) map[mod].combos[cKey] = { sym: s1, p1, p2, count: 0 };
+    map[mod].combos[cKey].count++;
+  });
+
+  actionPlanData = Object.values(map).map(m => {
+    const sortedCombos = Object.values(m.combos).sort((a,b) => b.count - a.count).slice(0, 3);
+    const p2Counts = {};
+    sortedCombos.forEach(c => { p2Counts[c.p2] = (p2Counts[c.p2]||0) + c.count; });
+    const majorFix = Object.keys(p2Counts).sort((a,b)=>p2Counts[b]-p2Counts[a])[0] || 'N/A';
+    return { name: m.name, hits: m.hits, topCombos: sortedCombos, majorFix };
+  }).filter(m => m.topCombos.length > 0).sort((a,b) => b.hits - a.hits);
+}
+
+function getScopedActionPlanData(rows) {
+  const map = {};
+  rows.forEach(r => {
+    if (r.FLAG !== '1') return;
+    const reason = (r.REASON || '').toUpperCase();
+    if (reason.includes('DOA')) return;
+    const s1 = r.PROB_CAT1 || r.SYMPTOM || '';
+    const s2 = r.NEXT_SYM || '';
+    if (!s1 || !s2 || !looseMatch(s1, s2)) return;
+    const p1 = r.FIRST_COMM ? r.FIRST_COMM.trim() : '';
+    const p2 = r.NEXT_COMM ? r.NEXT_COMM.trim() : '';
+    if (!p1 || !p2 || p1.toLowerCase() === p2.toLowerCase() || p1.toLowerCase() === 'no part logged' || p2.toLowerCase() === 'no part logged') return;
+    const mod = r.SUB || 'Unknown';
+    if (!map[mod]) map[mod] = { name: mod, hits: 0, combos: {} };
+    map[mod].hits++;
+    const cKey = s1 + '|||' + p1 + '|||' + p2;
+    if (!map[mod].combos[cKey]) map[mod].combos[cKey] = { sym: s1, p1, p2, count: 0 };
+    map[mod].combos[cKey].count++;
+  });
+  return Object.values(map).map(m => {
+    const sortedCombos = Object.values(m.combos).sort((a,b) => b.count - a.count).slice(0, 3);
+    return { name: m.name, hits: m.hits, topCombos: sortedCombos };
+  }).filter(m => m.topCombos.length > 0).sort((a,b) => b.hits - a.hits).slice(0, 10);
+}
+
+function drawActionPlan() {
+  const tbody = document.getElementById('apTbody');
+  if (!actionPlanData.length) {
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:var(--t3);padding:30px">No actionable instances (different parts) found.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = actionPlanData.map((m, i) => `
+    <tr class="expand-trigger" onclick="toggleApExpand(this, '${encodeURIComponent(m.name)}')">
+      <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+      <td style="font-weight:600">${m.name} <span style="font-size:10px;color:var(--t3);margin-left:4px">▾</span></td>
+      <td class="mono"><span class="pill p-bad">${m.hits}</span></td>
+    </tr>
+    <tr class="expand-detail" id="ap-expand-${encodeURIComponent(m.name)}" style="display:none">
+      <td colspan="3" style="padding:0;background:var(--card2)"><div id="ap-expand-inner-${encodeURIComponent(m.name)}"></div></td>
+    </tr>
+  `).join('');
+}
+
+function toggleApExpand(triggerRow, keyEnc) {
+  const detailRow = document.getElementById('ap-expand-'+keyEnc), inner = document.getElementById('ap-expand-inner-'+keyEnc);
+  const isOpen = detailRow.style.display !== 'none';
+  document.querySelectorAll('#apTbody .expand-detail').forEach(r => r.style.display='none');
+  document.querySelectorAll('#apTbody .expand-trigger td:nth-child(2) span').forEach(s => s.textContent='▾');
+  if (isOpen) return;
+  
+  const mData = actionPlanData.find(m => m.name === decodeURIComponent(keyEnc)); if (!mData) return;
+  
+  let html = `<div style="padding:14px 18px; border-top:1px solid var(--border)">
+    <table style="width:100%;font-size:11px;margin-bottom:8px">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border)">
+          <th style="padding:6px;text-align:left;color:var(--t3);text-transform:uppercase;font-size:9px">Symptom</th>
+          <th style="padding:6px;text-align:left;color:var(--t3);text-transform:uppercase;font-size:9px">First WO Part</th>
+          <th style="padding:6px;text-align:left;color:var(--t3);text-transform:uppercase;font-size:9px">Second WO Part</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  mData.topCombos.forEach(c => {
+    html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
+      <td style="padding:6px;font-weight:500">${c.sym} <span style="font-size:9px;color:var(--t3)">(${c.count} hits)</span></td>
+      <td style="padding:6px;color:var(--warn)">${c.p1}</td>
+      <td style="padding:6px;color:var(--ok)">${c.p2}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table>
+    <div style="font-size:11px;background:rgba(255,255,255,0.03);padding:6px 10px;border-radius:4px;color:var(--t2)">
+      <strong>Summary:</strong> Majorly resolved by sending <strong style="color:var(--ok)">${mData.majorFix}</strong>.
+    </div>
+  </div>`;
+
+  inner.innerHTML = html; detailRow.style.display = ''; triggerRow.querySelector('td:nth-child(2) span').textContent = '▴';
+}
+
 
 /* ── DRAW TABLES ── */
 function pc(p){return p>=15?'p-bad':p>=8?'p-mid':'p-ok'}
@@ -1777,9 +1297,7 @@ function drawAg(){
   const months=[...new Set(filteredData.map(r=>r.MONTH).filter(Boolean))].sort()
   const active=agActiveMslMonth
   const slicer=document.getElementById('agMonthSlicer')
-  if(slicer) slicer.querySelectorAll('.msl-pill').forEach(p=>{
-    p.classList.toggle('active',p.classList.contains('avg-pill')?active==='__avg__':p.textContent===active)
-  })
+  if(slicer) slicer.querySelectorAll('.msl-pill').forEach(p=>p.classList.toggle('active',p.classList.contains('avg-pill')?active==='__avg__':p.textContent===active))
   const head=document.getElementById('agDynHead')
   if(head) head.textContent=active==='__avg__'?'Avg RRR% ('+months.length+'mo)':active?active+' RRR%':'Overall RRR%'
   const mxWO = agentData.reduce((m,x)=>x.totalWO>m?x.totalWO:m, 1)
@@ -1797,8 +1315,8 @@ function drawAg(){
       const d=(_agMonthMap[a.name]||{})[active]||{pct:0,totalWO:0,rrrWO:0}
       dispPct=d.pct;dispMtsn=d.totalWO;dispRep=d.rrrWO
     } else{dispPct=a.pct;dispMtsn=a.totalWO;dispRep=a.rrrWO}
-    const keyEnc=encodeURIComponent(a.name)
-    return `<tr class="expand-trigger" onclick="toggleAgExpand(this,'${keyEnc}')" style="cursor:pointer" title="Click to see repair reasons">
+    return `
+    <tr class="expand-trigger" onclick="toggleAgExpand(this, '${encodeURIComponent(a.name)}')">
       <td><span class="rnk ${rk(i)}">${i+1}</span></td>
       <td style="font-weight:600">${a.name} <span style="font-size:10px;color:var(--t3);margin-left:4px">▾</span></td>
       <td style="color:var(--t2)">${a.tl}</td>
@@ -1807,73 +1325,83 @@ function drawAg(){
       <td class="mono">${dispRep}</td>
       <td><div class="ibar-w"><div class="ibar" style="width:${(a.totalWO/mxWO*80)||2}px"></div><span style="font-size:10px;color:var(--t3)">${a.totalWO}</span></div></td>
     </tr>
-    <tr class="expand-detail" id="ag-expand-${keyEnc}" style="display:none">
-      <td colspan="7" style="padding:0;background:var(--card2)">
-        <div id="ag-expand-inner-${keyEnc}"></div>
-      </td>
+    <tr class="expand-detail" id="ag-expand-${encodeURIComponent(a.name)}" style="display:none">
+      <td colspan="7" style="padding:0;background:var(--card2)"><div id="ag-expand-inner-${encodeURIComponent(a.name)}"></div></td>
     </tr>`
   }).join('')
 }
 
-function toggleAgExpand(triggerRow, keyEnc){
-  const detailRow=document.getElementById('ag-expand-'+keyEnc)
-  const inner=document.getElementById('ag-expand-inner-'+keyEnc)
-  const isOpen=detailRow.style.display!=='none'
+function toggleAgExpand(triggerRow, keyEnc) {
+  const detailRow = document.getElementById('ag-expand-'+keyEnc)
+  const inner = document.getElementById('ag-expand-inner-'+keyEnc)
+  const isOpen = detailRow.style.display !== 'none'
   document.querySelectorAll('#agTbody .expand-detail').forEach(r=>r.style.display='none')
   document.querySelectorAll('#agTbody .expand-trigger td:nth-child(2) span').forEach(s=>s.textContent='▾')
-  if(isOpen) return
-  const agentName=decodeURIComponent(keyEnc)
-  const a=agentData.find(x=>x.name===agentName)
-  if(!a) return
-  inner.innerHTML=buildReasonExpandHtml(a.name, a.reasons, a.nextReasons, a.rrrWO)
-  detailRow.style.display=''
-  triggerRow.querySelector('td:nth-child(2) span').textContent='▴'
-}
+  if(isOpen){ return }
 
-function buildReasonExpandHtml(entityName, reasons, nextReasons, totalHits){
-  const thS='padding:5px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;white-space:nowrap'
-  const thR='padding:5px 10px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase'
-  const hasNext = IDX.NEXT_REASON >= 0
-  const nextEntries=Object.entries(nextReasons||{}).sort((a,b)=>b[1]-a[1])
-  const totalNextCount = nextEntries.reduce((s,x)=>s+x[1],0)
-  if(!hasNext){
-    return`<div style="padding:12px 18px;color:var(--t3);font-size:11px">Column "Next SO Repeat Repair Reason" not detected in the uploaded file.</div>`
+  const agName = decodeURIComponent(keyEnc)
+  let rows = filteredData.filter(r => r.NAME === agName);
+
+  if (agActiveMslMonth && agActiveMslMonth !== '__avg__') {
+    rows = rows.filter(r => r.MONTH === agActiveMslMonth);
   }
-  if(!nextEntries.length){
-    return`<div style="padding:12px 18px;color:var(--t3);font-size:11px">No Next SO Repair Reason data found for RRR hit WOs of <strong>${entityName}</strong>.</div>`
+
+  const nextReasonMap = {};
+  const mtsnSet = new Set();
+
+  rows.forEach(r => {
+    if (r.MTSN) mtsnSet.add(r.MTSN);
+    const isHit = (r.FLAG === '1');
+    if (isHit) {
+      const nReason = r.NEXT_REASON || 'Unknown';
+      if (!nextReasonMap[nReason]) nextReasonMap[nReason] = 0;
+      nextReasonMap[nReason]++;
+    }
+  });
+
+  const totalWO = mtsnSet.size;
+  const topNextReasons = Object.entries(nextReasonMap).map(([name, hits]) => {
+    return { name, hits, impact: totalWO > 0 ? (hits / totalWO * 100) : 0 };
+  }).sort((a,b) => b.hits - a.hits).slice(0, 10);
+
+  if(!topNextReasons.length){
+    inner.innerHTML=`<div style="padding:12px 18px;color:var(--t3);font-size:11px">No repeat hit data available for this selection.</div>`
+    detailRow.style.display=''; triggerRow.querySelector('td:nth-child(2) span').textContent='▴'; return
   }
-  const nextRows=nextEntries.map((x,i)=>`
-    <tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
-      <td style="padding:6px 12px"><span class="rnk ${rk(i)}">${i+1}</span></td>
-      <td style="padding:6px 12px;font-weight:500;font-size:12px">${x[0]}</td>
-      <td style="padding:6px 12px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600">${x[1]}</td>
-      <td style="padding:6px 12px;text-align:right;font-size:11px"><span class="pill ${pc(x[1]/Math.max(totalNextCount,1)*100)}">${(x[1]/Math.max(totalNextCount,1)*100).toFixed(1)}%</span></td>
-    </tr>`).join('')
-  return`
-  <div style="padding:14px 18px;border-top:2px solid var(--info);animation:fi .2s ease both">
-    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--info);margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      🔁 Next SO Repeat Repair Reasons — ${entityName}
-      <span style="color:var(--t2);font-weight:400;text-transform:none">${totalHits} RRR hit WO${totalHits!==1?'s':''} &nbsp;·&nbsp; ${nextEntries.length} distinct reason${nextEntries.length!==1?'s':''} &nbsp;·&nbsp; ${totalNextCount} total occurrences</span>
-    </div>
-    <table style="width:100%;max-width:700px">
-      <thead><tr style="border-bottom:1px solid var(--border)">
-        <th style="${thS}">#</th>
-        <th style="${thS}">Next SO Repair Reason</th>
-        <th style="${thR}">Count</th>
-        <th style="${thR}">Share</th>
-      </tr></thead>
-      <tbody>${nextRows}</tbody>
-    </table>
-  </div>`
+
+  let html = `
+    <div style="padding:14px 18px;border-top:1px solid var(--border)">
+      <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--info);margin-bottom:10px">▸ Next SO Repeat Reasons — ${agName} ${agActiveMslMonth && agActiveMslMonth !== '__avg__' ? `(${agActiveMslMonth})` : ''}</div>
+      <table style="width:100%;font-size:11px">
+        <thead><tr style="border-bottom:1px solid var(--border)">
+          <th style="padding:4px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;text-transform:uppercase">Next SO Repeat Reason</th>
+          <th style="padding:4px 10px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;text-transform:uppercase">Hits (Count)</th>
+          <th style="padding:4px 10px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;text-transform:uppercase">RRR% Impact</th>
+        </tr></thead>
+        <tbody>
+  `;
+
+  topNextReasons.forEach(r => {
+    html += `
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
+        <td style="padding:6px 10px;font-weight:500">${r.name}</td>
+        <td style="padding:6px 10px;text-align:right;font-family:'IBM Plex Mono',monospace">${r.hits}</td>
+        <td style="padding:6px 10px;text-align:right"><span class="pill ${pc(r.impact)}">${r.impact.toFixed(1)}%</span></td>
+      </tr>
+    `;
+  });
+
+  html += `</tbody></table></div>`;
+  inner.innerHTML = html;
+  detailRow.style.display = '';
+  triggerRow.querySelector('td:nth-child(2) span').textContent = '▴';
 }
 
 function drawTL(){
   const months=[...new Set(filteredData.map(r=>r.MONTH).filter(Boolean))].sort()
   const active=tlActiveMslMonth
   const slicer=document.getElementById('tlMonthSlicer')
-  if(slicer) slicer.querySelectorAll('.msl-pill').forEach(p=>{
-    p.classList.toggle('active',p.classList.contains('avg-pill')?active==='__avg__':p.textContent===active)
-  })
+  if(slicer) slicer.querySelectorAll('.msl-pill').forEach(p=>p.classList.toggle('active',p.classList.contains('avg-pill')?active==='__avg__':p.textContent===active))
   const head=document.getElementById('tlDynHead')
   if(head) head.textContent=active==='__avg__'?'Avg RRR% ('+months.length+'mo)':active?active+' RRR%':'Overall RRR%'
   document.getElementById('tlTbody').innerHTML=tlData.map((t,i)=>{
@@ -1890,8 +1418,8 @@ function drawTL(){
       const d=(_tlMonthMap[t.name]||{})[active]||{pct:0,totalWO:0,rrrWO:0}
       dispPct=d.pct;dispMtsn=d.totalWO;dispRep=d.rrrWO
     } else{dispPct=t.pct;dispMtsn=t.totalWO;dispRep=t.rrrWO}
-    const keyEnc=encodeURIComponent(t.name)
-    return `<tr class="expand-trigger" onclick="toggleTLExpand(this,'${keyEnc}')" style="cursor:pointer" title="Click to see repair reasons">
+    return `
+    <tr class="expand-trigger" onclick="toggleTLExpand(this, '${encodeURIComponent(t.name)}')">
       <td><span class="rnk ${rk(i)}">${i+1}</span></td>
       <td style="font-weight:600">${t.name} <span style="font-size:10px;color:var(--t3);margin-left:4px">▾</span></td>
       <td class="mono">${t.agents}</td>
@@ -1899,28 +1427,78 @@ function drawTL(){
       <td class="mono">${dispMtsn.toLocaleString()}</td>
       <td class="mono">${dispRep}</td>
     </tr>
-    <tr class="expand-detail" id="tl-expand-${keyEnc}" style="display:none">
-      <td colspan="6" style="padding:0;background:var(--card2)">
-        <div id="tl-expand-inner-${keyEnc}"></div>
-      </td>
+    <tr class="expand-detail" id="tl-expand-${encodeURIComponent(t.name)}" style="display:none">
+      <td colspan="6" style="padding:0;background:var(--card2)"><div id="tl-expand-inner-${encodeURIComponent(t.name)}"></div></td>
     </tr>`
   }).join('')
 }
 
-function toggleTLExpand(triggerRow, keyEnc){
-  const detailRow=document.getElementById('tl-expand-'+keyEnc)
-  const inner=document.getElementById('tl-expand-inner-'+keyEnc)
-  const isOpen=detailRow.style.display!=='none'
+function toggleTLExpand(triggerRow, keyEnc) {
+  const detailRow = document.getElementById('tl-expand-'+keyEnc)
+  const inner = document.getElementById('tl-expand-inner-'+keyEnc)
+  const isOpen = detailRow.style.display !== 'none'
   document.querySelectorAll('#tlTbody .expand-detail').forEach(r=>r.style.display='none')
   document.querySelectorAll('#tlTbody .expand-trigger td:nth-child(2) span').forEach(s=>s.textContent='▾')
-  if(isOpen) return
-  const tlName=decodeURIComponent(keyEnc)
-  const t=tlData.find(x=>x.name===tlName)
-  if(!t) return
-  inner.innerHTML=buildReasonExpandHtml(t.name, t.reasons, t.nextReasons, t.rrrWO)
-  detailRow.style.display=''
-  triggerRow.querySelector('td:nth-child(2) span').textContent='▴'
+  if(isOpen){ return }
+
+  const tlName = decodeURIComponent(keyEnc)
+  let rows = filteredData.filter(r => r.TL === tlName);
+
+  if (tlActiveMslMonth && tlActiveMslMonth !== '__avg__') {
+    rows = rows.filter(r => r.MONTH === tlActiveMslMonth);
+  }
+
+  const nextReasonMap = {};
+  const mtsnSet = new Set();
+
+  rows.forEach(r => {
+    if (r.MTSN) mtsnSet.add(r.MTSN);
+    const isHit = (r.FLAG === '1');
+    if (isHit) {
+      const nReason = r.NEXT_REASON || 'Unknown';
+      if (!nextReasonMap[nReason]) nextReasonMap[nReason] = 0;
+      nextReasonMap[nReason]++;
+    }
+  });
+
+  const totalWO = mtsnSet.size;
+  const topNextReasons = Object.entries(nextReasonMap).map(([name, hits]) => {
+    return { name, hits, impact: totalWO > 0 ? (hits / totalWO * 100) : 0 };
+  }).sort((a,b) => b.hits - a.hits).slice(0, 10);
+
+  if(!topNextReasons.length){
+    inner.innerHTML=`<div style="padding:12px 18px;color:var(--t3);font-size:11px">No repeat hit data available for this selection.</div>`
+    detailRow.style.display=''; triggerRow.querySelector('td:nth-child(2) span').textContent='▴'; return
+  }
+
+  let html = `
+    <div style="padding:14px 18px;border-top:1px solid var(--border)">
+      <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--info);margin-bottom:10px">▸ Next SO Repeat Reasons — ${tlName} ${tlActiveMslMonth && tlActiveMslMonth !== '__avg__' ? `(${tlActiveMslMonth})` : ''}</div>
+      <table style="width:100%;font-size:11px">
+        <thead><tr style="border-bottom:1px solid var(--border)">
+          <th style="padding:4px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;text-transform:uppercase">Next SO Repeat Reason</th>
+          <th style="padding:4px 10px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;text-transform:uppercase">Hits (Count)</th>
+          <th style="padding:4px 10px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;text-transform:uppercase">RRR% Impact</th>
+        </tr></thead>
+        <tbody>
+  `;
+
+  topNextReasons.forEach(r => {
+    html += `
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
+        <td style="padding:6px 10px;font-weight:500">${r.name}</td>
+        <td style="padding:6px 10px;text-align:right;font-family:'IBM Plex Mono',monospace">${r.hits}</td>
+        <td style="padding:6px 10px;text-align:right"><span class="pill ${pc(r.impact)}">${r.impact.toFixed(1)}%</span></td>
+      </tr>
+    `;
+  });
+
+  html += `</tbody></table></div>`;
+  inner.innerHTML = html;
+  detailRow.style.display = '';
+  triggerRow.querySelector('td:nth-child(2) span').textContent = '▴';
 }
+
 
 function drawMod(){
   document.getElementById('modTbody').innerHTML=modelData.map((m,i)=>`
@@ -1949,10 +1527,8 @@ function toggleModExpand(triggerRow, keyEnc){
   const modelName = decodeURIComponent(keyEnc)
   const symItems = getSubBreakdown('SUB',modelName,'SYMPTOM',filteredData)
   if(!symItems.length){
-    inner.innerHTML=`<div style="padding:12px 18px;color:var(--t3);font-size:11px">No symptom data available for this model.</div>`
-    detailRow.style.display=''
-    triggerRow.querySelector('td:nth-child(2) span').textContent='▴'
-    return
+    inner.innerHTML=`<div style="padding:12px 18px;color:var(--t3);font-size:11px">No data available.</div>`
+    detailRow.style.display=''; triggerRow.querySelector('td:nth-child(2) span').textContent='▴'; return
   }
   const maxVol = Math.max(...symItems.map(s=>s.totalWO),1)
   inner.innerHTML = `
@@ -1995,34 +1571,7 @@ function getSubBreakdown(parentKey, parentVal, groupKey, rows){
   }).sort((a,b)=>b.totalWO-a.totalWO).slice(0,8)
 }
 
-function expandRowHtml(label, items){
-  if(!items.length) return `<tr class="expand-row"><td colspan="5" style="padding:8px 18px;color:var(--t3);font-size:11px">No data</td></tr>`
-  const hdr=`<tr class="expand-row">
-    <td colspan="5" style="padding:0">
-      <div style="background:rgba(226,0,26,0.04);border-top:1px solid var(--border);padding:10px 18px 4px">
-        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:7px">▸ ${label}</div>
-        <table style="width:100%;font-size:11px">
-          <thead><tr style="border-bottom:1px solid var(--border)">
-            <th style="padding:4px 8px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;width:40%">Name</th>
-            <th style="padding:4px 8px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">MTSN</th>
-            <th style="padding:4px 8px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Flags</th>
-            <th style="padding:4px 8px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">RRR%</th>
-          </tr></thead>
-          <tbody>${items.map(x=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.02)">
-            <td style="padding:5px 8px;font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${x.name}">${x.name}</td>
-            <td style="padding:5px 8px;text-align:right;font-family:'IBM Plex Mono',monospace">${x.totalWO.toLocaleString()}</td>
-            <td style="padding:5px 8px;text-align:right;font-family:'IBM Plex Mono',monospace">${x.rrrWO}</td>
-            <td style="padding:5px 8px;text-align:right"><span class="pill ${pc(x.pct)}" style="font-size:10px">${x.pct.toFixed(1)}%</span></td>
-          </tr>`).join('')}</tbody>
-        </table>
-      </div>
-    </td></tr>`
-  return hdr
-}
-
-let venExpandedRow = null
 function drawVen(){
-  const rows = filteredData
   document.getElementById('venTbody').innerHTML=vendorData.map((v,i)=>`
     <tr class="expand-trigger" data-key="${encodeURIComponent(v.name)}" onclick="toggleVenExpand(this,'${encodeURIComponent(v.name)}')" style="cursor:pointer" title="Click to expand breakdown">
       <td><span class="rnk ${rk(i)}">${i+1}</span></td>
@@ -2042,7 +1591,6 @@ function toggleVenExpand(triggerRow, keyEnc){
   const detailRow = document.getElementById('ven-expand-'+keyEnc)
   const inner = document.getElementById('ven-expand-inner-'+keyEnc)
   const isOpen = detailRow.style.display !== 'none'
-  // close all
   document.querySelectorAll('#venTbody .expand-detail').forEach(r=>r.style.display='none')
   document.querySelectorAll('#venTbody .expand-trigger td:nth-child(2) span').forEach(s=>s.textContent='▾')
   if(isOpen){ return }
@@ -2051,12 +1599,8 @@ function toggleVenExpand(triggerRow, keyEnc){
   const accItems  = getSubBreakdown('VENDOR',vendorName,'ACCOUNT',rows)
   const modItems  = getSubBreakdown('VENDOR',vendorName,'SUB',rows)
   const symItems  = getSubBreakdown('VENDOR',vendorName,'SYMPTOM',rows)
-  inner.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:1px solid var(--border)">
-      ${buildExpandPanel('Top Accounts',accItems)}
-      ${buildExpandPanel('Top Sub-Series (Models)',modItems)}
-      ${buildExpandPanel('Top Symptoms',symItems)}
-    </div>`
+  inner.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:1px solid var(--border)">
+    ${buildExpandPanel('Top Accounts',accItems)}${buildExpandPanel('Top Models',modItems)}${buildExpandPanel('Top Symptoms',symItems)}</div>`
   detailRow.style.display = ''
   triggerRow.querySelector('td:nth-child(2) span').textContent = '▴'
 }
@@ -2070,194 +1614,129 @@ function buildExpandPanel(title, items){
     </div>`).join('') : `<div style="color:var(--t3);font-size:11px;padding:8px 0">No data</div>`
   return `<div style="padding:12px 14px;border-right:1px solid var(--border)">
     <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:8px">${title}</div>
-    <div style="font-size:9px;display:flex;justify-content:space-between;color:var(--t3);margin-bottom:4px;font-weight:700;letter-spacing:1px;text-transform:uppercase">
-      <span>Name</span><span>MTSN · RRR%</span>
-    </div>
-    ${rows}
-  </div>`
+    ${rows}</div>`
 }
-function drawRes(){
-  document.getElementById('resTbody').innerHTML=reasonData.map((r,i)=>`<tr>
-    <td><span class="rnk ${rk(i)}">${i+1}</span></td>
-    <td style="font-weight:600">${r.name}</td>
-    <td class="mono">${r.totalWO.toLocaleString()}</td>
-    <td class="mono">${r.rrrWO.toLocaleString()}</td>
-    <td><span class="pill ${pc(r.pct)}">${r.pct.toFixed(1)}%</span></td>
-  </tr>`).join('')
-}
+function drawRes(){ document.getElementById('resTbody').innerHTML=reasonData.map((r,i)=>`<tr><td><span class="rnk ${rk(i)}">${i+1}</span></td><td style="font-weight:600">${r.name}</td><td class="mono">${r.totalWO.toLocaleString()}</td><td class="mono">${r.rrrWO.toLocaleString()}</td><td><span class="pill ${pc(r.pct)}">${r.pct.toFixed(1)}%</span></td></tr>`).join('') }
+
 function drawSym(){
-  document.getElementById('symTbody').innerHTML=symptomData.map((s,i)=>`<tr>
-    <td><span class="rnk ${rk(i)}">${i+1}</span></td>
-    <td style="font-weight:600">${s.name}</td>
-    <td class="mono">${s.totalWO.toLocaleString()}</td>
-    <td class="mono">${s.rrrWO}</td>
-    <td><span class="pill ${pc(s.pct)}">${s.pct.toFixed(1)}%</span></td>
-  </tr>`).join('')
+  document.getElementById('symTbody').innerHTML=symptomData.map((s,i)=>`
+    <tr class="expand-trigger" onclick="toggleSymExpand(this, '${encodeURIComponent(s.name)}')">
+      <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+      <td style="font-weight:600">${s.name} <span style="font-size:10px;color:var(--t3);margin-left:4px">▾</span></td>
+      <td class="mono">${s.totalWO.toLocaleString()}</td>
+      <td class="mono">${s.rrrWO}</td>
+      <td><span class="pill ${pc(s.pct)}">${s.pct.toFixed(1)}%</span></td>
+    </tr>
+    <tr class="expand-detail" id="sym-expand-${encodeURIComponent(s.name)}" style="display:none">
+      <td colspan="5" style="padding:0;background:var(--card2)"><div id="sym-expand-inner-${encodeURIComponent(s.name)}"></div></td>
+    </tr>`).join('');
 }
+
+function toggleSymExpand(triggerRow, keyEnc){
+  const detailRow = document.getElementById('sym-expand-'+keyEnc);
+  const inner = document.getElementById('sym-expand-inner-'+keyEnc);
+  const isOpen = detailRow.style.display !== 'none';
+  document.querySelectorAll('#symTbody .expand-detail').forEach(r=>r.style.display='none');
+  document.querySelectorAll('#symTbody .expand-trigger td:nth-child(2) span').forEach(s=>s.textContent='▾');
+  if(isOpen) return;
+
+  const symName = decodeURIComponent(keyEnc);
+  const modItems = getSubBreakdown('SYMPTOM', symName, 'SUB', filteredData);
+  
+  if(!modItems.length){
+    inner.innerHTML = `<div style="padding:12px 18px;color:var(--t3);font-size:11px">No data available.</div>`;
+    detailRow.style.display=''; triggerRow.querySelector('td:nth-child(2) span').textContent='▴'; return;
+  }
+  
+  const maxVol = Math.max(...modItems.map(m=>m.totalWO), 1);
+  inner.innerHTML = `
+    <div style="padding:14px 18px;border-top:1px solid var(--border)">
+      <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:10px">▸ Top Models Causing Issue — ${symName}</div>
+      <table style="width:100%;font-size:11px">
+        <thead><tr style="border-bottom:1px solid var(--border)">
+          <th style="padding:4px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">#</th>
+          <th style="padding:4px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Model (Sub Series)</th>
+          <th style="padding:4px 10px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Volume (MTSN)</th>
+          <th style="padding:4px 10px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Repeat Flags</th>
+          <th style="padding:4px 10px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">RRR%</th>
+          <th style="padding:4px 10px;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Volume Bar</th>
+        </tr></thead>
+        <tbody>${modItems.map((m,i)=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
+          <td style="padding:6px 10px"><span class="rnk ${rk(i)}">${i+1}</span></td>
+          <td style="padding:6px 10px;font-weight:500">${m.name}</td>
+          <td style="padding:6px 10px;text-align:right;font-family:'IBM Plex Mono',monospace">${m.totalWO.toLocaleString()}</td>
+          <td style="padding:6px 10px;text-align:right;font-family:'IBM Plex Mono',monospace">${m.rrrWO}</td>
+          <td style="padding:6px 10px;text-align:right"><span class="pill ${pc(m.pct)}">${m.pct.toFixed(1)}%</span></td>
+          <td style="padding:6px 10px"><div class="ibar-w"><div class="ibar" style="width:${Math.max(2,m.totalWO/maxVol*120)}px"></div><span style="font-size:10px;color:var(--t3);margin-left:4px">${m.totalWO}</span></div></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+  detailRow.style.display = '';
+  triggerRow.querySelector('td:nth-child(2) span').textContent = '▴';
+}
+
 function drawAcc(){
   document.getElementById('accTbody').innerHTML=accountData.map((a,i)=>`
-    <tr class="expand-trigger" onclick="toggleAccExpand(this,'${encodeURIComponent(a.name)}')" style="cursor:pointer" title="Click to expand breakdown">
-      <td><span class="rnk ${rk(i)}">${i+1}</span></td>
-      <td style="font-weight:600">${a.name} <span style="font-size:10px;color:var(--t3);margin-left:4px">▾</span></td>
-      <td class="mono">${a.totalWO.toLocaleString()}</td>
-      <td class="mono">${a.rrrWO}</td>
-      <td><span class="pill ${pc(a.pct)}">${a.pct.toFixed(1)}%</span></td>
+    <tr class="expand-trigger" onclick="toggleAccExpand(this,'${encodeURIComponent(a.name)}')" style="cursor:pointer">
+      <td><span class="rnk ${rk(i)}">${i+1}</span></td><td style="font-weight:600">${a.name} <span>▾</span></td><td class="mono">${a.totalWO}</td><td class="mono">${a.rrrWO}</td><td><span class="pill ${pc(a.pct)}">${a.pct.toFixed(1)}%</span></td>
     </tr>
-    <tr class="expand-detail" id="acc-expand-${encodeURIComponent(a.name)}" style="display:none">
-      <td colspan="5" style="padding:0;background:var(--card2)">
-        <div id="acc-expand-inner-${encodeURIComponent(a.name)}"></div>
-      </td>
-    </tr>`).join('')
+    <tr class="expand-detail" id="acc-expand-${encodeURIComponent(a.name)}" style="display:none"><td colspan="5" style="padding:0;background:var(--card2)"><div id="acc-expand-inner-${encodeURIComponent(a.name)}"></div></td></tr>`).join('')
 }
 
 function toggleAccExpand(triggerRow, keyEnc){
   const detailRow = document.getElementById('acc-expand-'+keyEnc)
   const inner = document.getElementById('acc-expand-inner-'+keyEnc)
-  const isOpen = detailRow.style.display !== 'none'
+  if(detailRow.style.display !== 'none'){ return }
   document.querySelectorAll('#accTbody .expand-detail').forEach(r=>r.style.display='none')
   document.querySelectorAll('#accTbody .expand-trigger td:nth-child(2) span').forEach(s=>s.textContent='▾')
-  if(isOpen){ return }
   const accName = decodeURIComponent(keyEnc)
-  const rows = filteredData
-  const venItems = getSubBreakdown('ACCOUNT',accName,'VENDOR',rows)
-  const modItems = getSubBreakdown('ACCOUNT',accName,'SUB',rows)
-  const symItems = getSubBreakdown('ACCOUNT',accName,'SYMPTOM',rows)
-  inner.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:1px solid var(--border)">
-      ${buildExpandPanel('Top Vendors',venItems)}
-      ${buildExpandPanel('Top Sub-Series (Models)',modItems)}
-      ${buildExpandPanel('Top Symptoms',symItems)}
-    </div>`
+  inner.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:1px solid var(--border)">
+    ${buildExpandPanel('Top Vendors',getSubBreakdown('ACCOUNT',accName,'VENDOR',filteredData))}
+    ${buildExpandPanel('Top Models',getSubBreakdown('ACCOUNT',accName,'SUB',filteredData))}
+    ${buildExpandPanel('Top Symptoms',getSubBreakdown('ACCOUNT',accName,'SYMPTOM',filteredData))}</div>`
   detailRow.style.display = ''
   triggerRow.querySelector('td:nth-child(2) span').textContent = '▴'
 }
-function drawWk(){
-  document.getElementById('wkTbody').innerHTML=weekData.map(w=>`<tr>
-    <td style="font-weight:600">${w.name}</td>
-    <td class="mono">${w.totalWO.toLocaleString()}</td>
-    <td class="mono">${w.rrrWO}</td>
-    <td class="mono">${w.cleanWO}</td>
-    <td><span class="pill ${pc(w.pct)}">${w.pct.toFixed(1)}%</span></td>
-  </tr>`).join('')
-}
+
+function drawWk(){ document.getElementById('wkTbody').innerHTML=weekData.map(w=>`<tr><td style="font-weight:600">${w.name}</td><td class="mono">${w.totalWO.toLocaleString()}</td><td class="mono">${w.rrrWO}</td><td class="mono">${w.cleanWO}</td><td><span class="pill ${pc(w.pct)}">${w.pct.toFixed(1)}%</span></td></tr>`).join('') }
 
 function drawAgentRisk(){
   document.getElementById('agentRiskTbody').innerHTML=agentRiskData.map((a,i)=>{
-    const momHtml = a.momChange!=null
-      ? `<span style="${a.trendClass};font-weight:700;font-family:'IBM Plex Mono',monospace">${a.momChange>=0?'+':''}${a.momChange.toFixed(1)}pp</span>`
-      : `<span style="color:var(--t3)">—</span>`
+    const momHtml = a.momChange!=null ? `<span style="${a.trendClass};font-weight:700;font-family:'IBM Plex Mono',monospace">${a.momChange>=0?'+':''}${a.momChange.toFixed(1)}pp</span>` : `<span style="color:var(--t3)">—</span>`
     return `
-    <tr class="expand-trigger" onclick="toggleAgentRiskExpand(this,'${encodeURIComponent(a.agent)}')" style="cursor:pointer" title="Click to expand full analysis">
-      <td><span class="rnk ${rk(i)}">${i+1}</span></td>
-      <td style="font-weight:600">${a.agent} <span style="font-size:10px;color:var(--t3);margin-left:4px">▾</span></td>
-      <td style="color:var(--t2);font-size:11px">${a.tl}</td>
-      <td class="mono">${a.vol3m.toLocaleString()}</td>
-      <td><span class="pill ${pc(a.latestPct)}">${a.latestPct.toFixed(1)}%</span></td>
-      <td>${momHtml}</td>
-      <td style="${a.trendClass};font-weight:600;font-size:12px">${a.trend}</td>
-      <td style="font-size:11px;color:var(--t2)">${a.topMod.name} <span style="color:var(--t3)">(${a.topMod.totalWO})</span></td>
-      <td style="font-size:11px;color:var(--t2)">${a.topSym.name} <span style="color:var(--t3)">(${a.topSym.totalWO})</span></td>
-      <td>${a.riskLevel}</td>
+    <tr class="expand-trigger" onclick="toggleAgentRiskExpand(this,'${encodeURIComponent(a.agent)}')">
+      <td><span class="rnk ${rk(i)}">${i+1}</span></td><td style="font-weight:600">${a.agent} <span>▾</span></td><td style="color:var(--t2);font-size:11px">${a.tl}</td>
+      <td class="mono">${a.vol3m}</td><td><span class="pill ${pc(a.latestPct)}">${a.latestPct.toFixed(1)}%</span></td><td>${momHtml}</td>
+      <td style="${a.trendClass};font-weight:600;font-size:12px">${a.trend}</td><td style="font-size:11px;color:var(--t2)">${a.topMod.name}</td>
+      <td style="font-size:11px;color:var(--t2)">${a.topSym.name}</td><td>${a.riskLevel}</td>
     </tr>
-    <tr class="expand-detail" id="ar-expand-${encodeURIComponent(a.agent)}" style="display:none">
-      <td colspan="10" style="padding:0;background:var(--card2)">
-        <div id="ar-expand-inner-${encodeURIComponent(a.agent)}"></div>
-      </td>
-    </tr>`
+    <tr class="expand-detail" id="ar-expand-${encodeURIComponent(a.agent)}" style="display:none"><td colspan="10" style="padding:0;background:var(--card2)"><div id="ar-expand-inner-${encodeURIComponent(a.agent)}"></div></td></tr>`
   }).join('')
 }
 
 function toggleAgentRiskExpand(triggerRow, keyEnc){
   const detailRow=document.getElementById('ar-expand-'+keyEnc)
   const inner=document.getElementById('ar-expand-inner-'+keyEnc)
-  const isOpen=detailRow.style.display!=='none'
+  if(detailRow.style.display!=='none') return
   document.querySelectorAll('#agentRiskTbody .expand-detail').forEach(r=>r.style.display='none')
   document.querySelectorAll('#agentRiskTbody .expand-trigger td:nth-child(2) span').forEach(s=>s.textContent='▾')
-  if(isOpen) return
-  const agentName=decodeURIComponent(keyEnc)
-  const a=agentRiskData.find(x=>x.agent===agentName)
+  const a=agentRiskData.find(x=>x.agent===decodeURIComponent(keyEnc))
   if(!a) return
 
-  // Month-wise table
   const moRows=a.moKeys.map((mo,i)=>{
-    const d=a.moStats[mo]
-    const prev=i>0?a.moStats[a.moKeys[i-1]]:null
-    const chg=prev?(d.pct-prev.pct):null
-    const chgHtml=chg!=null?`<span style="font-weight:700;color:${chg>=5?'#ff4455':chg>=2?'#f5a623':chg<=-2?'#00c96d':'var(--t2)'}">${chg>=0?'+':''}${chg.toFixed(1)}pp</span>`:'<span style="color:var(--t3)">—</span>'
-    const spike=chg!=null&&chg>=5?' <span style="font-size:10px;background:var(--bad-d);color:#ff4455;padding:1px 6px;border-radius:3px;font-weight:700">SPIKE</span>':''
-    return `<tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
-      <td style="padding:5px 10px;font-weight:600;font-family:'IBM Plex Mono',monospace">${mo}${spike}</td>
-      <td style="padding:5px 10px;font-family:'IBM Plex Mono',monospace">${d.totalWO.toLocaleString()}</td>
-      <td style="padding:5px 10px;font-family:'IBM Plex Mono',monospace">${d.rrrWO}</td>
-      <td style="padding:5px 10px"><span class="pill ${pc(d.pct)}">${d.pct.toFixed(1)}%</span></td>
-      <td style="padding:5px 10px">${chgHtml}</td>
-    </tr>`
+    const d=a.moStats[mo], prev=i>0?a.moStats[a.moKeys[i-1]]:null, chg=prev?(d.pct-prev.pct):null
+    return `<tr style="border-bottom:1px solid rgba(255,255,255,0.03)"><td style="padding:5px 10px">${mo}</td><td style="padding:5px 10px">${d.totalWO}</td><td style="padding:5px 10px">${d.rrrWO}</td><td style="padding:5px 10px"><span class="pill ${pc(d.pct)}">${d.pct.toFixed(1)}%</span></td></tr>`
   }).join('')
+  const modRows=a.modList.map(m=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.02)"><td style="padding:5px 8px;font-size:11px">${m.name}</td><td style="padding:5px 8px;text-align:right">${m.totalWO}</td><td style="padding:5px 8px;text-align:right"><span class="pill ${pc(m.pct)}" style="font-size:10px">${m.pct.toFixed(1)}%</span></td></tr>`).join('')
+  const symRows=a.symList.map(s=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.02)"><td style="padding:5px 8px;font-size:11px">${s.name}</td><td style="padding:5px 8px;text-align:right">${s.totalWO}</td><td style="padding:5px 8px;text-align:right"><span class="pill ${pc(s.pct)}" style="font-size:10px">${s.pct.toFixed(1)}%</span></td></tr>`).join('')
 
-  // Model breakdown (volume-first, top 8)
-  const modRows=a.modList.map((m,i)=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.02)">
-    <td style="padding:5px 8px"><span class="rnk ${rk(i)}">${i+1}</span></td>
-    <td style="padding:5px 8px;font-weight:500;font-size:11px">${m.name}</td>
-    <td style="padding:5px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11px">${m.totalWO}</td>
-    <td style="padding:5px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11px">${m.rrrWO}</td>
-    <td style="padding:5px 8px;text-align:right"><span class="pill ${pc(m.pct)}" style="font-size:10px">${m.pct.toFixed(1)}%</span></td>
-  </tr>`).join('')
-
-  // Symptom breakdown (volume-first, top 8)
-  const symRows=a.symList.map((s,i)=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.02)">
-    <td style="padding:5px 8px"><span class="rnk ${rk(i)}">${i+1}</span></td>
-    <td style="padding:5px 8px;font-weight:500;font-size:11px">${s.name}</td>
-    <td style="padding:5px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11px">${s.totalWO}</td>
-    <td style="padding:5px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11px">${s.rrrWO}</td>
-    <td style="padding:5px 8px;text-align:right"><span class="pill ${pc(s.pct)}" style="font-size:10px">${s.pct.toFixed(1)}%</span></td>
-  </tr>`).join('')
-
-  const thS='padding:4px 8px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase'
-  const thR='padding:4px 8px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase'
-
-  inner.innerHTML=`
-  <div style="padding:16px 18px;border-top:2px solid var(--red);animation:fi .2s ease both">
-    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--red);margin-bottom:14px;text-transform:uppercase">
-      ▸ Full 3-Month Analysis — ${agentName} &nbsp;·&nbsp; <span style="color:var(--t2);font-weight:400">TL: ${a.tl}</span>
-      &nbsp;·&nbsp; <span style="color:var(--t2);font-weight:400">Predicted next: <strong style="color:${a.predictedRRR>=15?'#ff4455':a.predictedRRR>=8?'#f5a623':'#00c96d'}">${a.predictedRRR.toFixed(1)}%</strong></span>
-    </div>
+  inner.innerHTML=`<div style="padding:16px 18px;border-top:2px solid var(--red);">
+    <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:14px;">▸ Full 3-Month Analysis — ${a.agent}</div>
     <div style="display:grid;grid-template-columns:1fr 1.2fr 1.2fr;gap:14px">
-
-      <div>
-        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--info);margin-bottom:8px">Month-on-Month Trend</div>
-        <table style="width:100%">
-          <thead><tr>
-            <th style="${thS}">Month</th><th style="${thR}">MTSN</th><th style="${thR}">Flags</th>
-            <th style="${thR}">RRR%</th><th style="${thR}">Change</th>
-          </tr></thead>
-          <tbody>${moRows||'<tr><td colspan="5" style="padding:8px;color:var(--t3)">No data</td></tr>'}</tbody>
-        </table>
-      </div>
-
-      <div>
-        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--warn);margin-bottom:8px">Top Models by Volume</div>
-        <table style="width:100%">
-          <thead><tr>
-            <th style="${thS}">#</th><th style="${thS}">Sub-Series</th><th style="${thR}">MTSN</th>
-            <th style="${thR}">Flags</th><th style="${thR}">RRR%</th>
-          </tr></thead>
-          <tbody>${modRows||'<tr><td colspan="5" style="padding:8px;color:var(--t3)">No data</td></tr>'}</tbody>
-        </table>
-      </div>
-
-      <div>
-        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--ok);margin-bottom:8px">Top Symptoms by Volume</div>
-        <table style="width:100%">
-          <thead><tr>
-            <th style="${thS}">#</th><th style="${thS}">Symptom</th><th style="${thR}">MTSN</th>
-            <th style="${thR}">Flags</th><th style="${thR}">RRR%</th>
-          </tr></thead>
-          <tbody>${symRows||'<tr><td colspan="5" style="padding:8px;color:var(--t3)">No data</td></tr>'}</tbody>
-        </table>
-      </div>
-
-    </div>
-  </div>`
+      <div><div style="font-size:9px;color:var(--info);margin-bottom:8px">Month-on-Month Trend</div><table style="width:100%"><tbody>${moRows}</tbody></table></div>
+      <div><div style="font-size:9px;color:var(--warn);margin-bottom:8px">Top Models</div><table style="width:100%"><tbody>${modRows}</tbody></table></div>
+      <div><div style="font-size:9px;color:var(--ok);margin-bottom:8px">Top Symptoms</div><table style="width:100%"><tbody>${symRows}</tbody></table></div>
+    </div></div>`
   detailRow.style.display=''
   triggerRow.querySelector('td:nth-child(2) span').textContent='▴'
 }
@@ -2265,9 +1744,7 @@ function toggleAgentRiskExpand(triggerRow, keyEnc){
 /* ══════════════════════════════════════════════
    HCS ANALYZER
 ══════════════════════════════════════════════ */
-function isHCS70(hcsVal){
-  return String(hcsVal).trim().startsWith('>=')
-}
+function isHCS70(hcsVal){ return String(hcsVal).trim().startsWith('>=') }
 function normaliseScenario(s){
   const sv=String(s).trim().toLowerCase()
   if(sv==='compliance'||sv==='compliant') return 'Compliance'
@@ -2278,474 +1755,472 @@ function normaliseScenario(s){
 function buildHCSAnalyzer(){
   const hcsSource = filteredData.length ? filteredData : rawData
   if(!hcsSource.length || !IDX.HCS || IDX.HCS < 0){
-    document.getElementById('hcsEmptyMsg').style.display='flex'
-    document.getElementById('hcsContent').style.display='none'
-    return 
+    document.getElementById('hcsEmptyMsg').style.display='flex'; document.getElementById('hcsContent').style.display='none'; return 
   }
-  document.getElementById('hcsEmptyMsg').style.display='none'
-  document.getElementById('hcsContent').style.display='block'
+  document.getElementById('hcsEmptyMsg').style.display='none'; document.getElementById('hcsContent').style.display='block'
 
   const monthSelect = document.getElementById('hcsMonthFilter');
   const allMonths =[...new Set(hcsSource.map(r=>r.MONTH).filter(Boolean))].sort();
-  
   const currentOptions = Array.from(monthSelect.options).map(o => o.value).filter(v => v !== "");
   if (currentOptions.join(',') !== allMonths.join(',')) {
     const savedVal = monthSelect.value;
-    monthSelect.innerHTML = '<option value="">All Months</option>' +
-      allMonths.map(m => `<option value="${m}">${m}</option>`).join('');
+    monthSelect.innerHTML = '<option value="">All Months</option>' + allMonths.map(m => `<option value="${m}">${m}</option>`).join('');
     if(allMonths.includes(savedVal)) monthSelect.value = savedVal;
   }
-
   const selectedMonth = monthSelect.value;
   const data = selectedMonth ? hcsSource.filter(r => r.MONTH === selectedMonth) : hcsSource;
-
   const agMap = {}
 
   data.forEach(r=>{
     const agent = r.NAME || 'Unknown'
-    if(!agMap[agent]) {
-      agMap[agent] = {
-        name: agent,
-        comp70: 0,
-        nonComp70: 0,
-        comp70_rrrHits: 0,
-        comp70_reasons: {}
-      }
-    }
+    if(!agMap[agent]) agMap[agent] = { name: agent, comp70: 0, nonComp70: 0, comp70_rrrHits: 0, comp70_reasons: {} }
     const a = agMap[agent]
-
-    const isHCS_a = isHCS70(r.HCS)
-    const sc = normaliseScenario(r.SCENARIO)
-
-    if(isHCS_a) {
+    if(isHCS70(r.HCS)) {
+      const sc = normaliseScenario(r.SCENARIO)
       if(sc === 'Compliance') {
-        a.comp70++
-        if(r.FLAG === '1') {
-           a.comp70_rrrHits++
-           if(r.REASON) {
-             a.comp70_reasons[r.REASON] = (a.comp70_reasons[r.REASON] || 0) + 1;
-           }
-        }
-      } else if(sc === 'Non-Compliance') {
-        a.nonComp70++
-      }
+        a.comp70++; if(r.FLAG === '1') { a.comp70_rrrHits++; if(r.REASON) a.comp70_reasons[r.REASON] = (a.comp70_reasons[r.REASON] || 0) + 1; }
+      } else if(sc === 'Non-Compliance') { a.nonComp70++ }
     }
   })
 
-  /* ── TABLE 1: Compliance × RRR Hit Mapping (Show all agents with compliance > 0) ── */
-  const compAgentsList = Object.values(agMap)
-    .filter(a => a.comp70 > 0)
-    .sort((a,b) => b.comp70_rrrHits - a.comp70_rrrHits)
-
+  const compAgentsList = Object.values(agMap).filter(a => a.comp70 > 0).sort((a,b) => b.comp70_rrrHits - a.comp70_rrrHits)
   document.getElementById('hcsRrrTbody').innerHTML = compAgentsList.map((a,i)=>{
     const hitPct = (a.comp70_rrrHits / a.comp70) * 100
-    const reasonsArr = Object.entries(a.comp70_reasons)
-           .sort((x,y) => y[1] - x[1])
-           .map(x => `${x[0]} <span style="color:var(--t3);font-size:10px">(${x[1]})</span>`);
-    const reasons = reasonsArr.length > 0 ? reasonsArr.join('<br>') : '<span style="color:var(--t3)">—</span>'
-    const insight = a.comp70_rrrHits > 0 
-           ? `<span style="color:#ff4455;font-size:11px">⚠️ Compliant but has RRR hits</span>`
-           : `<span style="color:#00c96d;font-size:11px">✅ Compliant & Clean</span>`
+    const reasons = Object.entries(a.comp70_reasons).sort((x,y) => y[1] - x[1]).map(x => `${x[0]} <span style="color:var(--t3);font-size:10px">(${x[1]})</span>`).join('<br>') || '<span style="color:var(--t3)">—</span>'
+    const insight = a.comp70_rrrHits > 0 ? `<span style="color:#ff4455;font-size:11px">⚠️ Hits found</span>` : `<span style="color:#00c96d;font-size:11px">✅ Clean</span>`
+    return `<tr><td><span class="rnk ${rk(i)}">${i+1}</span></td><td style="font-weight:600">${a.name}</td><td class="mono"><span style="color:#00c96d">${a.comp70}</span></td><td class="mono">${a.comp70_rrrHits}</td><td><span style="color:${a.comp70_rrrHits > 0 ? '#ff4455' : 'var(--t3)'}">${hitPct.toFixed(1)}%</span></td><td style="font-size:11px">${reasons}</td><td>${insight}</td></tr>`
+  }).join('') || `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--t3);">No data found.</td></tr>`
 
-    return `<tr>
-      <td><span class="rnk ${rk(i)}">${i+1}</span></td>
-      <td style="font-weight:600">${a.name}</td>
-      <td class="mono"><span style="color:#00c96d">${a.comp70}</span></td>
-      <td class="mono">${a.comp70_rrrHits > 0 ? `<span class="pill p-bad">${a.comp70_rrrHits}</span>` : `<span style="color:var(--t3)">0</span>`}</td>
-      <td class="mono"><span style="color:${a.comp70_rrrHits > 0 ? '#ff4455' : 'var(--t3)'}">${hitPct.toFixed(1)}%</span></td>
-      <td style="font-size:11px; max-width:280px; white-space:normal;">${reasons}</td>
-      <td>${insight}</td>
-    </tr>`
-  }).join('')
-
-  if(compAgentsList.length === 0){
-    document.getElementById('hcsRrrTbody').innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--t3);">No compliant records found.</td></tr>`
-  }
-
-  /* ── TABLE 2: HCS Compliance 70% ── */
-  const allCompAgents = Object.values(agMap)
-    .filter(a => (a.comp70 + a.nonComp70) > 0)
-    .sort((a,b) => b.comp70 - a.comp70)
-
+  const allCompAgents = Object.values(agMap).filter(a => (a.comp70 + a.nonComp70) > 0).sort((a,b) => b.comp70 - a.comp70)
   document.getElementById('hcsCompTbody').innerHTML = allCompAgents.map((a,i)=>{
     const total = a.comp70 + a.nonComp70
     const compPct = total > 0 ? (a.comp70 / total * 100) : 0
-    const compPctBadge = compPct >= 80
-      ? `<span class="pill p-ok">${compPct.toFixed(1)}%</span>`
-      : compPct >= 50
-      ? `<span class="pill p-mid">${compPct.toFixed(1)}%</span>`
-      : `<span class="pill p-bad">${compPct.toFixed(1)}%</span>`
     const status = compPct >= 80 ? '✅ Good' : compPct >= 50 ? '⚠️ Moderate' : '🔴 Low'
-
-    return `<tr>
-      <td><span class="rnk ${rk(i)}">${i+1}</span></td>
-      <td style="font-weight:600">${a.name}</td>
-      <td class="mono">${total}</td>
-      <td class="mono"><span style="color:#00c96d">${a.comp70}</span></td>
-      <td class="mono"><span style="color:#ff4455">${a.nonComp70}</span></td>
-      <td style="text-align:center">${compPctBadge}</td>
-      <td>${status}</td>
-    </tr>`
-  }).join('')
-
-  if(allCompAgents.length === 0){
-    document.getElementById('hcsCompTbody').innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--t3);">No relevant HCS compliance data found.</td></tr>`
-  }
+    return `<tr><td><span class="rnk ${rk(i)}">${i+1}</span></td><td style="font-weight:600">${a.name}</td><td class="mono">${total}</td><td class="mono"><span style="color:#00c96d">${a.comp70}</span></td><td class="mono"><span style="color:#ff4455">${a.nonComp70}</span></td><td><span class="pill ${compPct>=80?'p-ok':compPct>=50?'p-mid':'p-bad'}">${compPct.toFixed(1)}%</span></td><td>${status}</td></tr>`
+  }).join('') || `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--t3);">No data found.</td></tr>`
 }
 
 /* ── AUTO REPORT SCOPE UI ── */
 function updateReportScope() {
   const type = document.getElementById('reportScopeType').value;
   const wrap = document.getElementById('reportScopeNameWrap');
-  const nameSel = document.getElementById('reportScopeName');
-  
-  if (type === 'Overall') {
-    wrap.style.display = 'none';
-  } else {
-    wrap.style.display = 'block';
-    const names = uniq(type === 'Agent' ? 'NAME' : 'TL');
-    fillSel('reportScopeName', `Select ${type}...`, names);
+  if (type === 'Overall') { wrap.style.display = 'none'; } else {
+    wrap.style.display = 'block'; fillSel('reportScopeName', `Select ${type}...`, uniq(type === 'Agent' ? 'NAME' : 'TL'));
   }
 }
 
-/* ── SORT ── */
+/* ── SORT / SEARCH / TABS / CSV ── */
 const SS={}
 function srt(dataVar,key,defDir,tbodyId,drawFn){
-  const dm={agentData,tlData,modelData,vendorData,reasonData,symptomData,accountData,weekData,agentRiskData}
+  const dm={agentData,tlData,modelData,vendorData,reasonData,symptomData,accountData,weekData,agentRiskData,actionPlanData}
   const arr=dm[dataVar]; if(!arr) return
-  const prev=SS[tbodyId]||{}
-  const dir=prev.key===key&&prev.dir===1?-1:1
-  SS[tbodyId]={key,dir}
-  arr.sort((a,b)=>{
-    let av=a[key],bv=b[key]
-    if(typeof av==='string'){av=av.toLowerCase();bv=bv.toLowerCase()}
-    return dir*(av>bv?1:av<bv?-1:0)
-  })
+  const prev=SS[tbodyId]||{}; const dir=prev.key===key&&prev.dir===1?-1:1; SS[tbodyId]={key,dir}
+  arr.sort((a,b)=>{ let av=a[key],bv=b[key]; if(typeof av==='string'){av=av.toLowerCase();bv=bv.toLowerCase()} return dir*(av>bv?1:av<bv?-1:0) })
   drawFn()
 }
-
-/* ── SEARCH ── */
 function srch(tbodyId,q){
   const lq=q.toLowerCase()
-  document.getElementById(tbodyId).querySelectorAll('tr').forEach(tr=>{
-    tr.style.display=tr.textContent.toLowerCase().includes(lq)?'':'none'
-  })
+  document.getElementById(tbodyId).querySelectorAll('tr').forEach(tr=>tr.style.display=tr.textContent.toLowerCase().includes(lq)?'':'none')
 }
-
-/* ── TABS ── */
 function sw(name,btn){
-  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'))
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'))
-  btn.classList.add('on')
-  document.getElementById('tab-'+name).classList.add('on')
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on')); document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'))
+  btn.classList.add('on'); document.getElementById('tab-'+name).classList.add('on')
 }
-
-/* ── EXPORT CSV ── */
 function exportCSV(){
   if(!filteredData.length){alert('No data to export.');return}
-  const keys=Object.keys(COLS)
-  const hdrs=Object.values(COLS)
-  const lines=[hdrs.map(h=>`"${h}"`).join(',')]
-  filteredData.forEach(r=>{
-    lines.push(keys.map(k=>`"${(r[k]||'').replace(/"/g,'""')}"`).join(','))
-  })
-  const a=document.createElement('a')
-  a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'}))
-  a.download='RRR_Export_'+new Date().toISOString().slice(0,10)+'.csv'
-  a.click()
+  const keys=Object.keys(COLS); const hdrs=Object.values(COLS); const lines=[hdrs.map(h=>`"${h}"`).join(',')]
+  filteredData.forEach(r=>lines.push(keys.map(k=>`"${(r[k]||'').replace(/"/g,'""')}"`).join(',')))
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'})); a.download='RRR_Export_'+new Date().toISOString().slice(0,10)+'.csv'; a.click()
 }
 
-/* ── PDF REPORT GENERATOR ── */
-function generatePDFReport(){
-  if(!filteredData.length){alert('No data to analyze. Please upload data first.');return}
-  
+/* ── REPORT GENERATORS (PDF & EXCEL) ── */
+function getScopeData() {
   const type = document.getElementById('reportScopeType').value;
-  const targetName = document.getElementById('reportScopeName').value;
-  if((type === 'Agent' || type === 'TL') && !targetName) {
-    alert(`Please select a specific ${type} from the dropdown.`); return;
-  }
+  const name = document.getElementById('reportScopeName').value;
+  let data = filteredData;
+  if (type === 'Agent' && name) data = filteredData.filter(r => r.NAME === name);
+  if (type === 'TL' && name) data = filteredData.filter(r => r.TL === name);
+  return { type, name, data };
+}
 
-  let reportRows = filteredData;
-  let titleStr = 'Overall RRR Intelligence Report';
-  if(type === 'Agent') { reportRows = filteredData.filter(r => r.NAME === targetName); titleStr = `RRR Report — Agent: ${targetName}`; }
-  if(type === 'TL')    { reportRows = filteredData.filter(r => r.TL === targetName);   titleStr = `RRR Report — TL: ${targetName}`; }
-  
-  const stats = getRRRStats(reportRows);
-  const {jsPDF}=window.jspdf
-  const doc=new jsPDF()
-  const pw=doc.internal.pageSize.getWidth()
-  const dateStr=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})
-
-  // ── COVER HEADER ──
-  doc.setFillColor(226,0,26); doc.rect(0,0,pw,38,'F')
-  doc.setTextColor(255,255,255); doc.setFontSize(16); doc.setFont(undefined,'bold')
-  doc.text(titleStr, pw/2, 17, {align:'center'})
-  doc.setFontSize(9); doc.setFont(undefined,'normal')
-  doc.text(`Generated: ${dateStr}  |  Records Analyzed: ${reportRows.length.toLocaleString()}  |  Scope: ${type}`, pw/2, 28, {align:'center'})
-  doc.setTextColor(0,0,0)
-
-  // ── HELPER ──
-  const addSection=(label, startY)=>{
-    if(startY > 255){doc.addPage(); startY=18}
-    doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.setTextColor(226,0,26)
-    doc.text(label, 14, startY); doc.setTextColor(0,0,0)
-    return startY+5
-  }
-
-  // ══ 1. EXECUTIVE SUMMARY ══
-  let y = addSection('1. Executive Summary', 46)
-  doc.autoTable({startY:y, theme:'grid', headStyles:{fillColor:[226,0,26]},
-    head:[['Metric','Value']],
-    body:[
-      ['Distinct MTSN (Denominator)', stats.totalWO.toLocaleString()],
-      ['Repeat Flags (RRR Hits)', stats.rrrWO.toLocaleString()],
-      ['Clean MTSN (0 hits)', stats.cleanWO.toLocaleString()],
-      ['Overall RRR %', stats.pct.toFixed(2)+'%'],
-      ['Risk Level', stats.pct>=15?'HIGH RISK':stats.pct>=8?'MODERATE':'ON TARGET']
-    ]
-  })
-  y = doc.lastAutoTable.finalY + 12
-
-  // ══ 2. AGENT PERFORMANCE (for TL scope) or AGENT SELF STATS ══
-  if(type==='TL'){
-    // List all agents under this TL
-    const agMap={}
-    reportRows.forEach(r=>{
-      const a=r.NAME||'Unknown'
-      if(!agMap[a]) agMap[a]={mtsnMap:new Map(),num:0}
-      const isHit=(r.FLAG==='1')
-      if(isHit) agMap[a].num++
-      if(r.MTSN) agMap[a].mtsnMap.set(r.MTSN,(agMap[a].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
-    })
-    const agList=Object.entries(agMap).map(([name,g])=>{
-      const t=g.mtsnMap.size,n=g.num
-      return[name,t,n,(t>0?(n/t*100):0).toFixed(1)+'%']
-    }).sort((a,b)=>parseFloat(b[3])-parseFloat(a[3]))
-    y = addSection('2. Agent Breakdown Under TL: '+targetName, y)
-    doc.autoTable({startY:y, theme:'grid', headStyles:{fillColor:[60,60,60]},
-      head:[['Agent','Distinct MTSN','RRR Hits','RRR %']],
-      body:agList
-    })
-    y = doc.lastAutoTable.finalY + 12
-  }
-
-  // ══ 3. MONTHLY TREND ══
-  if(y>250){doc.addPage();y=18}
-  y = addSection((type==='TL'?'3':'2')+'. Monthly RRR Trend', y)
-  const monthlyData=grp(reportRows,r=>r.MONTH).sort((a,b)=>a.name.localeCompare(b.name))
-  doc.autoTable({startY:y, theme:'grid', headStyles:{fillColor:[0,102,204]},
-    head:[['Month','Distinct MTSN','Repeat Flags','Clean MTSN','RRR %']],
-    body:monthlyData.map(m=>[m.name,m.totalWO.toLocaleString(),m.rrrWO,m.cleanWO,m.pct.toFixed(1)+'%'])
-  })
-  y = doc.lastAutoTable.finalY + 12
-
-  // ══ 4. WEEKLY TREND ══
-  if(y>250){doc.addPage();y=18}
-  const secN=(type==='TL'?4:3)
-  y = addSection(secN+'. Weekly RRR Trend', y)
-  const weeklyData=grp(reportRows,r=>r.WEEK).sort((a,b)=>String(a.name).localeCompare(String(b.name)))
-  doc.autoTable({startY:y, theme:'grid', headStyles:{fillColor:[0,102,204]},
-    head:[['Week','Distinct MTSN','Repeat Flags','Clean MTSN','RRR %']],
-    body:weeklyData.map(w=>[w.name,w.totalWO.toLocaleString(),w.rrrWO,w.cleanWO,w.pct.toFixed(1)+'%'])
-  })
-  y = doc.lastAutoTable.finalY + 12
-
-  // ══ 5. HCS ANALYSIS ══
-  if(IDX.HCS>=0){
-    if(y>250){doc.addPage();y=18}
-    const secH=(type==='TL'?5:4)
-    y = addSection(secH+'. HCS Compliance Analysis (HCS ≥ 70%)', y)
-    // Per-agent HCS breakdown for the scope
-    const hcsAgMap={}
-    reportRows.forEach(r=>{
-      const a=type==='Agent'?targetName:(r.NAME||'Unknown')
-      if(!hcsAgMap[a]) hcsAgMap[a]={comp70:0,nonComp70:0,rrrHits:0}
-      if(isHCS70(r.HCS)){
-        const sc=normaliseScenario(r.SCENARIO)
-        if(sc==='Compliance'){hcsAgMap[a].comp70++;if(r.FLAG==='1')hcsAgMap[a].rrrHits++}
-        else if(sc==='Non-Compliance')hcsAgMap[a].nonComp70++
-      }
-    })
-    const hcsRows=Object.entries(hcsAgMap).map(([name,d])=>{
-      const tot=d.comp70+d.nonComp70
-      const compPct=tot>0?(d.comp70/tot*100):0
-      const hitPct=d.comp70>0?(d.rrrHits/d.comp70*100):0
-      return[name,d.comp70,d.nonComp70,tot,compPct.toFixed(1)+'%',d.rrrHits,hitPct.toFixed(1)+'%',
-        compPct>=80?'Good':compPct>=50?'Moderate':'Low']
-    }).sort((a,b)=>parseFloat(b[6])-parseFloat(a[6]))
-    doc.autoTable({startY:y, theme:'grid', headStyles:{fillColor:[0,102,204]},
-      head:[['Agent','Compliance','Non-Compliance','Total','Compliance %','RRR Hits','% Hit','Status']],
-      body:hcsRows, styles:{fontSize:8}, columnStyles:{4:{halign:'right'},5:{halign:'right'},6:{halign:'right'}}
-    })
-    y = doc.lastAutoTable.finalY + 12
-  }
-
-  // ══ 6. AGENT RISK DETAILS ══
-  if(y>250){doc.addPage();y=18}
-  const secR=(type==='TL'?(IDX.HCS>=0?6:5):(IDX.HCS>=0?5:4))
-  y = addSection(secR+'. Agent Risk Profile (Last 3 Months)', y)
-  // Build risk data for this scope
-  const allMonths=[...new Set(reportRows.map(r=>r.MONTH).filter(Boolean))].sort()
-  const last3=allMonths.slice(-3)
-  const rows3m=last3.length?reportRows.filter(r=>last3.includes(r.MONTH)):reportRows
-  const riskAgMap={}
-  rows3m.forEach(r=>{
-    const a=r.NAME||'Unknown'
-    if(!riskAgMap[a]) riskAgMap[a]={mtsnMap:new Map(),num:0,monthMap:{}}
-    const isHit=(r.FLAG==='1')
-    if(isHit) riskAgMap[a].num++
-    if(r.MTSN) riskAgMap[a].mtsnMap.set(r.MTSN,(riskAgMap[a].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
-    const mo=r.MONTH||'?'
-    if(!riskAgMap[a].monthMap[mo]) riskAgMap[a].monthMap[mo]={mtsnMap:new Map(),num:0}
-    if(isHit) riskAgMap[a].monthMap[mo].num++
-    if(r.MTSN) riskAgMap[a].monthMap[mo].mtsnMap.set(r.MTSN,(riskAgMap[a].monthMap[mo].mtsnMap.get(r.MTSN)||0)+(isHit?1:0))
-  })
-  const riskRows=Object.entries(riskAgMap).map(([name,g])=>{
-    const vol3m=g.mtsnMap.size, rrrWO=g.num
-    const pctOverall=vol3m>0?(rrrWO/vol3m*100):0
-    const moKeys=Object.keys(g.monthMap).sort()
-    const latestMo=moKeys[moKeys.length-1], prevMo=moKeys[moKeys.length-2]
-    const latestD=latestMo?g.monthMap[latestMo]:null
-    const prevD=prevMo?g.monthMap[prevMo]:null
-    const latPct=latestD?(latestD.num/Math.max(latestD.mtsnMap.size,1)*100):pctOverall
-    const prevPct=prevD?(prevD.num/Math.max(prevD.mtsnMap.size,1)*100):null
-    const mom=prevPct!=null?(latPct-prevPct):null
-    const predicted=prevPct!=null?Math.max(0,latPct+(mom*.5)):latPct
-    const risk=predicted>=20?'High':predicted>=10?'Medium':'Low'
-    const trend=mom==null?'Stable':mom>=5?'Spiked':mom>=2?'Worsening':mom<=-2?'Improving':'Stable'
-    return[name,vol3m,rrrWO,pctOverall.toFixed(1)+'%',latPct.toFixed(1)+'%',
-      mom!=null?((mom>=0?'+':'')+mom.toFixed(1)+'pp'):'—',trend,risk]
-  }).sort((a,b)=>parseFloat(b[3])-parseFloat(a[3]))
-  doc.autoTable({startY:y, theme:'grid', headStyles:{fillColor:[60,60,60]},
-    head:[['Agent','3M MTSN','RRR Hits','Overall RRR%','Latest RRR%','MoM Chg','Trend','Risk']],
-    body:riskRows, styles:{fontSize:8}
-  })
-  y = doc.lastAutoTable.finalY + 12
-
-  // ══ 7. TOP SYMPTOMS ══
-  if(y>250){doc.addPage();y=18}
-  const secS=secR+1
-  y = addSection(secS+'. Top Problem Symptoms', y)
-  const symData=grp(reportRows,r=>r.SYMPTOM).sort((a,b)=>b.totalWO-a.totalWO).slice(0,15)
-  doc.autoTable({startY:y, theme:'grid', headStyles:{fillColor:[60,60,60]},
-    head:[['Symptom','Distinct MTSN','Repeat Flags','RRR %']],
-    body:symData.map(s=>[s.name,s.totalWO.toLocaleString(),s.rrrWO,s.pct.toFixed(1)+'%'])
-  })
-  y = doc.lastAutoTable.finalY + 12
-
-  // ══ 8. REPAIR REASONS (from NEXT_REASON column) ══
-  if(y>250){doc.addPage();y=18}
-  const secRR=secS+1
-  y = addSection(secRR+'. Next SO Repeat Repair Reasons', y)
-  // Aggregate NEXT_REASON from RRR hit rows in scope
-  const nextReasonsMap={}
-  reportRows.forEach(r=>{
-    if(r.FLAG==='1' && r.NEXT_REASON){
-      nextReasonsMap[r.NEXT_REASON]=(nextReasonsMap[r.NEXT_REASON]||0)+1
+function getScopedReportData(rows) {
+  const hcsByWeek = {};
+  rows.forEach(r => {
+    if(IDX.HCS >= 0 && r.HCS && isHCS70(r.HCS)) {
+      const wk = r.WEEK || 'Unknown';
+      const sc = normaliseScenario(r.SCENARIO);
+      if(!hcsByWeek[wk]) hcsByWeek[wk] = { comp: 0, nonComp: 0 };
+      if(sc === 'Compliance') hcsByWeek[wk].comp++;
+      else if(sc === 'Non-Compliance') hcsByWeek[wk].nonComp++;
     }
-  })
-  const nextReasonEntries=Object.entries(nextReasonsMap).sort((a,b)=>b[1]-a[1])
-  const totalNextHits=nextReasonEntries.reduce((s,x)=>s+x[1],0)
-  if(nextReasonEntries.length){
-    doc.autoTable({startY:y, theme:'grid', headStyles:{fillColor:[0,102,204]},
-      head:[['Next SO Repair Reason','Count','Share %']],
-      body:nextReasonEntries.map(x=>[x[0],x[1],(x[1]/Math.max(totalNextHits,1)*100).toFixed(1)+'%'])
-    })
-  } else {
-    doc.setFontSize(9); doc.setFont(undefined,'italic'); doc.setTextColor(150,150,150)
-    doc.text(IDX.NEXT_REASON>=0?'No Next SO Repair Reason data found for this scope.':'Column "Next SO Repeat Repair Reason" not detected in the file.', 14, y+4)
-    doc.setTextColor(0,0,0); doc.setFont(undefined,'normal')
-    y += 12
-  }
+  });
+  const hcsMap = {};
+  Object.keys(hcsByWeek).forEach(w => {
+    const t = hcsByWeek[w].comp + hcsByWeek[w].nonComp;
+    hcsMap[w] = t > 0 ? (hcsByWeek[w].comp / t * 100) : 0;
+  });
 
-  doc.save(`RRR_Report_${targetName ? targetName.replace(/[^a-z0-9]/gi,'_') : 'Overall'}_${new Date().toISOString().slice(0,10)}.pdf`);
+  return {
+    agents: grp(rows, r => r.NAME).filter(a => a.totalWO > 1).sort((a,b) => b.pct - a.pct).slice(0, 10),
+    symptoms: grp(rows, r => r.SYMPTOM).sort((a,b) => b.rrrWO - a.rrrWO).slice(0, 10),
+    models: grp(rows, r => r.SUB).sort((a,b) => b.rrrWO - a.rrrWO).slice(0, 10),
+    weeks: grp(rows, r => r.WEEK).sort((a,b) => String(a.name).localeCompare(String(b.name))).slice(-8).map(w => ({ ...w, hcsPct: hcsMap[w.name] !== undefined ? hcsMap[w.name] : null })),
+    months: grp(rows, r => r.MONTH).sort((a,b) => String(a.name).localeCompare(String(b.name))).slice(-3),
+    venTrend: buildEntityMonthlyTrend(rows, 'VENDOR').slice(0, 5),
+    accTrend: buildEntityMonthlyTrend(rows, 'ACCOUNT').slice(0, 5),
+    actionPlans: getScopedActionPlanData(rows)
+  };
 }
 
-/* ── EXCEL REPORT GENERATOR ── */
-function generateExcelReport(){
-  if(!filteredData.length){alert('No data to analyze.');return}
-  
-  const type = document.getElementById('reportScopeType').value;
-  const targetName = document.getElementById('reportScopeName').value;
-  if((type === 'Agent' || type === 'TL') && !targetName) {
-    alert(`Please select a specific ${type} from the dropdown.`); return;
-  }
+function generatePDFReport(){
+  if (!filteredData || !filteredData.length) { alert("Please load a file first."); return; }
+  prog(20, "Generating PDF Report...");
+  setTimeout(() => {
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const scope = getScopeData();
+      const title = `Lenovo RRR Analysis Report - ${scope.type}${scope.type !== 'Overall' ? ': ' + scope.name : ''}`;
+      
+      doc.setFontSize(16); doc.setTextColor(226, 0, 26); doc.text(title, 14, 20);
+      doc.setFontSize(10); doc.setTextColor(100, 100, 100); doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+      
+      const stats = getRRRStats(scope.data);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`Distinct MTSN: ${stats.totalWO} | RRR Hits: ${stats.rrrWO} | Overall RRR: ${stats.pct.toFixed(2)}%`, 14, 36);
+      
+      const repData = getScopedReportData(scope.data);
+      let startY = 45;
 
-  let reportRows = filteredData;
-  let titleStr = 'Overall RRR Intelligence Report';
-  if(type === 'Agent') { reportRows = filteredData.filter(r => r.NAME === targetName); titleStr = `RRR Analysis Report - Agent: ${targetName}`; }
-  if(type === 'TL') { reportRows = filteredData.filter(r => r.TL === targetName); titleStr = `RRR Analysis Report - TL: ${targetName}`; }
+      const addTable = (title, head, body) => {
+         if (!body || body.length === 0) return;
+         doc.setFontSize(11);
+         doc.setTextColor(0,0,0);
+         doc.text(title, 14, startY);
+         doc.autoTable({
+           startY: startY + 4,
+           head: [head],
+           body: body,
+           styles: { fontSize: 8 },
+           headStyles: { fillColor: [226, 0, 26] },
+           margin: { bottom: 15 }
+         });
+         startY = doc.lastAutoTable.finalY + 12;
+         if (startY > 260) { doc.addPage(); startY = 20; }
+      };
 
-  const stats = getRRRStats(reportRows);
-  const wb=XLSX.utils.book_new();
-
-  // Sheet 1: Summary
-  const ws1=XLSX.utils.aoa_to_sheet([['Lenovo RRR Intelligence Report'],
-    [titleStr],[`Generated: ${new Date().toLocaleDateString()}`],[],['Metric','Value'],['Overall RRR %',stats.pct.toFixed(2)+'%'],['Distinct MTSN (Denominator)',stats.totalWO],
-    ['Repeat Flags (Hits)',stats.rrrWO],['Clean MTSN (0 hits)',stats.cleanWO]
-  ])
-  XLSX.utils.book_append_sheet(wb,ws1,'Summary')
-
-  // Sheet 2: Monthly & Weekly Trend
-  const monthlyData = grp(reportRows, r=>r.MONTH).sort((a,b)=>a.name.localeCompare(b.name));
-  const weeklyData = grp(reportRows, r=>r.WEEK).sort((a,b)=>a.name.localeCompare(b.name));
-  const ws2=XLSX.utils.aoa_to_sheet([
-    ['--- MONTHLY TREND ---'],['Month','Distinct MTSN','Repeat Flags','Clean MTSN','RRR %'],
-    ...monthlyData.map(m=>[m.name, m.totalWO, m.rrrWO, m.cleanWO, m.pct.toFixed(1)+'%']),
-    [], ['--- WEEKLY TREND ---'],['Week','Distinct MTSN','Repeat Flags','Clean MTSN','RRR %'],
-    ...weeklyData.map(w=>[w.name, w.totalWO, w.rrrWO, w.cleanWO, w.pct.toFixed(1)+'%'])
-  ]);
-  XLSX.utils.book_append_sheet(wb,ws2,'Time Trends')
-
-  // Sheet 3: Symptoms
-  const symData = grp(reportRows, r=>r.SYMPTOM).sort((a,b)=>b.totalWO - a.totalWO);
-  const ws3=XLSX.utils.aoa_to_sheet([['Symptom','Distinct MTSN','Repeat Flags','RRR %'],
-    ...symData.map(s=>[s.name, s.totalWO, s.rrrWO, s.pct.toFixed(1)+'%'])
-  ]);
-  XLSX.utils.book_append_sheet(wb,ws3,'Symptoms')
-
-  // Sheet 4: Reasons
-  const resData = grp(reportRows, r=>r.REASON).filter(g=>g.name!=='Unknown'&&g.name!=='Not Specified').sort((a,b)=>b.totalWO - a.totalWO);
-  const ws4=XLSX.utils.aoa_to_sheet([['Reason','Distinct MTSN','Repeat Flags','RRR %'],
-    ...resData.map(re=>[re.name, re.totalWO, re.rrrWO, re.pct.toFixed(1)+'%'])
-  ]);
-  XLSX.utils.book_append_sheet(wb,ws4,'Repair Reasons')
-
-  // Sheet 5: HCS Analyzer (if exists)
-  if(IDX.HCS >= 0) {
-    const agMap={}
-    reportRows.forEach(r=>{
-      const a=r.NAME||'Unknown'
-      if(!agMap[a]) agMap[a]={comp70:0,nonComp70:0,comp70_rrrHits:0,comp70_reasons:{}}
-      const isHCS_a = isHCS70(r.HCS)
-      const sc = normaliseScenario(r.SCENARIO)
-      if(isHCS_a){
-         if(sc==='Compliance'){
-            agMap[a].comp70++
-            if(r.FLAG === '1'){
-               agMap[a].comp70_rrrHits++
-               if(r.REASON) agMap[a].comp70_reasons[r.REASON] = (agMap[a].comp70_reasons[r.REASON] || 0) + 1;
-            }
-         } else if (sc==='Non-Compliance'){
-            agMap[a].nonComp70++
-         }
+      if (scope.type !== 'Agent') {
+         addTable('1. Top 10 Defaulter Agents', 
+           ['Agent Name', 'Distinct MTSN', 'RRR Hits', 'RRR %'], 
+           repData.agents.map(a => [a.name, a.totalWO, a.rrrWO, a.pct.toFixed(1) + '%'])
+         );
       }
-    })
-    
-    const wsHCS=XLSX.utils.aoa_to_sheet([['Agent','Compliance 70%','Non-Compliance 70%','Total (C+NC)','Compliance %','RRR Hits (in Compliance)','% RRR Hit','Repair Reasons (Count)'],
-      ...Object.values(agMap).filter(a => a.comp70 > 0).sort((a,b)=>b.comp70_rrrHits - a.comp70_rrrHits).map(a=>{
-        const tot=a.comp70+a.nonComp70
-        const compPct=tot>0?(a.comp70/tot*100):0
-        const hitPct=a.comp70>0?(a.comp70_rrrHits/a.comp70*100):0
-        const reasonsArr = Object.entries(a.comp70_reasons).sort((x,y) => y[1] - x[1]).map(x => `${x[0]} (${x[1]})`);
-        const reasons = reasonsArr.length > 0 ? reasonsArr.join(', ') : 'None'
-        return[a.name,a.comp70,a.nonComp70,tot,compPct.toFixed(1)+'%',a.comp70_rrrHits,hitPct.toFixed(1)+'%',reasons]
-      })
-    ])
-    XLSX.utils.book_append_sheet(wb,wsHCS,'HCS Analyzer')
+
+      addTable('2. Top Symptoms', 
+        ['Symptom', 'Distinct MTSN', 'RRR Hits', 'RRR %'], 
+        repData.symptoms.map(s => [s.name, s.totalWO, s.rrrWO, s.pct.toFixed(1) + '%'])
+      );
+
+      addTable('3. Top Models', 
+        ['Sub Series', 'Distinct MTSN', 'RRR Hits', 'RRR %'], 
+        repData.models.map(m => [m.name, m.totalWO, m.rrrWO, m.pct.toFixed(1) + '%'])
+      );
+
+      addTable('4. RRR Action Plan (Misdiagnosed Parts)', 
+        ['Model', 'Symptom', 'First Part', 'Second Part', 'Hits'], 
+        repData.actionPlans.map(m => {
+           const c = m.topCombos[0];
+           return [m.name, c.sym, c.p1, c.p2, c.count.toString()];
+        })
+      );
+
+      addTable('5. Weekly Trend & HCS', 
+        ['Week', 'MTSN', 'RRR Hits', 'RRR %', 'HCS Compliance %'], 
+        repData.weeks.map(w => [w.name, w.totalWO, w.rrrWO, w.pct.toFixed(1) + '%', w.hcsPct !== null ? w.hcsPct.toFixed(1) + '%' : 'N/A'])
+      );
+
+      addTable('6. Monthly Trend', 
+        ['Month', 'Distinct MTSN', 'RRR Hits', 'RRR %'], 
+        repData.months.map(m => [m.name, m.totalWO, m.rrrWO, m.pct.toFixed(1) + '%'])
+      );
+
+      addTable('7. Vendor Trend (MoM)', 
+        ['Vendor', 'Latest RRR', 'Prev RRR', 'MoM Change', 'Signal'], 
+        repData.venTrend.map(v => [v.name, v.latestPct.toFixed(1)+'%', v.prevPct!==null?v.prevPct.toFixed(1)+'%':'-', v.momChange!==null?(v.momChange>0?'+':'')+v.momChange.toFixed(1)+'pp':'-', v.trendSignal])
+      );
+
+      addTable('8. Account Trend (MoM)', 
+        ['Account', 'Latest RRR', 'Prev RRR', 'MoM Change', 'Signal'], 
+        repData.accTrend.map(a => [a.name, a.latestPct.toFixed(1)+'%', a.prevPct!==null?a.prevPct.toFixed(1)+'%':'-', a.momChange!==null?(a.momChange>0?'+':'')+a.momChange.toFixed(1)+'pp':'-', a.trendSignal])
+      );
+
+      doc.save(`RRR_Report_${scope.type}_${new Date().toISOString().slice(0,10)}.pdf`);
+    } catch(e) {
+      console.error(e); alert("Error generating PDF: " + e.message);
+    }
+    noProg();
+  }, 50);
+}
+
+function generateExcelReport(){
+  if (!filteredData || !filteredData.length) { alert("Please load a file first."); return; }
+  prog(20, "Generating Excel Report...");
+  setTimeout(() => {
+    try {
+      const scope = getScopeData();
+      const stats = getRRRStats(scope.data);
+      const repData = getScopedReportData(scope.data);
+      const wb = XLSX.utils.book_new();
+      
+      const summaryData = [
+        ["Lenovo RRR Analysis Report"],
+        ["Scope:", scope.type, scope.name || "Overall"],
+        ["Generated:", new Date().toLocaleString()],
+        [],
+        ["Metric", "Value"],
+        ["Distinct MTSN", stats.totalWO],
+        ["Repeat Flags (Hits)", stats.rrrWO],
+        ["Overall RRR %", stats.pct.toFixed(2) + "%"]
+      ];
+      
+      const pushSection = (title, head, body) => {
+         if (!body || body.length === 0) return;
+         summaryData.push([]);
+         summaryData.push([`--- ${title} ---`]);
+         summaryData.push(head);
+         body.forEach(row => summaryData.push(row));
+      };
+
+      if (scope.type !== 'Agent') {
+         pushSection('TOP 10 DEFAULTER AGENTS', 
+           ['Agent Name', 'Distinct MTSN', 'RRR Hits', 'RRR %'], 
+           repData.agents.map(a => [a.name, a.totalWO, a.rrrWO, a.pct.toFixed(1) + '%'])
+         );
+      }
+
+      pushSection('TOP SYMPTOMS', 
+        ['Symptom', 'Distinct MTSN', 'RRR Hits', 'RRR %'], 
+        repData.symptoms.map(s => [s.name, s.totalWO, s.rrrWO, s.pct.toFixed(1) + '%'])
+      );
+
+      pushSection('TOP MODELS', 
+        ['Sub Series', 'Distinct MTSN', 'RRR Hits', 'RRR %'], 
+        repData.models.map(m => [m.name, m.totalWO, m.rrrWO, m.pct.toFixed(1) + '%'])
+      );
+
+      pushSection('ACTION PLAN (MISDIAGNOSED PARTS)', 
+        ['Model', 'Symptom', 'First Part', 'Second Part', 'Hits'], 
+        repData.actionPlans.map(m => {
+           const c = m.topCombos[0];
+           return [m.name, c.sym, c.p1, c.p2, c.count];
+        })
+      );
+
+      pushSection('WEEKLY TREND & HCS', 
+        ['Week', 'MTSN', 'RRR Hits', 'RRR %', 'HCS Compliance %'], 
+        repData.weeks.map(w => [w.name, w.totalWO, w.rrrWO, w.pct.toFixed(1) + '%', w.hcsPct !== null ? w.hcsPct.toFixed(1) + '%' : 'N/A'])
+      );
+
+      pushSection('MONTHLY TREND', 
+        ['Month', 'Distinct MTSN', 'RRR Hits', 'RRR %'], 
+        repData.months.map(m => [m.name, m.totalWO, m.rrrWO, m.pct.toFixed(1) + '%'])
+      );
+
+      pushSection('VENDOR TREND', 
+        ['Vendor', 'Latest RRR', 'Prev RRR', 'MoM Change', 'Signal'], 
+        repData.venTrend.map(v => [v.name, v.latestPct.toFixed(1)+'%', v.prevPct!==null?v.prevPct.toFixed(1)+'%':'-', v.momChange!==null?(v.momChange>0?'+':'')+v.momChange.toFixed(1)+'pp':'-', v.trendSignal])
+      );
+
+      pushSection('ACCOUNT TREND', 
+        ['Account', 'Latest RRR', 'Prev RRR', 'MoM Change', 'Signal'], 
+        repData.accTrend.map(a => [a.name, a.latestPct.toFixed(1)+'%', a.prevPct!==null?a.prevPct.toFixed(1)+'%':'-', a.momChange!==null?(a.momChange>0?'+':'')+a.momChange.toFixed(1)+'pp':'-', a.trendSignal])
+      );
+
+      const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
+      
+      const keys = Object.keys(COLS);
+      const hdrs = Object.values(COLS);
+      const rawRows = [hdrs];
+      scope.data.forEach(r => rawRows.push(keys.map(k => r[k] || '')));
+      
+      const wsData = XLSX.utils.aoa_to_sheet(rawRows);
+      XLSX.utils.book_append_sheet(wb, wsData, "Raw Data");
+      
+      XLSX.writeFile(wb, `RRR_Report_${scope.type}_${new Date().toISOString().slice(0,10)}.xlsx`);
+    } catch(e) {
+      console.error(e);
+      alert("Error generating Excel: " + e.message);
+    }
+    noProg();
+  }, 50);
+}
+
+/* ── POWER AUTOMATE EMAIL REPORT GENERATOR ── */
+async function triggerPowerAutomateEmail() {
+  if (!filteredData || !filteredData.length) {
+    alert("No data available. Please load a file first.");
+    return;
   }
 
-  XLSX.writeFile(wb,`RRR_Report_${targetName ? targetName.replace(/[^a-z0-9]/gi,'_') : 'Overall'}_${new Date().toISOString().slice(0,10)}.xlsx`)
+  prog(10, 'Compiling email report data...');
+
+  const topAgents = agentData.slice()
+      .filter(a => a.totalWO > 1)
+      .sort((a,b) => b.pct - a.pct)
+      .slice(0, 10);
+
+  const topSymptoms = symptomData.slice().sort((a,b) => b.rrrWO - a.rrrWO).slice(0, 5);
+  const topModels = modelData.slice().sort((a,b) => b.rrrWO - a.rrrWO).slice(0, 5);
+
+  const wkTd = weekData.slice(-8);
+  const moTd = grp(filteredData, r=>r.MONTH).sort((a,b)=>a.name.localeCompare(b.name)).slice(-3);
+  const vTrend = venTrendData.slice(0, 5);
+  const aTrend = accTrendData.slice(0, 5);
+
+  const hcsByWeek = {};
+  filteredData.forEach(r => {
+    if(IDX.HCS >= 0 && r.HCS && isHCS70(r.HCS)) {
+      const wk = r.WEEK || 'Unknown';
+      const sc = normaliseScenario(r.SCENARIO);
+      if(!hcsByWeek[wk]) hcsByWeek[wk] = { comp: 0, nonComp: 0 };
+      if(sc === 'Compliance') hcsByWeek[wk].comp++;
+      else if(sc === 'Non-Compliance') hcsByWeek[wk].nonComp++;
+    }
+  });
+  const hcsTrend = Object.keys(hcsByWeek).sort().slice(-8).map(w => {
+    const total = hcsByWeek[w].comp + hcsByWeek[w].nonComp;
+    const pct = total > 0 ? (hcsByWeek[w].comp / total * 100) : 0;
+    return { week: w, comp: hcsByWeek[w].comp, pct: pct };
+  });
+
+  let actionPlans = `<ul>`;
+  if (topAgents.length > 0) {
+    actionPlans += `<li><strong>Agent Coaching:</strong> Top defaulter is <b>${topAgents[0].name}</b> with ${topAgents[0].rrrWO} repeat hits (${topAgents[0].pct.toFixed(1)}% RRR). Immediate 1-on-1 review recommended on their top handled models.</li>`;
+  }
+  if (actionPlanData.length > 0) {
+    const m = actionPlanData[0];
+    const c = m.topCombos[0];
+    actionPlans += `<li><strong>Targeted Technical Review:</strong> On model <b>${m.name}</b> for symptom '<b>${c.sym}</b>', we repeatedly sent <b>${c.p1}</b> but resolved it later with <b>${c.p2}</b>. Standardize sending ${c.p2} on the first visit to reduce RRR.</li>`;
+  }
+  if (vTrend.length > 0 && vTrend[0].momChange !== null) {
+    const spikeDir = vTrend[0].momChange > 0 ? 'spiked' : 'dropped';
+    actionPlans += `<li><strong>Vendor Audit:</strong> Vendor <b>${vTrend[0].name}</b> has ${spikeDir} by ${vTrend[0].momChange.toFixed(1)}% MoM. Investigate their repair procedures on ${topModels[0].name} machines.</li>`;
+  }
+  if (hcsTrend.length > 1) {
+    const lastWk = hcsTrend[hcsTrend.length-1];
+    actionPlans += `<li><strong>HCS Compliance:</strong> Last week (${lastWk.week}) compliance sat at ${lastWk.pct.toFixed(1)}%. Ensure agents are actively executing HCS checks >70%.</li>`;
+  }
+  actionPlans += `</ul>`;
+
+  const topActionPlans = actionPlanData.slice(0, 5);
+  const tableStyle = `border-collapse: collapse; width: 100%; font-family: sans-serif; font-size: 12px; margin-bottom: 20px;`;
+  const thStyle = `background-color: #E2001A; color: white; padding: 8px; border: 1px solid #ccc; text-align: left;`;
+  const tdStyle = `padding: 8px; border: 1px solid #ccc;`;
+  const makeRow = (cells) => `<tr>${cells.map(c => `<td style="${tdStyle}">${c}</td>`).join('')}</tr>`;
+
+  let actionPlanRows = '';
+  if (topActionPlans.length > 0) {
+    actionPlanRows = topActionPlans.map(m => {
+        const c = m.topCombos[0];
+        return makeRow([m.name, c.sym, c.p1, c.p2, c.count]);
+    }).join('');
+  } else {
+    actionPlanRows = `<tr><td colspan="5" style="${tdStyle} text-align:center">No misdiagnosed part data found</td></tr>`;
+  }
+
+  let htmlBody = `
+    <h2 style="font-family: sans-serif; color: #333;">Lenovo RRR Intelligence Report</h2>
+    <p style="font-family: sans-serif;">Generated on: ${new Date().toLocaleString()}</p>
+    
+    <h3 style="font-family: sans-serif; color: #E2001A;">🚀 Recommended Action Plans</h3>
+    <div style="background: #f9f9f9; padding: 10px; border-left: 4px solid #E2001A; font-family: sans-serif; margin-bottom: 20px;">
+      ${actionPlans}
+    </div>
+
+    <h3 style="font-family: sans-serif;">1. Top 10 Defaulters (High RRR Hits)</h3>
+    <table style="${tableStyle}">
+      <tr><th style="${thStyle}">Agent Name</th><th style="${thStyle}">TL Name</th><th style="${thStyle}">Distinct MTSN</th><th style="${thStyle}">RRR Hits</th><th style="${thStyle}">RRR %</th></tr>
+      ${topAgents.map(a => makeRow([a.name, a.tl, a.totalWO, a.rrrWO, a.pct.toFixed(1) + '%'])).join('')}
+    </table>
+
+    <table style="width: 100%; border: none;"><tr><td style="vertical-align: top; padding-right: 10px;">
+        <h3 style="font-family: sans-serif;">2. Top 5 Symptoms</h3>
+        <table style="${tableStyle}">
+          <tr><th style="${thStyle}">Symptom</th><th style="${thStyle}">Hits</th><th style="${thStyle}">RRR %</th></tr>
+          ${topSymptoms.map(s => makeRow([s.name, s.rrrWO, s.pct.toFixed(1) + '%'])).join('')}
+        </table>
+    </td><td style="vertical-align: top; padding-left: 10px;">
+        <h3 style="font-family: sans-serif;">3. Top 5 Models</h3>
+        <table style="${tableStyle}">
+          <tr><th style="${thStyle}">Sub-Series</th><th style="${thStyle}">Hits</th><th style="${thStyle}">RRR %</th></tr>
+          ${topModels.map(m => makeRow([m.name, m.rrrWO, m.pct.toFixed(1) + '%'])).join('')}
+        </table>
+    </td></tr></table>
+
+    <h3 style="font-family: sans-serif;">4. RRR Action Plan (Misdiagnosed Parts)</h3>
+    <table style="${tableStyle}">
+      <tr><th style="${thStyle}">Model</th><th style="${thStyle}">Symptom</th><th style="${thStyle}">First Part (Failed)</th><th style="${thStyle}">Second Part (Resolved)</th><th style="${thStyle}">Hits</th></tr>
+      ${actionPlanRows}
+    </table>
+
+    <h3 style="font-family: sans-serif;">5. Weekly Trend & HCS Usage</h3>
+    <table style="${tableStyle}">
+      <tr><th style="${thStyle}">Week</th><th style="${thStyle}">MTSN</th><th style="${thStyle}">RRR Hits</th><th style="${thStyle}">RRR %</th><th style="${thStyle}">HCS Compliance %</th></tr>
+      ${wkTd.map(w => {
+        const hcs = hcsTrend.find(h => h.week === w.name);
+        const hcsStr = hcs ? hcs.pct.toFixed(1) + '%' : 'N/A';
+        return makeRow([w.name, w.totalWO, w.rrrWO, w.pct.toFixed(1) + '%', hcsStr]);
+      }).join('')}
+    </table>
+
+    <h3 style="font-family: sans-serif;">6. Monthly Trend (Last 3 Months)</h3>
+    <table style="${tableStyle}">
+      <tr><th style="${thStyle}">Month</th><th style="${thStyle}">Distinct MTSN</th><th style="${thStyle}">RRR Hits</th><th style="${thStyle}">RRR %</th></tr>
+      ${moTd.map(m => makeRow([m.name, m.totalWO, m.rrrWO, m.pct.toFixed(1) + '%'])).join('')}
+    </table>
+
+    <h3 style="font-family: sans-serif;">7. Vendor Trend (Past 2 Months)</h3>
+    <table style="${tableStyle}">
+      <tr><th style="${thStyle}">Vendor</th><th style="${thStyle}">Latest RRR %</th><th style="${thStyle}">Prev RRR %</th><th style="${thStyle}">MoM Change</th><th style="${thStyle}">Signal</th></tr>
+      ${vTrend.map(v => makeRow([v.name, v.latestPct.toFixed(1)+'%', v.prevPct?v.prevPct.toFixed(1)+'%':'-', v.momChange?(v.momChange>0?'+':'')+v.momChange.toFixed(1)+'pp':'-', v.trendSignal])).join('')}
+    </table>
+
+    <h3 style="font-family: sans-serif;">8. Account Trend (Past 2 Months)</h3>
+    <table style="${tableStyle}">
+      <tr><th style="${thStyle}">Account</th><th style="${thStyle}">Latest RRR %</th><th style="${thStyle}">Prev RRR %</th><th style="${thStyle}">MoM Change</th><th style="${thStyle}">Signal</th></tr>
+      ${aTrend.map(a => makeRow([a.name, a.latestPct.toFixed(1)+'%', a.prevPct?a.prevPct.toFixed(1)+'%':'-', a.momChange?(a.momChange>0?'+':'')+a.momChange.toFixed(1)+'pp':'-', a.trendSignal])).join('')}
+    </table>
+  `;
+
+  // === UPDATED WEBHOOK CALL TO POWER AUTOMATE ===
+  const powerAutomateUrl = "https://default5c7d0b28bdf8410caa934df372b162.03.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/aac6ae8f585441ec9f9d360ece5d5697/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=OEXNbwdyTY88NuMeDn3N4rphRoHfJy-usfBEJl1Hv8U"; 
+
+  const payload = {
+    targetEmail: "mjabbar@lenovo.com",
+    subject: "Lenovo RRR Dashboard - Executive Summary",
+    htmlBody: htmlBody
+  };
+
+  try {
+    prog(70, 'Sending payload to Power Automate...');
+    const response = await fetch(powerAutomateUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      noProg();
+      alert("✅ Report successfully sent to mjabbar@lenovo.com via Power Automate!");
+    } else {
+      throw new Error(`HTTP Error: ${response.status}`);
+    }
+  } catch (error) {
+    noProg();
+    console.error("Failed to send email:", error);
+    alert("❌ Failed to send email. Check browser console and ensure the Power Automate URL is correct.");
+  }
 }
 </script>
 </body>
