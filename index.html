@@ -690,6 +690,7 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
          <button class="tbtn" data-grp="leadership" onclick="sw('ledger',this)" style="color:#7ce0ff">👤 Accountability Ledger</button>
           <button class="tbtn" data-grp="leadership" onclick="sw('pareto',this)" style="color:#00c896">📊 Fix List (80-20)</button>
           <button class="tbtn" data-grp="leadership" onclick="sw('compare',this)" style="color:#7ce0ff">⚖️ Compare Periods</button>
+          <button class="tbtn" data-grp="leadership" onclick="sw('insights',this)" style="color:#a3f0c0">🔎 Insights</button>
         <div class="tab-divider"></div>
         <!-- PANEL 4 · SUMMARY -->
         <button class="tbtn" data-grp="summary" onclick="sw('summary',this)" style="color:#f5a623">🧭 Executive Summary</button>
@@ -1314,6 +1315,26 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
       </div>
     </div>
 
+    <div class="tab" id="tab-insights">
+      <div class="tc">
+        <div class="tc-hd">
+          <div>
+            <div class="tc-title">🔎 Insights — Multi-filter Deep Dive</div>
+            <div class="tc-meta">Stack filters (TL, Vendor, Account, Symptom, Reason, Model, Agent, Region, Month) to slice the data. See ranked contributors, cascade into drill-downs, and read the month-on-month trend of every repeat repair reason per model or symptom.</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" id="insCsvBtn" type="button" onclick="Insights && Insights.exportCSV()">⬇ Export CSV</button>
+            <button class="btn" id="insPdfBtn" type="button" onclick="Insights && Insights.exportPDF()">⬇ Export PDF</button>
+          </div>
+        </div>
+        <div id="insBody" style="padding:14px">
+          <div style="padding:32px;text-align:center;color:var(--t3);font-size:12px">Upload a file to start exploring insights.</div>
+        </div>
+      </div>
+    </div>
+
+
+
 
   </div><!-- /dashboard -->
 </main>
@@ -1562,9 +1583,21 @@ function v(id){ return document.getElementById(id).value }
 let _analyzeTimer = null
 function analyzeDebounced(){ clearTimeout(_analyzeTimer); prog(50,'Applying filters…'); _analyzeTimer = setTimeout(()=>{ analyze() }, 80) }
 
+function refreshInsightsNow(){
+  try{
+    if(window.Insights){
+      if(typeof window.Insights.onDataChanged === 'function') window.Insights.onDataChanged();
+      else if(typeof window.Insights.onOpen === 'function') window.Insights.onOpen();
+    }
+  }catch(e){ console.error('insights refresh', e); }
+}
+
 /* ── ANALYZE ── */
 function analyze(){
   const rows = filteredData
+  // Keep Leadership → Insights hydrated even while the tab is hidden, so it is
+  // ready immediately after upload and after every dashboard filter change.
+  refreshInsightsNow()
   if(!rows.length) return
   const {total,rrrWO,cleanWO,pct} = calcRRR(rows)
   document.getElementById('footerMeta').textContent=`${total.toLocaleString()} distinct MTSN · ${rrrWO.toLocaleString()} repeat flag · ${pct.toFixed(2)}% RRR`
@@ -1599,6 +1632,11 @@ function analyze(){
     sched(()=>{ try{ fn() } catch(e){ console.error(label, e) } runNext() })
   }
   runNext()
+  // Refresh Compare if its tab is open. Insights is refreshed unconditionally above.
+  try{
+    const cmpTab = document.getElementById('tab-compare');
+    if(cmpTab && cmpTab.classList.contains('on') && window.Compare && window.Compare.onOpen) window.Compare.onOpen();
+  }catch(e){ console.error('post-analyze refresh', e); }
 }
 
 /* ── KPIs ── */
@@ -3363,6 +3401,9 @@ function sw(name,btn){
   }
   if(name==='compare'){
     try{ window.Compare && window.Compare.onOpen && window.Compare.onOpen(); }catch(e){ console.error('compare open', e); }
+  }
+  if(name==='insights'){
+    try{ window.Insights && window.Insights.onOpen && window.Insights.onOpen(); }catch(e){ console.error('insights open', e); }
   }
 }
 function exportCSV(){
@@ -6462,6 +6503,983 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
 })();
 </script>
 
+<style>
+/* ═══ INSIGHTS EXPLORER (Leadership) — Lenovo theme ═══ */
+#tab-insights .ins-wrap{padding:4px 2px}
+#tab-insights .ins-filterbar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:var(--card);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:6px;padding:12px 14px;margin-bottom:14px}
+#tab-insights .ins-filterbar .lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);margin-right:4px;align-self:center}
+#tab-insights .ins-ms{position:relative;min-width:160px;flex:0 0 auto}
+#tab-insights .ins-ms .ms-cap{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);margin-bottom:4px}
+#tab-insights .ins-ms .ms-btn{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:5px;padding:7px 10px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--t1);font-family:inherit;transition:.15s}
+#tab-insights .ins-ms .ms-btn:hover{border-color:var(--red)}
+#tab-insights .ins-ms .ms-btn.active{border-color:var(--red);background:rgba(226,0,26,0.08)}
+#tab-insights .ins-ms .ms-cnt{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;min-width:20px;text-align:center;font-family:'IBM Plex Mono',monospace}
+#tab-insights .ins-ms .ms-cnt.zero{background:var(--border2);color:var(--t3)}
+#tab-insights .ins-ms .ms-panel{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:1px solid var(--border2);border-radius:6px;z-index:60;max-height:320px;display:none;flex-direction:column;box-shadow:0 12px 32px rgba(0,0,0,.55)}
+#tab-insights .ins-ms.open .ms-panel{display:flex}
+#tab-insights .ins-ms .ms-search{padding:8px;border-bottom:1px solid var(--border)}
+#tab-insights .ins-ms .ms-search input{width:100%;background:var(--dark);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--t1);font-size:12px;outline:none;font-family:inherit}
+#tab-insights .ins-ms .ms-search input:focus{border-color:var(--red)}
+#tab-insights .ins-ms .ms-list{overflow-y:auto;flex:1;padding:4px 0;max-height:220px}
+#tab-insights .ins-ms .ms-opt{display:flex;align-items:center;gap:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:var(--t1)}
+#tab-insights .ins-ms .ms-opt:hover{background:rgba(226,0,26,0.08)}
+#tab-insights .ins-ms .ms-opt input{accent-color:var(--red);width:13px;height:13px}
+#tab-insights .ins-ms .ms-opt .cnt{margin-left:auto;font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace}
+#tab-insights .ins-ms .ms-actions{display:flex;gap:6px;padding:6px;border-top:1px solid var(--border)}
+#tab-insights .ins-ms .ms-actions button{flex:1;background:var(--card2);border:1px solid var(--border);border-radius:4px;padding:4px;color:var(--t2);font-size:11px;cursor:pointer;font-family:inherit}
+#tab-insights .ins-ms .ms-actions button:hover{border-color:var(--red);color:var(--red)}
+#tab-insights .ins-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;min-height:6px}
+#tab-insights .ins-tag{display:inline-flex;align-items:center;gap:5px;background:var(--red-dim);border:1px solid rgba(226,0,26,0.4);color:var(--red);padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer}
+#tab-insights .ins-tag:hover{background:rgba(226,0,26,0.28)}
+#tab-insights .ins-tag .x{opacity:.75;font-weight:400}
+#tab-insights .ins-empty{padding:32px;text-align:center;color:var(--t3);font-size:12px}
+#tab-insights .ins-zero{background:var(--card);border:1px dashed var(--border2);border-radius:6px;padding:20px;text-align:center;color:var(--t3);font-size:12px;margin-bottom:14px}
+
+/* KPI row */
+#tab-insights .ins-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
+#tab-insights .ins-kpi{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:14px 14px 12px;position:relative;overflow:hidden}
+#tab-insights .ins-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--red)}
+#tab-insights .ins-kpi .k-lbl{font-size:9px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--t3);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+#tab-insights .ins-kpi .k-ic{opacity:.7;font-size:13px}
+#tab-insights .ins-kpi .k-val{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:500;line-height:1;color:var(--t1)}
+#tab-insights .ins-kpi .k-sub{font-size:10px;color:var(--t2);margin-top:5px;letter-spacing:.3px}
+@media(max-width:1100px){#tab-insights .ins-kpis{grid-template-columns:repeat(3,1fr)}}
+
+/* Section cards */
+#tab-insights .ins-sect{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:16px 16px 14px;margin-bottom:14px}
+#tab-insights .ins-sect-hd{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+#tab-insights .ins-sect-title{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.6px;color:var(--t1)}
+#tab-insights .ins-sect-title .dot{width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 8px var(--red-dim)}
+#tab-insights .ins-sect-meta{font-size:10px;color:var(--t3);letter-spacing:.3px}
+#tab-insights .ins-sect-meta .k{color:var(--red);font-weight:600}
+
+/* Drill table */
+#tab-insights .drill-tbl{width:100%;border-collapse:collapse;font-size:12px}
+#tab-insights .drill-tbl th{text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);font-weight:700;border-bottom:1px solid var(--border);white-space:nowrap;background:transparent}
+#tab-insights .drill-tbl td{padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;color:var(--t1);font-size:12px}
+#tab-insights .drill-tbl td.mono{font-family:'IBM Plex Mono',monospace}
+#tab-insights .drill-tbl td.hits{font-family:'IBM Plex Mono',monospace;color:var(--red);font-weight:600}
+#tab-insights .drill-tbl tr.row{cursor:pointer;transition:background .12s}
+#tab-insights .drill-tbl tr.row:hover{background:rgba(226,0,26,0.06)}
+#tab-insights .drill-tbl tr.row.expanded{background:rgba(226,0,26,0.04)}
+#tab-insights .drill-tbl tr.child{display:none}
+#tab-insights .drill-tbl tr.child.open{display:table-row}
+#tab-insights .drill-tbl tr.child > td{background:rgba(0,0,0,0.25);padding:0}
+body.light-mode #tab-insights .drill-tbl tr.child > td{background:rgba(0,0,0,0.03)}
+#tab-insights .drill-tbl .ex-ic{display:inline-block;width:12px;transition:transform .2s;color:var(--red);font-size:10px}
+#tab-insights .drill-tbl tr.expanded .ex-ic{transform:rotate(90deg)}
+#tab-insights .drill-tbl .scroll{overflow-x:auto}
+#tab-insights .rrr-bar{display:inline-block;width:52px;height:5px;background:var(--border2);border-radius:3px;overflow:hidden;vertical-align:middle;margin-right:6px}
+#tab-insights .rrr-bar-fill{height:100%;border-radius:3px}
+#tab-insights .pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:.3px;font-family:'IBM Plex Sans',sans-serif;white-space:nowrap}
+#tab-insights .pill-crit{background:rgba(226,0,26,0.18);color:#ff5c6c;border:1px solid rgba(226,0,26,0.4)}
+#tab-insights .pill-hi{background:rgba(255,140,0,0.15);color:#ffa64d;border:1px solid rgba(255,140,0,0.35)}
+#tab-insights .pill-mid{background:rgba(255,204,0,0.14);color:#ffd84d;border:1px solid rgba(255,204,0,0.32)}
+#tab-insights .pill-ok{background:rgba(46,204,113,0.14);color:#4de08a;border:1px solid rgba(46,204,113,0.34)}
+#tab-insights .pill-info{background:rgba(255,255,255,0.06);color:var(--t2);border:1px solid var(--border2)}
+#tab-insights .pin-tag{display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,0.04);border:1px solid var(--border2);color:var(--t3);padding:1px 8px;border-radius:99px;font-size:10px;font-weight:600;cursor:pointer;transition:.15s}
+#tab-insights .pin-tag:hover{background:var(--red-dim);color:var(--red);border-color:var(--red)}
+#tab-insights .pin-tag::before{content:'⚲ pin'}
+#tab-insights .pin-tag:hover::before{content:'⚲ pin'}
+#tab-insights .sub-tbl{width:100%;border-collapse:collapse;font-size:11.5px}
+#tab-insights .sub-tbl th{font-size:9px;letter-spacing:.5px;color:var(--t3);font-weight:700;text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);text-transform:uppercase}
+#tab-insights .sub-tbl td{padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+#tab-insights .sub-lbl{font-size:9px;font-weight:700;color:var(--t3);letter-spacing:1.3px;text-transform:uppercase;margin-bottom:6px}
+
+/* Two column grid */
+#tab-insights .ins-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:1100px){#tab-insights .ins-grid2{grid-template-columns:1fr}}
+
+/* Reason MoM matrix */
+#tab-insights .reason-mom-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#tab-insights .scope-btn{background:var(--card2);border:1px solid var(--border);color:var(--t2);border-radius:4px;padding:5px 9px;font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;cursor:pointer;font-family:inherit}
+#tab-insights .scope-btn.on{border-color:var(--red);background:var(--red-dim);color:var(--red)}
+#tab-insights .reason-mom-group{border:1px solid var(--border);border-radius:5px;margin-bottom:10px;overflow:hidden;background:rgba(255,255,255,0.02)}
+#tab-insights .reason-mom-group summary{list-style:none;display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 12px;cursor:pointer;background:var(--card2);font-size:12px;font-weight:700;color:var(--t1)}
+#tab-insights .reason-mom-group summary::-webkit-details-marker{display:none}
+#tab-insights .reason-mom-group summary .meta{font-size:10px;color:var(--t3);font-weight:500;font-family:'IBM Plex Mono',monospace}
+#tab-insights .mom-matrix{width:100%;border-collapse:collapse;font-size:11px;min-width:780px}
+#tab-insights .mom-matrix th{position:sticky;top:0;background:var(--card);color:var(--t3);font-size:9px;text-transform:uppercase;letter-spacing:.6px;text-align:center;padding:7px;border-bottom:1px solid var(--border);white-space:nowrap}
+#tab-insights .mom-matrix th:first-child,#tab-insights .mom-matrix td:first-child{text-align:left;position:sticky;left:0;background:var(--card);z-index:1;max-width:240px;white-space:normal}
+#tab-insights .mom-matrix td{padding:6px 7px;border-bottom:1px solid var(--border);border-right:1px solid rgba(255,255,255,.035);text-align:center;white-space:nowrap}
+#tab-insights .mom-matrix .cell{border-radius:3px;padding:4px 5px;color:#050505;font-family:'IBM Plex Mono',monospace;font-weight:700;line-height:1.15;min-width:54px}
+#tab-insights .mom-matrix .cell .sub{display:block;font-size:8px;opacity:.75;font-weight:600;margin-top:2px}
+#tab-insights .mom-matrix .spark svg{display:block;margin:auto}
+#tab-insights .mom-matrix tr.total td{background:rgba(226,0,26,.06);font-weight:700;color:var(--t1)}
+
+/* Heatmap */
+#tab-insights .hm-cell{aspect-ratio:1.6;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:700;transition:.15s;cursor:default;min-height:38px;font-family:'IBM Plex Mono',monospace}
+#tab-insights .hm-cell:hover{transform:scale(1.06);z-index:2;box-shadow:0 0 10px rgba(0,0,0,.6)}
+#tab-insights .hm-legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:10px;color:var(--t3)}
+#tab-insights .hm-legend .sw{display:inline-flex;align-items:center;gap:5px}
+#tab-insights .hm-legend .sw i{width:12px;height:12px;border-radius:2px;display:inline-block}
+
+/* MoM strip */
+#tab-insights .mom-strip{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+#tab-insights .mom-cell{flex:1;min-width:74px;background:var(--dark);border:1px solid var(--border);border-radius:5px;padding:8px 6px;text-align:center}
+body.light-mode #tab-insights .mom-cell{background:var(--card2)}
+#tab-insights .mom-cell .m{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+#tab-insights .mom-cell .p{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;line-height:1}
+#tab-insights .mom-cell .s{font-size:9px;color:var(--t3);margin-top:3px;font-family:'IBM Plex Mono',monospace}
+
+/* Trend chart */
+#tab-insights .ins-trend{height:280px;position:relative}
+#tab-insights .ins-trend-lg{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:10.5px;color:var(--t3)}
+#tab-insights .ins-trend-lg span{display:inline-flex;align-items:center;gap:5px}
+#tab-insights .ins-trend-lg i{width:10px;height:10px;border-radius:2px;display:inline-block}
+#tab-insights .ins-sel{background:var(--card2);border:1px solid var(--border);border-radius:4px;color:var(--t1);padding:5px 9px;font-size:12px;font-family:inherit;cursor:pointer}
+#tab-insights .ins-sel:focus{outline:none;border-color:var(--red)}
+
+@media (prefers-reduced-motion:reduce){#tab-insights *{transition:none!important;animation:none!important}}
+</style>
+
+<script>
+/* ══════════════════════════════
+   🔎 INSIGHTS EXPLORER (Leadership)
+   Cascading drill-downs · Lenovo theme
+════════════════════════════════ */
+(function(){
+  'use strict';
+
+  const DIMS = [
+    { k:'tl',      col:'TL',      label:'TL' },
+    { k:'vendor',  col:'VENDOR',  label:'Vendor' },
+    { k:'account', col:'ACCOUNT', label:'Account' },
+    { k:'symptom', col:'SYMPTOM', label:'Symptom' },
+    { k:'reason',  col:'REASON',  label:'Reason' },
+    { k:'model',   col:'SUB',     label:'Model' },
+    { k:'agent',   col:'NAME',    label:'Agent' },
+    { k:'region',  col:'REGION',  label:'Region' },
+    { k:'city',    col:'CITY',    label:'City' },
+    { k:'month',   col:'MONTH',   label:'Month' },
+  ];
+  const COL = { tl:'TL', vendor:'VENDOR', account:'ACCOUNT', symptom:'SYMPTOM',
+                model:'SUB', month:'MONTH', reason:'REASON', agent:'NAME', region:'REGION', city:'CITY' };
+
+  const state = {
+    filters: { tl:new Set(), vendor:new Set(), account:new Set(), symptom:new Set(), reason:new Set(), model:new Set(), agent:new Set(), region:new Set(), city:new Set(), month:new Set() },
+    expanded: { vendor:new Set(), symptom:new Set(), model:new Set(), reason:new Set(), account:new Set(), vendorAcc:new Set() },
+    trendDim: 'vendor',
+    reasonScope: 'model',
+    lastRows: [],
+    openMs: null,
+    trendChart: null,
+    renderedOnce: false,
+    renderTimer: null,
+  };
+
+  const $ = s => document.querySelector(s);
+  const $$ = (s,r=document) => [...r.querySelectorAll(s)];
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmt = n => !isFinite(n)?'—':(Math.abs(n)>=1000?(n/1000).toFixed(n>=10000?0:1)+'k':String(Math.round(n)));
+  const fmtPct = r => (r*100).toFixed(1)+'%';
+
+  function rrrColor(r){
+    if(r>=.20) return '#ff5c6c';
+    if(r>=.12) return '#ffa64d';
+    if(r>=.06) return '#ffd84d';
+    return '#4de08a';
+  }
+  function rrrPill(r){
+    if(!isFinite(r)) return '<span class="pill pill-info">—</span>';
+    if(r>=.20) return `<span class="pill pill-crit">${fmtPct(r)}</span>`;
+    if(r>=.12) return `<span class="pill pill-hi">${fmtPct(r)}</span>`;
+    if(r>=.06) return `<span class="pill pill-mid">${fmtPct(r)}</span>`;
+    return `<span class="pill pill-ok">${fmtPct(r)}</span>`;
+  }
+  function rrrBg(r){
+    if(r>=.20) return 'rgba(226,0,26,0.75)';
+    if(r>=.15) return 'rgba(255,90,60,0.7)';
+    if(r>=.12) return 'rgba(255,150,50,0.65)';
+    if(r>=.08) return 'rgba(255,210,60,0.55)';
+    if(r>=.04) return 'rgba(160,220,90,0.5)';
+    return 'rgba(70,200,140,0.35)';
+  }
+  function volBg(v,max){ const t=max>0?v/max:0; return `rgba(226,0,26,${.1+t*.55})`; }
+
+  function keyOf(r,k){
+    const v = r[COL[k]];
+    return (v==null||v==='') ? 'Unknown' : v;
+  }
+  function isHit(r){ return r.FLAG==='1' || r.FLAG===1 || r.FLAG===true || String(r.FLAG||'').trim()==='1'; }
+
+  function getBaseRows(){
+    const hasFiltered = (typeof filteredData!=='undefined' && Array.isArray(filteredData));
+    const hasRaw = (typeof rawData!=='undefined' && Array.isArray(rawData));
+    const src = hasFiltered ? filteredData : (hasRaw ? rawData : []);
+    return src || [];
+  }
+
+  function hasUploadedRows(){ return (typeof rawData!=='undefined' && Array.isArray(rawData) && rawData.length>0); }
+
+  function applyFilters(rows){
+    const active = Object.keys(state.filters).filter(k=>state.filters[k].size>0);
+    if(!active.length) return rows;
+    return rows.filter(r=>{
+      for(const k of active){ if(!state.filters[k].has(keyOf(r,k))) return false; }
+      return true;
+    });
+  }
+
+  /* aggregate: group by dim key(s). Volume = distinct MTSN, rrrHits = count(FLAG==='1') */
+  function agg(records, keys){
+    const g = new Map();
+    records.forEach(r=>{
+      const vals = keys.map(k=>keyOf(r,k));
+      const gk = vals.join('§');
+      let b = g.get(gk);
+      if(!b){
+        b = { _mtsn:new Set(), rrrHits:0, volume:0, records:[] };
+        keys.forEach((k,i)=>b[k]=vals[i]);
+        g.set(gk,b);
+      }
+      if(r.MTSN!=null && r.MTSN!=='') b._mtsn.add(r.MTSN); else b._mtsn.add('__'+b.records.length);
+      if(isHit(r)) b.rrrHits++;
+      b.records.push(r);
+    });
+    return [...g.values()].map(x=>{
+      x.volume = x._mtsn.size;
+      x.rrr = x.volume>0 ? x.rrrHits/x.volume : 0;
+      delete x._mtsn;
+      return x;
+    });
+  }
+  function top(recs, key){
+    const a = agg(recs,[key]).sort((x,y)=>y.rrrHits-x.rrrHits);
+    return a[0] || null;
+  }
+  function distinctCount(recs, key){
+    const s = new Set(); recs.forEach(r=>s.add(keyOf(r,key))); return s.size;
+  }
+  function orderedMonths(recs){
+    const s = new Set(); recs.forEach(r=>s.add(keyOf(r,'month')));
+    const arr = [...s].filter(m=>m!=='Unknown');
+    arr.sort((a,b)=>{
+      const da=new Date(a+' 1'), db=new Date(b+' 1');
+      if(!isNaN(da)&&!isNaN(db)) return da-db;
+      return String(a).localeCompare(String(b));
+    });
+    if(s.has('Unknown')) arr.push('Unknown');
+    return arr;
+  }
+
+  /* ══ MULTI-SELECT ══ */
+  function optsFor(base, key){
+    // options context = base filtered by all filters EXCEPT this one
+    const bak = state.filters[key]; state.filters[key] = new Set();
+    const ctx = applyFilters(base); state.filters[key] = bak;
+    const m = new Map();
+    ctx.forEach(r=>{ const v=keyOf(r,key); m.set(v,(m.get(v)||0)+1); });
+    const arr = [...m.entries()].map(([k,n])=>({k,n}));
+    if(key==='month'){
+      arr.sort((a,b)=>{ const da=new Date(a.k+' 1'), db=new Date(b.k+' 1'); if(!isNaN(da)&&!isNaN(db)) return da-db; return String(a.k).localeCompare(String(b.k)); });
+    } else {
+      arr.sort((a,b)=>b.n-a.n || String(a.k).localeCompare(String(b.k)));
+    }
+    return arr;
+  }
+
+  function renderFilterBar(base){
+    const parts = DIMS.map(d=>{
+      const sel = state.filters[d.k];
+      const cnt = sel.size;
+      return `<div class="ins-ms ${state.openMs===d.k?'open':''}" data-k="${d.k}">
+        <div class="ms-cap">${esc(d.label)}</div>
+        <button class="ms-btn ${cnt?'active':''}" type="button" data-role="toggle">
+          <span>${cnt===0?'All':cnt+' selected'}</span>
+          <span class="ms-cnt ${cnt?'':'zero'}">${cnt}</span>
+        </button>
+        ${state.openMs===d.k ? renderMsPanel(d, base) : ''}
+      </div>`;
+    }).join('');
+    return `<div class="ins-filterbar">
+      <span class="lbl">Drill filters</span>
+      ${parts}
+      <button class="pin-tag" id="insReset" style="margin-left:auto;background:transparent" type="button" title="Clear all filters">✕ Reset</button>
+    </div>`;
+  }
+  function renderMsPanel(d, base){
+    const opts = optsFor(base, d.k);
+    const sel = state.filters[d.k];
+    return `<div class="ms-panel" onclick="event.stopPropagation()">
+      <div class="ms-search"><input type="text" placeholder="Search ${esc(d.label.toLowerCase())}…" data-role="search"/></div>
+      <div class="ms-list">
+        ${opts.slice(0,300).map(o=>`<label class="ms-opt"><input type="checkbox" data-v="${esc(o.k)}" ${sel.has(o.k)?'checked':''}/><span>${esc(o.k)}</span><span class="cnt">${o.n}</span></label>`).join('') || '<div style="padding:8px;color:var(--t3);font-size:11px">No options</div>'}
+      </div>
+      <div class="ms-actions">
+        <button type="button" data-role="all">All</button>
+        <button type="button" data-role="clear">Clear</button>
+      </div>
+    </div>`;
+  }
+  function renderTags(){
+    const t = [];
+    DIMS.forEach(d=>{
+      state.filters[d.k].forEach(v=>{
+        t.push(`<span class="ins-tag" data-k="${d.k}" data-v="${esc(v)}"><b>${esc(d.label)}:</b> ${esc(v)} <span class="x">✕</span></span>`);
+      });
+    });
+    return `<div class="ins-tags">${t.join('') || '<span style="font-size:10.5px;color:var(--t3)">No filters — showing all data</span>'}</div>`;
+  }
+
+  /* ══ KPI ══ */
+  function renderKPIs(recs){
+    const totMtsn = new Set(); let hits=0;
+    recs.forEach(r=>{ if(r.MTSN!=null&&r.MTSN!=='') totMtsn.add(r.MTSN); if(isHit(r)) hits++; });
+    const vol = totMtsn.size || recs.length;
+    const rrr = vol>0 ? hits/vol : 0;
+    const vendors = distinctCount(recs,'vendor');
+    const accounts = distinctCount(recs,'account');
+    const critSym = agg(recs,['symptom']).filter(s=>s.rrr>=.12 && s.volume>=5).length;
+    const impact = hits; // volume × RRR% reconciles to repeat hits
+    const cards = [
+      { l:'Volume (MTSN)',    v:fmt(vol),  s:'Units under scope', c:'var(--t1)' },
+      { l:'RRR Hits',         v:fmt(hits), s:'Repeat flag = 1',   c:'#ff5c6c' },
+      { l:'Overall RRR',      v:(rrr*100).toFixed(2)+'%', s:'Repeat repair rate', c:rrrColor(rrr) },
+      { l:'Impact Score',     v:fmt(impact), s:'Vol × RRR%',       c:'var(--red)' },
+      { l:'Vendors',          v:vendors, s:'Active in scope',      c:'var(--t1)' },
+      { l:'Critical Symptoms',v:critSym, s:'RRR ≥ 12% (vol≥5)',    c:'#ffa64d' },
+    ];
+    return `<div class="ins-kpis">${cards.map(k=>`
+      <div class="ins-kpi">
+        <div class="k-lbl"><span>${k.l}</span></div>
+        <div class="k-val" style="color:${k.c}">${k.v}</div>
+        <div class="k-sub">${k.s}</div>
+      </div>`).join('')}</div>`;
+  }
+
+  /* ══ VENDOR → ACCOUNT drilldown ══ */
+  function renderVendorSect(recs){
+    const rows = agg(recs,['vendor']).sort((a,b)=>b.rrrHits-a.rrrHits);
+    const body = rows.length? rows.map(v=>{
+      const isX = state.expanded.vendor.has(v.vendor);
+      const tRea = top(v.records,'reason');
+      const nAcc = distinctCount(v.records,'account');
+      const nSym = distinctCount(v.records,'symptom');
+      const nMod = distinctCount(v.records,'model');
+      return `<tr class="row ${isX?'expanded':''}" data-drill="vendor" data-val="${esc(v.vendor)}">
+        <td style="width:22px"><span class="ex-ic">▶</span></td>
+        <td><strong>${esc(v.vendor)}</strong></td>
+        <td class="mono">${fmt(v.volume)}</td>
+        <td>${rrrPill(v.rrr)} <span class="rrr-bar"><span class="rrr-bar-fill" style="width:${Math.min(v.rrr*400,100)}%;background:${rrrColor(v.rrr)}"></span></span></td>
+        <td class="hits">${fmt(v.rrrHits)}</td>
+        <td class="mono">${nAcc}</td><td class="mono">${nSym}</td><td class="mono">${nMod}</td>
+        <td>${tRea?`<span class="pill pill-hi">${esc(tRea.reason||'—')}</span>`:'—'}</td>
+        <td><span class="pin-tag" data-pin="vendor" data-val="${esc(v.vendor)}"></span></td>
+      </tr>
+      <tr class="child ${isX?'open':''}"><td></td><td colspan="9">${isX?renderVendorChild(v.records,v.vendor):''}</td></tr>`;
+    }).join('') : `<tr><td colspan="10" style="text-align:center;padding:22px;color:var(--t3)">No data for current filters</td></tr>`;
+    return `<div class="ins-sect">
+      <div class="ins-sect-hd">
+        <div class="ins-sect-title"><span class="dot"></span>Vendor → Account → Symptom → Reason → Model</div>
+        <div class="ins-sect-meta">Click any row to drill down · click <span class="k">pin</span> to add to filters</div>
+      </div>
+      <div class="scroll" style="overflow-x:auto">
+        <table class="drill-tbl"><thead><tr>
+          <th></th><th>Vendor</th><th>Volume</th><th>RRR %</th><th>RRR Hits</th>
+          <th>Accts</th><th>Symptoms</th><th>Models</th><th>Top Repeat Reason</th><th></th>
+        </tr></thead><tbody>${body}</tbody></table>
+      </div>
+    </div>`;
+  }
+  function renderVendorChild(recs, vendor){
+    const accs = agg(recs,['account']).sort((a,b)=>b.rrrHits-a.rrrHits);
+    return `<div style="padding:8px 8px 8px 24px">
+      <div class="sub-lbl">Accounts under ${esc(vendor)} — sorted by RRR Impact (Volume × RRR)</div>
+      <table class="sub-tbl">
+        <thead><tr><th>Account</th><th>Volume</th><th>RRR %</th><th>RRR Hits</th><th>Top Symptom</th><th>Top Model</th><th>Top Repeat Reason</th><th>Worst Month</th></tr></thead>
+        <tbody>${accs.map(a=>{
+          const tS=top(a.records,'symptom'), tM=top(a.records,'model'), tR=top(a.records,'reason');
+          const bm=agg(a.records,['month']).sort((x,y)=>y.rrr-x.rrr)[0];
+          return `<tr>
+            <td><strong>${esc(a.account)}</strong></td>
+            <td class="mono">${fmt(a.volume)}</td>
+            <td>${rrrPill(a.rrr)}</td>
+            <td class="hits">${fmt(a.rrrHits)}</td>
+            <td>${tS?`<span class="pill pill-info">${esc(tS.symptom)}</span>`:'—'}</td>
+            <td>${tM?esc(tM.model):'—'}</td>
+            <td>${tR?`<span class="pill pill-hi">${esc(tR.reason)}</span>`:'—'}</td>
+            <td>${bm?`<span class="pill ${bm.rrr>=.15?'pill-crit':'pill-hi'}">${esc(bm.month)} ${fmtPct(bm.rrr)}</span>`:'—'}</td>
+          </tr>`;
+        }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--t3);padding:12px">No accounts</td></tr>`}</tbody></table>
+    </div>`;
+  }
+
+  /* ══ TREND CHART ══ */
+  function renderTrendSect(recs){
+    const dimOpts = [['vendor','By Vendor'],['account','By Account'],['symptom','By Symptom'],['model','By Model'],['reason','By Repeat Reason'],['tl','By TL']]
+      .map(([k,l])=>`<option value="${k}" ${state.trendDim===k?'selected':''}>${l}</option>`).join('');
+    return `<div class="ins-sect">
+      <div class="ins-sect-hd">
+        <div class="ins-sect-title"><span class="dot" style="background:#ffa64d;box-shadow:0 0 8px rgba(255,166,77,.35)"></span>Month-on-Month RRR Trend Explorer</div>
+        <select class="ins-sel" id="insTrendDim">${dimOpts}</select>
+      </div>
+      <div class="ins-trend"><canvas id="insTrendCanvas"></canvas></div>
+      <div class="ins-trend-lg" id="insTrendLg"></div>
+    </div>`;
+  }
+  function drawTrend(recs){
+    const canvas = document.getElementById('insTrendCanvas');
+    if(!canvas || !window.Chart) return;
+    const months = orderedMonths(recs);
+    const items = agg(recs,[state.trendDim]).sort((a,b)=>b.rrrHits-a.rrrHits).slice(0,6);
+    const colors = ['#E2001A','#ffa64d','#ffd84d','#4de08a','#4dc4ff','#c88cff'];
+    const datasets = items.map((it,i)=>{
+      const byM = agg(it.records,['month']);
+      const map = {}; byM.forEach(m=>map[m.month]=m);
+      return {
+        label: String(it[state.trendDim]||'—'),
+        data: months.map(m=>map[m]?Math.round(map[m].rrr*1000)/10:null),
+        borderColor: colors[i], backgroundColor: colors[i]+'22',
+        tension:.32, fill:false, pointRadius:3, pointHoverRadius:5, borderWidth:2, spanGaps:true
+      };
+    });
+    if(state.trendChart){ try{state.trendChart.destroy();}catch(e){} }
+    const tickColor = getComputedStyle(document.body).getPropertyValue('--t2').trim() || '#aaa';
+    const gridColor = 'rgba(255,255,255,0.06)';
+    state.trendChart = new Chart(canvas,{
+      type:'line',
+      data:{ labels:months, datasets },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{ legend:{display:false},
+          tooltip:{ backgroundColor:'rgba(20,20,20,.95)', borderColor:'#E2001A', borderWidth:1,
+            callbacks:{ label:c=>` ${c.dataset.label}: ${c.parsed.y??'—'}%` } } },
+        scales:{
+          x:{ grid:{color:gridColor}, ticks:{color:tickColor,font:{size:11}} },
+          y:{ grid:{color:gridColor}, ticks:{color:tickColor,font:{size:11},callback:v=>v+'%'},
+              title:{display:true,text:'RRR %',color:tickColor} }
+        }
+      }
+    });
+    const lg = document.getElementById('insTrendLg');
+    if(lg) lg.innerHTML = items.map((it,i)=>`<span><i style="background:${colors[i]}"></i><b style="color:${colors[i]}">${esc(it[state.trendDim]||'—')}</b> <span style="color:var(--t3)">(${fmt(it.rrrHits)} hits)</span></span>`).join('');
+  }
+
+  /* ══ SYMPTOM & MODEL two-col drilldowns ══ */
+  function renderSymptomSect(recs){
+    const rows = agg(recs,['symptom']).sort((a,b)=>b.rrrHits-a.rrrHits);
+    const body = rows.length? rows.map(s=>{
+      const isX = state.expanded.symptom.has(s.symptom);
+      const nR = distinctCount(s.records,'reason');
+      const nM = distinctCount(s.records,'model');
+      const tM = top(s.records,'model');
+      return `<tr class="row ${isX?'expanded':''}" data-drill="symptom" data-val="${esc(s.symptom)}">
+        <td style="width:22px"><span class="ex-ic">▶</span></td>
+        <td><strong>${esc(s.symptom)}</strong></td>
+        <td class="mono">${fmt(s.volume)}</td>
+        <td>${rrrPill(s.rrr)}</td>
+        <td class="hits">${fmt(s.rrrHits)}</td>
+        <td class="mono">${nR}</td><td class="mono">${nM}</td>
+        <td>${tM?esc(tM.model):'—'}</td>
+      </tr>
+      <tr class="child ${isX?'open':''}"><td></td><td colspan="7">${isX?renderSymptomChild(s.records,s.symptom):''}</td></tr>`;
+    }).join('') : `<tr><td colspan="8" style="text-align:center;padding:22px;color:var(--t3)">No data</td></tr>`;
+    return `<div class="ins-sect">
+      <div class="ins-sect-hd"><div class="ins-sect-title"><span class="dot" style="background:#ffd84d"></span>Symptom → Repeat Reason → Model</div></div>
+      <div class="scroll" style="overflow-x:auto">
+        <table class="drill-tbl"><thead><tr>
+          <th></th><th>Symptom</th><th>Volume</th><th>RRR %</th><th>RRR Hits</th><th>Reasons</th><th>Models</th><th>Top Model</th>
+        </tr></thead><tbody>${body}</tbody></table>
+      </div>
+    </div>`;
+  }
+  function renderSymptomChild(recs, symptom){
+    const reasons = agg(recs,['reason']).sort((a,b)=>b.rrrHits-a.rrrHits);
+    return `<div style="padding:8px 8px 8px 24px">
+      <div class="sub-lbl">Repeat Reasons for "${esc(symptom)}"</div>
+      <table class="sub-tbl">
+        <thead><tr><th>Reason</th><th>Volume</th><th>RRR Hits</th><th>RRR %</th><th>Top Model</th><th>Top Vendor</th><th>Top Account</th><th>Worst Month</th></tr></thead>
+        <tbody>${reasons.map(r=>{
+          const tMod = top(r.records,'model'), tVen = top(r.records,'vendor'), tAcc = top(r.records,'account');
+          const bm = agg(r.records,['month']).sort((x,y)=>y.rrr-x.rrr)[0];
+          return `<tr>
+            <td><strong>${esc(r.reason)}</strong></td>
+            <td class="mono">${fmt(r.volume)}</td>
+            <td class="hits">${fmt(r.rrrHits)}</td>
+            <td>${rrrPill(r.rrr)}</td>
+            <td>${tMod?esc(tMod.model):'—'}</td>
+            <td>${tVen?esc(tVen.vendor):'—'}</td>
+            <td>${tAcc?esc(tAcc.account):'—'}</td>
+            <td>${bm?`<span class="pill ${bm.rrr>=.15?'pill-crit':'pill-hi'}">${esc(bm.month)}</span>`:'—'}</td>
+          </tr>`;
+        }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--t3);padding:12px">No reasons</td></tr>`}</tbody></table>
+    </div>`;
+  }
+
+  function renderModelSect(recs){
+    const rows = agg(recs,['model']).sort((a,b)=>b.rrrHits-a.rrrHits);
+    const body = rows.length? rows.map(m=>{
+      const isX = state.expanded.model.has(m.model);
+      const nS = distinctCount(m.records,'symptom');
+      const nR = distinctCount(m.records,'reason');
+      const tR = top(m.records,'reason');
+      return `<tr class="row ${isX?'expanded':''}" data-drill="model" data-val="${esc(m.model)}">
+        <td style="width:22px"><span class="ex-ic">▶</span></td>
+        <td><strong>${esc(m.model)}</strong></td>
+        <td class="mono">${fmt(m.volume)}</td>
+        <td>${rrrPill(m.rrr)}</td>
+        <td class="hits">${fmt(m.rrrHits)}</td>
+        <td class="mono">${nS}</td><td class="mono">${nR}</td>
+        <td>${tR?`<span class="pill pill-hi">${esc(tR.reason)}</span>`:'—'}</td>
+      </tr>
+      <tr class="child ${isX?'open':''}"><td></td><td colspan="7">${isX?renderModelChild(m.records,m.model):''}</td></tr>`;
+    }).join('') : `<tr><td colspan="8" style="text-align:center;padding:22px;color:var(--t3)">No data</td></tr>`;
+    return `<div class="ins-sect">
+      <div class="ins-sect-hd"><div class="ins-sect-title"><span class="dot" style="background:#4de08a"></span>Model → Symptom → Repeat Reason</div></div>
+      <div class="scroll" style="overflow-x:auto">
+        <table class="drill-tbl"><thead><tr>
+          <th></th><th>Model</th><th>Volume</th><th>RRR %</th><th>RRR Hits</th><th>Symptoms</th><th>Reasons</th><th>Top Repeat Reason</th>
+        </tr></thead><tbody>${body}</tbody></table>
+      </div>
+    </div>`;
+  }
+  function renderModelChild(recs, model){
+    const syms = agg(recs,['symptom']).sort((a,b)=>b.rrrHits-a.rrrHits);
+    return `<div style="padding:8px 8px 8px 24px">
+      <div class="sub-lbl">Symptoms & Repeat Reasons for ${esc(model)}</div>
+      <table class="sub-tbl">
+        <thead><tr><th>Symptom</th><th>Volume</th><th>RRR Hits</th><th>RRR %</th><th>Top Repeat Reason</th><th>Reason Hits</th><th>Worst Month</th><th>Top Vendor</th></tr></thead>
+        <tbody>${syms.map(s=>{
+          const tR = top(s.records,'reason'), tV=top(s.records,'vendor');
+          const bm = agg(s.records,['month']).sort((x,y)=>y.rrr-x.rrr)[0];
+          return `<tr>
+            <td><strong>${esc(s.symptom)}</strong></td>
+            <td class="mono">${fmt(s.volume)}</td>
+            <td class="hits">${fmt(s.rrrHits)}</td>
+            <td>${rrrPill(s.rrr)}</td>
+            <td>${tR?`<span class="pill pill-hi">${esc(tR.reason)}</span>`:'—'}</td>
+            <td class="mono">${tR?fmt(tR.rrrHits):'—'}</td>
+            <td>${bm?`<span class="pill ${bm.rrr>=.15?'pill-crit':'pill-hi'}">${esc(bm.month)}</span>`:'—'}</td>
+            <td>${tV?esc(tV.vendor):'—'}</td>
+          </tr>`;
+        }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--t3);padding:12px">No data</td></tr>`}</tbody></table>
+    </div>`;
+  }
+
+  /* ══ HEATMAPS ══ */
+  function renderHeatmapSM(recs){
+    const months = orderedMonths(recs);
+    const syms = agg(recs,['symptom']).sort((a,b)=>b.rrrHits-a.rrrHits).slice(0,10).map(s=>s.symptom);
+    const data = agg(recs,['symptom','month']);
+    const cell = {}; data.forEach(d=>cell[`${d.symptom}§${d.month}`]=d);
+    let html = `<div style="display:grid;grid-template-columns:130px repeat(${months.length},1fr);gap:3px;font-size:10px">`;
+    html += `<div></div>` + months.map(m=>`<div style="text-align:center;font-size:9px;color:var(--t3);text-transform:uppercase;font-weight:700;letter-spacing:.5px">${esc(m)}</div>`).join('');
+    syms.forEach(s=>{
+      html += `<div style="font-size:11px;font-weight:600;display:flex;align-items:center;padding-right:6px;color:var(--t1)">${esc(s)}</div>`;
+      months.forEach(m=>{
+        const d = cell[`${s}§${m}`];
+        if(!d){ html += `<div class="hm-cell" style="background:var(--card2);color:var(--t3)">—</div>`; return; }
+        html += `<div class="hm-cell" style="background:${rrrBg(d.rrr)};color:#000" title="${esc(s)} · ${esc(m)}: RRR ${fmtPct(d.rrr)} · ${d.rrrHits} hits">
+          <div>${fmtPct(d.rrr)}</div>
+          <div style="font-size:8px;opacity:.75">${fmt(d.rrrHits)}h</div></div>`;
+      });
+    });
+    html += `</div>
+      <div class="hm-legend">
+        <span>Scale:</span>
+        <span class="sw"><i style="background:rgba(70,200,140,.35)"></i>&lt;4%</span>
+        <span class="sw"><i style="background:rgba(160,220,90,.5)"></i>4–8%</span>
+        <span class="sw"><i style="background:rgba(255,210,60,.55)"></i>8–12%</span>
+        <span class="sw"><i style="background:rgba(255,150,50,.65)"></i>12–15%</span>
+        <span class="sw"><i style="background:rgba(226,0,26,.75)"></i>&gt;20%</span>
+      </div>`;
+    return `<div class="ins-sect">
+      <div class="ins-sect-hd"><div class="ins-sect-title"><span class="dot" style="background:#ff5c6c"></span>Symptom × Month — RRR% Heatmap</div></div>
+      <div style="overflow-x:auto">${html}</div>
+    </div>`;
+  }
+  function renderHeatmapMS(recs){
+    const models = agg(recs,['model']).sort((a,b)=>b.rrrHits-a.rrrHits).slice(0,10).map(m=>m.model);
+    const syms = agg(recs,['symptom']).sort((a,b)=>b.rrrHits-a.rrrHits).slice(0,8).map(s=>s.symptom);
+    const data = agg(recs,['model','symptom']);
+    const cell = {}; data.forEach(d=>cell[`${d.model}§${d.symptom}`]=d);
+    const maxHits = Math.max(1,...data.map(d=>d.rrrHits));
+    let html = `<div style="display:grid;grid-template-columns:90px repeat(${syms.length},1fr);gap:3px;font-size:10px">`;
+    html += `<div></div>` + syms.map(s=>`<div style="text-align:center;font-size:8.5px;color:var(--t3);text-transform:uppercase;font-weight:700;writing-mode:vertical-rl;transform:rotate(180deg);padding:6px 0;letter-spacing:.5px">${esc(s)}</div>`).join('');
+    models.forEach(m=>{
+      html += `<div style="font-size:11px;font-weight:600;display:flex;align-items:center;padding-right:6px;color:var(--t1)">${esc(m)}</div>`;
+      syms.forEach(s=>{
+        const d = cell[`${m}§${s}`];
+        if(!d){ html += `<div class="hm-cell" style="background:var(--card2);color:var(--t3)">—</div>`; return; }
+        html += `<div class="hm-cell" style="background:${volBg(d.rrrHits,maxHits)};color:#fff" title="${esc(m)} · ${esc(s)}: ${d.rrrHits} hits · RRR ${fmtPct(d.rrr)}"><div>${fmt(d.rrrHits)}</div></div>`;
+      });
+    });
+    html += `</div><div class="hm-legend"><span>Cell = RRR Hits (Volume × RRR). Darker red = higher impact.</span></div>`;
+    return `<div class="ins-sect">
+      <div class="ins-sect-hd"><div class="ins-sect-title"><span class="dot" style="background:#4dc4ff"></span>Model × Symptom — RRR Hits Heatmap</div></div>
+      <div style="overflow-x:auto">${html}</div>
+    </div>`;
+  }
+
+  /* ══ REPEAT REASON HUB ══ */
+  function renderReasonSect(recs){
+    const rows = agg(recs,['reason']).sort((a,b)=>b.rrrHits-a.rrrHits);
+    const body = rows.length? rows.map(r=>{
+      const isX = state.expanded.reason.has(r.reason);
+      const nV = distinctCount(r.records,'vendor');
+      const nA = distinctCount(r.records,'account');
+      const nM = distinctCount(r.records,'model');
+      const nS = distinctCount(r.records,'symptom');
+      const bm = agg(r.records,['month']).sort((x,y)=>y.rrr-x.rrr)[0];
+      return `<tr class="row ${isX?'expanded':''}" data-drill="reason" data-val="${esc(r.reason)}">
+        <td style="width:22px"><span class="ex-ic">▶</span></td>
+        <td><strong>${esc(r.reason)}</strong></td>
+        <td class="mono">${fmt(r.volume)}</td>
+        <td class="hits">${fmt(r.rrrHits)}</td>
+        <td>${rrrPill(r.rrr)}</td>
+        <td class="mono">${nV}</td><td class="mono">${nA}</td><td class="mono">${nM}</td><td class="mono">${nS}</td>
+        <td>${bm?`<span class="pill ${bm.rrr>=.15?'pill-crit':'pill-hi'}">${esc(bm.month)}</span>`:'—'}</td>
+      </tr>
+      <tr class="child ${isX?'open':''}"><td></td><td colspan="9">${isX?renderReasonChild(r.records,r.reason):''}</td></tr>`;
+    }).join('') : `<tr><td colspan="10" style="text-align:center;padding:22px;color:var(--t3)">No data</td></tr>`;
+    return `<div class="ins-sect">
+      <div class="ins-sect-hd">
+        <div class="ins-sect-title"><span class="dot" style="background:#c88cff"></span>Repeat Repair Reason Hub</div>
+        <div class="ins-sect-meta">Expand to see MoM + Vendor · Account · Model · Symptom split per reason</div>
+      </div>
+      <div class="scroll" style="overflow-x:auto">
+        <table class="drill-tbl"><thead><tr>
+          <th></th><th>Repeat Reason</th><th>Volume</th><th>RRR Hits</th><th>RRR %</th>
+          <th>Vendors</th><th>Accts</th><th>Models</th><th>Symptoms</th><th>Worst Month</th>
+        </tr></thead><tbody>${body}</tbody></table>
+      </div>
+    </div>`;
+  }
+  function renderReasonChild(recs, reason){
+    const months = orderedMonths(recs);
+    const bm = agg(recs,['month']); const mMap={}; bm.forEach(m=>mMap[m.month]=m);
+    const strip = months.map(mo=>{
+      const d = mMap[mo];
+      if(!d) return `<div class="mom-cell" style="opacity:.4"><div class="m">${esc(mo)}</div><div class="p" style="color:var(--t3)">—</div></div>`;
+      return `<div class="mom-cell" style="border-color:${rrrColor(d.rrr)}"><div class="m">${esc(mo)}</div><div class="p" style="color:${rrrColor(d.rrr)}">${fmtPct(d.rrr)}</div><div class="s">${fmt(d.rrrHits)} hits</div></div>`;
+    }).join('');
+    const byV = agg(recs,['vendor']).sort((a,b)=>b.rrrHits-a.rrrHits);
+    const byA = agg(recs,['account']).sort((a,b)=>b.rrrHits-a.rrrHits);
+    const byM = agg(recs,['model']).sort((a,b)=>b.rrrHits-a.rrrHits);
+    const byS = agg(recs,['symptom']).sort((a,b)=>b.rrrHits-a.rrrHits);
+    const col = (title, arr, key)=>`<div><div class="sub-lbl">${title}</div><table class="sub-tbl"><tbody>${arr.slice(0,10).map(x=>`<tr><td>${esc(x[key])}</td><td class="hits">${fmt(x.rrrHits)}</td><td>${rrrPill(x.rrr)}</td></tr>`).join('')||`<tr><td colspan="3" style="color:var(--t3);text-align:center">—</td></tr>`}</tbody></table></div>`;
+    return `<div style="padding:10px 10px 10px 24px">
+      <div class="sub-lbl">MoM trend for "${esc(reason)}"</div>
+      <div class="mom-strip">${strip}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+        ${col('By Vendor', byV, 'vendor')}
+        ${col('By Account', byA, 'account')}
+        ${col('By Model', byM, 'model')}
+        ${col('By Symptom', byS, 'symptom')}
+      </div>
+    </div>`;
+  }
+
+  /* ══ ACCOUNT DEEP DIVE ══ */
+  function renderAccountSect(recs){
+    const rows = agg(recs,['account']).sort((a,b)=>b.rrrHits-a.rrrHits);
+    const body = rows.length? rows.map(a=>{
+      const isX = state.expanded.account.has(a.account);
+      const tS = top(a.records,'symptom'), tV = top(a.records,'vendor');
+      const bm = agg(a.records,['month']).sort((x,y)=>y.rrr-x.rrr)[0];
+      const nM = distinctCount(a.records,'model');
+      const nS = distinctCount(a.records,'symptom');
+      return `<tr class="row ${isX?'expanded':''}" data-drill="account" data-val="${esc(a.account)}">
+        <td style="width:22px"><span class="ex-ic">▶</span></td>
+        <td><strong>${esc(a.account)}</strong></td>
+        <td class="mono">${fmt(a.volume)}</td>
+        <td>${rrrPill(a.rrr)} <span class="rrr-bar"><span class="rrr-bar-fill" style="width:${Math.min(a.rrr*400,100)}%;background:${rrrColor(a.rrr)}"></span></span></td>
+        <td class="hits">${fmt(a.rrrHits)}</td>
+        <td>${tV?esc(tV.vendor):'—'}</td>
+        <td class="mono">${nM}</td><td class="mono">${nS}</td>
+        <td>${tS?`<span class="pill pill-info">${esc(tS.symptom)}</span> <span style="color:var(--t3);font-size:10px">(${fmt(tS.rrrHits)} h)</span>`:'—'}</td>
+        <td>${bm?`<span class="pill ${bm.rrr>=.15?'pill-crit':'pill-hi'}">${esc(bm.month)} ${fmtPct(bm.rrr)}</span>`:'—'}</td>
+      </tr>
+      <tr class="child ${isX?'open':''}"><td></td><td colspan="9">${isX?renderAccountChild(a.records,a.account):''}</td></tr>`;
+    }).join('') : `<tr><td colspan="10" style="text-align:center;padding:22px;color:var(--t3)">No data</td></tr>`;
+    return `<div class="ins-sect">
+      <div class="ins-sect-hd">
+        <div class="ins-sect-title"><span class="dot"></span>Account Deep-Dive — MoM RRR + Symptom → Reason Cascade</div>
+        <div class="ins-sect-meta">Click account to expand full MoM trend + top symptoms</div>
+      </div>
+      <div class="scroll" style="overflow-x:auto">
+        <table class="drill-tbl"><thead><tr>
+          <th></th><th>Account</th><th>Volume</th><th>RRR %</th><th>RRR Hits</th>
+          <th>Vendor</th><th>Models</th><th>Symptoms</th><th>Top Symptom (Hits)</th><th>Worst Month</th>
+        </tr></thead><tbody>${body}</tbody></table>
+      </div>
+    </div>`;
+  }
+  function renderAccountChild(recs, account){
+    const months = orderedMonths(recs);
+    const bm = agg(recs,['month']); const mMap={}; bm.forEach(m=>mMap[m.month]=m);
+    const strip = months.map(mo=>{
+      const d = mMap[mo];
+      if(!d) return `<div class="mom-cell" style="opacity:.4"><div class="m">${esc(mo)}</div><div class="p" style="color:var(--t3)">—</div></div>`;
+      return `<div class="mom-cell" style="border-color:${rrrColor(d.rrr)}"><div class="m">${esc(mo)}</div><div class="p" style="color:${rrrColor(d.rrr)}">${fmtPct(d.rrr)}</div><div class="s">${fmt(d.rrrHits)}/${fmt(d.volume)}</div></div>`;
+    }).join('');
+    const syms = agg(recs,['symptom']).sort((a,b)=>b.rrrHits-a.rrrHits).slice(0,10);
+    return `<div style="padding:10px 10px 10px 24px">
+      <div class="sub-lbl">Month-on-Month RRR trend for ${esc(account)}</div>
+      <div class="mom-strip">${strip}</div>
+      <div class="sub-lbl">Symptom → Top Repeat Reasons</div>
+      <table class="sub-tbl">
+        <thead><tr><th>Symptom</th><th>Volume</th><th>RRR %</th><th>RRR Hits</th><th>Top 3 Repeat Reasons (hits)</th><th>Top Model</th><th>Worst Month</th></tr></thead>
+        <tbody>${syms.map(s=>{
+          const reasons = agg(s.records,['reason']).sort((a,b)=>b.rrrHits-a.rrrHits).slice(0,3);
+          const tM = top(s.records,'model');
+          const wm = agg(s.records,['month']).sort((x,y)=>y.rrr-x.rrr)[0];
+          return `<tr>
+            <td><strong>${esc(s.symptom)}</strong></td>
+            <td class="mono">${fmt(s.volume)}</td>
+            <td>${rrrPill(s.rrr)}</td>
+            <td class="hits">${fmt(s.rrrHits)}</td>
+            <td>${reasons.map(r=>`<span class="pill pill-hi" style="margin-right:4px">${esc(r.reason)} (${fmt(r.rrrHits)})</span>`).join('') || '—'}</td>
+            <td>${tM?esc(tM.model):'—'}</td>
+            <td>${wm?`<span class="pill ${wm.rrr>=.15?'pill-crit':'pill-hi'}">${esc(wm.month)}</span>`:'—'}</td>
+          </tr>`;
+        }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--t3);padding:12px">No symptoms</td></tr>`}</tbody></table>
+    </div>`;
+  }
+
+  /* ══ REASON MoM MATRIX: every model/symptom reason trend ══ */
+  function reasonScopeInfo(scope){
+    if(scope==='symptom') return { label:'By Symptom', key:r=>keyOf(r,'symptom'), title:'Symptom' };
+    if(scope==='modelSymptom') return { label:'By Model × Symptom', key:r=>keyOf(r,'model')+' × '+keyOf(r,'symptom'), title:'Model × Symptom' };
+    return { label:'By Model', key:r=>keyOf(r,'model'), title:'Model' };
+  }
+  function reasonSpark(vals){
+    if(vals.length<2) return '—';
+    const w=70,h=22,p=2, mx=Math.max(...vals,1), mn=Math.min(...vals,0), span=(mx-mn)||1;
+    const step=(w-p*2)/(vals.length-1||1);
+    const pts=vals.map((v,i)=>`${(p+i*step).toFixed(1)},${(p+(h-p*2)*(1-(v-mn)/span)).toFixed(1)}`).join(' ');
+    return `<svg width="70" height="22" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="#E2001A" stroke-width="1.5"/><circle cx="${(p+(vals.length-1)*step).toFixed(1)}" cy="${(p+(h-p*2)*(1-(vals[vals.length-1]-mn)/span)).toFixed(1)}" r="2" fill="#E2001A"/></svg>`;
+  }
+  function renderReasonMoMSect(recs){
+    const months = orderedMonths(recs);
+    const scope = reasonScopeInfo(state.reasonScope);
+    const groups = new Map();
+    recs.forEach(r=>{
+      const sk = scope.key(r), reason = keyOf(r,'reason'), mo = keyOf(r,'month');
+      if(!groups.has(sk)) groups.set(sk, { scope:sk, _mtsn:new Set(), hits:0, reasons:new Map(), months:new Map() });
+      const g = groups.get(sk);
+      if(r.MTSN) g._mtsn.add(r.MTSN); else g._mtsn.add('__'+g._mtsn.size);
+      if(isHit(r)) g.hits++;
+      if(!g.months.has(mo)) g.months.set(mo,{_mtsn:new Set(),hits:0});
+      const gm = g.months.get(mo); if(r.MTSN) gm._mtsn.add(r.MTSN); else gm._mtsn.add('__'+gm._mtsn.size); if(isHit(r)) gm.hits++;
+      if(!g.reasons.has(reason)) g.reasons.set(reason,{ reason, _mtsn:new Set(), hits:0, months:new Map() });
+      const rr = g.reasons.get(reason);
+      if(r.MTSN) rr._mtsn.add(r.MTSN); else rr._mtsn.add('__'+rr._mtsn.size);
+      if(isHit(r)) rr.hits++;
+      if(!rr.months.has(mo)) rr.months.set(mo,{_mtsn:new Set(),hits:0});
+      const rm = rr.months.get(mo); if(r.MTSN) rm._mtsn.add(r.MTSN); else rm._mtsn.add('__'+rm._mtsn.size); if(isHit(r)) rm.hits++;
+    });
+    const groupArr = [...groups.values()].map(g=>{
+      g.volume = g._mtsn.size; g.rrr = g.volume?g.hits/g.volume:0;
+      g.reasonArr = [...g.reasons.values()].map(r=>{ r.volume=r._mtsn.size; r.rrr=r.volume?r.hits/r.volume:0; return r; })
+        .sort((a,b)=>b.hits-a.hits || b.rrr-a.rrr).slice(0,12);
+      return g;
+    }).sort((a,b)=>b.hits-a.hits || b.rrr-a.rrr).slice(0,12);
+    const scopeBtns = [['model','By Model'],['symptom','By Symptom'],['modelSymptom','Model × Symptom']]
+      .map(([k,l])=>`<button class="scope-btn ${state.reasonScope===k?'on':''}" data-scope="${k}" type="button">${l}</button>`).join('');
+    const headMonths = months.map(m=>`<th>${esc(m)}</th>`).join('');
+    const groupsHtml = groupArr.map((g,idx)=>{
+      const rows = g.reasonArr.map(r=>{
+        const vals = months.map(m=>{ const d=r.months.get(m); const v=d?d._mtsn.size:0; return v?d.hits/v*100:0; });
+        const cells = months.map(m=>{
+          const d = r.months.get(m); if(!d) return '<td><span style="color:var(--t3)">—</span></td>';
+          const vol = d._mtsn.size, pct = vol?d.hits/vol:0;
+          return `<td><div class="cell" style="background:${rrrBg(pct)}" title="${esc(g.scope)} · ${esc(r.reason)} · ${esc(m)}: ${fmtPct(pct)} · ${d.hits}/${vol}">${fmtPct(pct)}<span class="sub">${fmt(d.hits)}/${fmt(vol)}</span></div></td>`;
+        }).join('');
+        return `<tr><td><strong>${esc(r.reason)}</strong></td>${cells}<td class="spark">${reasonSpark(vals)}</td><td class="hits">${fmt(r.hits)}</td><td>${rrrPill(r.rrr)}</td><td class="mono">${fmt(r.volume)}</td></tr>`;
+      }).join('') || `<tr><td colspan="${months.length+5}" style="text-align:center;color:var(--t3);padding:12px">No repeat reasons</td></tr>`;
+      const totalCells = months.map(m=>{
+        const d = g.months.get(m); if(!d) return '<td>—</td>';
+        const vol=d._mtsn.size, pct=vol?d.hits/vol:0;
+        return `<td>${fmtPct(pct)}<br><span style="color:var(--t3);font-size:9px">${fmt(d.hits)}/${fmt(vol)}</span></td>`;
+      }).join('');
+      return `<details class="reason-mom-group" ${idx<4?'open':''}>
+        <summary><span>${esc(scope.title)}: ${esc(g.scope)}</span><span class="meta">${fmt(g.volume)} vol · ${fmt(g.hits)} hits · ${fmtPct(g.rrr)}</span></summary>
+        <div style="overflow-x:auto"><table class="mom-matrix">
+          <thead><tr><th>Repeat Repair Reason</th>${headMonths}<th>Spark</th><th>Hits</th><th>RRR%</th><th>Vol</th></tr></thead>
+          <tbody>${rows}<tr class="total"><td>Total ${esc(g.scope)}</td>${totalCells}<td></td><td>${fmt(g.hits)}</td><td>${rrrPill(g.rrr)}</td><td>${fmt(g.volume)}</td></tr></tbody>
+        </table></div>
+      </details>`;
+    }).join('');
+    return `<div class="ins-sect">
+      <div class="ins-sect-hd">
+        <div><div class="ins-sect-title"><span class="dot" style="background:#E2001A"></span>Repeat Reason Month-on-Month Matrix</div><div class="ins-sect-meta">Every repeat repair reason by model and symptom, with monthly RRR%, volume and hit visibility.</div></div>
+        <div class="reason-mom-controls">${scopeBtns}</div>
+      </div>
+      ${groupsHtml || '<div class="ins-empty">No Reason MoM data for current filters.</div>'}
+    </div>`;
+  }
+
+  /* ══ MASTER RENDER ══ */
+  function render(){
+    const host = document.getElementById('insBody');
+    if(!host) return;
+    const base = getBaseRows();
+    if(!base.length && !hasUploadedRows()){ host.innerHTML = '<div class="ins-empty">Upload a file to start exploring insights.</div>'; return; }
+    const rows = applyFilters(base);
+    state.lastRows = rows;
+    host.innerHTML = `<div class="ins-wrap">
+      ${renderFilterBar(base)}
+      ${renderTags()}
+      ${!rows.length?'<div class="ins-zero">No records match the current global dashboard filters + Insights filters. Clear one or more filters to see data.</div>':''}
+      ${renderKPIs(rows)}
+      ${renderVendorSect(rows)}
+      ${renderTrendSect(rows)}
+      <div class="ins-grid2">
+        ${renderSymptomSect(rows)}
+        ${renderModelSect(rows)}
+      </div>
+      <div class="ins-grid2">
+        ${renderHeatmapSM(rows)}
+        ${renderHeatmapMS(rows)}
+      </div>
+      ${renderReasonMoMSect(rows)}
+      ${renderReasonSect(rows)}
+      ${renderAccountSect(rows)}
+    </div>`;
+    state.renderedOnce = true;
+    // draw trend chart after DOM is in
+    setTimeout(()=>drawTrend(rows),0);
+  }
+
+  function scheduleRender(){
+    clearTimeout(state.renderTimer);
+    state.renderTimer = setTimeout(()=>render(), 0);
+  }
+
+  /* ══ EVENT DELEGATION ══ */
+  document.addEventListener('click', e=>{
+    const tab = document.getElementById('tab-insights');
+    if(!tab || !tab.classList.contains('on')) return;
+
+    // Reset
+    if(e.target.id==='insReset'){
+      Object.keys(state.filters).forEach(k=>state.filters[k].clear());
+      Object.keys(state.expanded).forEach(k=>state.expanded[k].clear());
+      state.openMs=null; render(); return;
+    }
+    // Tag remove
+    const tag = e.target.closest('.ins-tag');
+    if(tag){ state.filters[tag.dataset.k].delete(tag.dataset.v); render(); return; }
+    // Pin from row
+    const pin = e.target.closest('.pin-tag');
+    if(pin && pin.dataset.pin){
+      e.stopPropagation();
+      state.filters[pin.dataset.pin].add(pin.dataset.val);
+      render(); return;
+    }
+    // Multi-select toggle
+    const msBtn = e.target.closest('.ins-ms .ms-btn[data-role="toggle"]');
+    if(msBtn){
+      const ms = msBtn.closest('.ins-ms'); const k = ms.dataset.k;
+      state.openMs = (state.openMs===k) ? null : k;
+      render(); return;
+    }
+    // Close open MS if clicking outside
+    if(state.openMs && !e.target.closest('.ins-ms')){
+      state.openMs=null; render(); return;
+    }
+    // MS all/clear
+    const msAct = e.target.closest('.ins-ms .ms-actions button');
+    if(msAct){
+      const ms = msAct.closest('.ins-ms'); const k = ms.dataset.k;
+      const role = msAct.dataset.role;
+      const opts = optsFor(getBaseRows(), k);
+      if(role==='all') opts.forEach(o=>state.filters[k].add(o.k));
+      else state.filters[k].clear();
+      render(); return;
+    }
+    // Reason MoM scope switch
+    const scopeBtn = e.target.closest('.scope-btn[data-scope]');
+    if(scopeBtn){
+      state.reasonScope = scopeBtn.dataset.scope;
+      render(); return;
+    }
+    // Drill row toggle
+    const drillRow = e.target.closest('tr.row[data-drill]');
+    if(drillRow){
+      const d = drillRow.dataset.drill, v = drillRow.dataset.val;
+      const bag = state.expanded[d];
+      if(bag){ if(bag.has(v)) bag.delete(v); else bag.add(v); render(); }
+      return;
+    }
+  });
+  // Multi-select checkbox
+  document.addEventListener('change', e=>{
+    const tab = document.getElementById('tab-insights');
+    if(!tab || !tab.classList.contains('on')) return;
+    const cb = e.target;
+    if(cb.matches('.ins-ms .ms-opt input[type=checkbox]')){
+      const ms = cb.closest('.ins-ms'); const k = ms.dataset.k;
+      const v = cb.dataset.v;
+      if(cb.checked) state.filters[k].add(v); else state.filters[k].delete(v);
+      render();
+    }
+    if(cb.id==='insTrendDim'){
+      state.trendDim = cb.value;
+      drawTrend(state.lastRows);
+    }
+  });
+  // Multi-select search
+  document.addEventListener('input', e=>{
+    const tab = document.getElementById('tab-insights');
+    if(!tab || !tab.classList.contains('on')) return;
+    const inp = e.target;
+    if(inp.matches('.ins-ms .ms-search input')){
+      const q = inp.value.toLowerCase();
+      const ms = inp.closest('.ins-ms');
+      $$('.ms-opt', ms).forEach(o=>{ o.style.display = o.textContent.toLowerCase().includes(q)?'':'none'; });
+    }
+  });
+
+  /* ══ Public API ══ */
+  window.Insights = {
+    onOpen(){ render(); },
+    onDataChanged(){ scheduleRender(); },
+    exportCSV(){
+      const recs = state.lastRows;
+      if(!recs || !recs.length){ alert('No data to export.'); return; }
+      const cols = ['TL','Vendor','Account','Symptom','Model','Month','Reason','MTSN','FLAG'];
+      const rows = recs.map(r=>[r.TL||'',r.VENDOR||'',r.ACCOUNT||'',r.SYMPTOM||'',r.SUB||'',r.MONTH||'',r.REASON||'',r.MTSN||'',r.FLAG||'']);
+      const csv = [cols.join(','),...rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(','))].join('\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+      a.download = `RRR_Insights_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    },
+    exportPDF(){
+      try{
+        if(!window.jspdf){ alert('PDF library not loaded.'); return; }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const recs = state.lastRows||[];
+        doc.setFontSize(14); doc.setTextColor(226,0,26); doc.text('RRR Insights — Leadership Deep Dive', 14, 18);
+        doc.setFontSize(9); doc.setTextColor(60);
+        let y=26;
+        const fA = Object.keys(state.filters).filter(k=>state.filters[k].size).map(k=>`${k}: ${[...state.filters[k]].slice(0,3).join(', ')}`);
+        (fA.length?fA:['All data']).forEach(t=>{ doc.text(String(t).slice(0,110), 14, y); y+=5; });
+        const totM=new Set(); let hits=0;
+        recs.forEach(r=>{ if(r.MTSN) totM.add(r.MTSN); if(isHit(r)) hits++; });
+        const vol = totM.size||recs.length; const rrr = vol>0?hits/vol:0;
+        doc.text(`Volume ${vol}   Hits ${hits}   RRR ${(rrr*100).toFixed(2)}%`, 14, y); y+=8;
+        [['Vendor','vendor'],['Account','account'],['Symptom','symptom'],['Model','model'],['Reason','reason']].forEach(([lbl,k])=>{
+          if(y>270){ doc.addPage(); y=20; }
+          const a = agg(recs,[k]).sort((x,y)=>y.rrrHits-x.rrrHits).slice(0,6);
+          doc.setTextColor(226,0,26); doc.setFontSize(11); doc.text('Top '+lbl,14,y); y+=5;
+          doc.setTextColor(30); doc.setFontSize(8);
+          a.forEach(r=>{ if(y>282){doc.addPage(); y=20;} doc.text(`${String(r[k]||'—').slice(0,42)}   V ${r.volume}  H ${r.rrrHits}  RRR ${(r.rrr*100).toFixed(2)}%`,16,y); y+=4.5; });
+          y+=3;
+        });
+        doc.save(`RRR_Insights_${new Date().toISOString().slice(0,10)}.pdf`);
+      }catch(e){ console.error(e); alert('Failed to export PDF.'); }
+    }
+  };
+})();
+</script>
+
 </body>
+
 </html>
 
