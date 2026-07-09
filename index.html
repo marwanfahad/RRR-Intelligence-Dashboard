@@ -91,6 +91,14 @@ body.light-mode .logo{color:#0A0A0A}
 .fg select[multiple]{padding:3px;overflow-y:auto}
 .fg select[multiple] option{padding:4px 8px;border-radius:2px;margin:1px 0}
 .fg select[multiple] option:checked{background:var(--red);color:#fff}
+/* Force readable native <select> option lists in dark mode (browsers otherwise fall back to OS colors -> white-on-white) */
+html{color-scheme:light dark}
+body.light-mode{color-scheme:light}
+body:not(.light-mode){color-scheme:dark}
+select{color-scheme:dark}
+body.light-mode select{color-scheme:light}
+select option, select optgroup{background-color:#1C1C1C;color:#FFFFFF}
+body.light-mode select option, body.light-mode select optgroup{background-color:#FFFFFF;color:#0A0A0A}
 .fbtns{display:flex;gap:8px;align-items:flex-end;padding-bottom:1px}
 .btn{padding:6px 13px;border-radius:4px;font-size:11px;font-family:'IBM Plex Sans',sans-serif;font-weight:700;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:.2s}
 .btn-r{background:transparent;border:1px solid var(--red);color:var(--red)}
@@ -171,7 +179,7 @@ main{padding:26px 32px}
 body.hub-active .tab{display:none!important}
 .tab-nav-wrap.panel-open{animation:panelSlideIn .45s cubic-bezier(.2,.7,.2,1)}
 @keyframes panelSlideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-.tab-nav{display:flex;overflow-x:auto;gap:2px;align-items:center}
+.tab-nav{display:flex;flex-wrap:wrap;overflow-x:auto;gap:2px 4px;align-items:center;row-gap:4px}
 .tab-nav::-webkit-scrollbar{height:3px}
 .tab-divider{width:1px;height:18px;background:var(--border2);margin:0 6px;flex-shrink:0}
 .tbtn{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--t2);padding:9px 14px;margin-bottom:-1px;font-family:'IBM Plex Sans',sans-serif;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:.2s;white-space:nowrap;flex-shrink:0}
@@ -691,6 +699,7 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
           <button class="tbtn" data-grp="leadership" onclick="sw('pareto',this)" style="color:#00c896">📊 Fix List (80-20)</button>
           <button class="tbtn" data-grp="leadership" onclick="sw('compare',this)" style="color:#7ce0ff">⚖️ Compare Periods</button>
           <button class="tbtn" data-grp="leadership" onclick="sw('insights',this)" style="color:#a3f0c0">🔎 Insights</button>
+         <button class="tbtn" data-grp="leadership" onclick="sw('vendorcompare',this)" style="color:#ffb347">🆚 Vendor Compare</button>
         <div class="tab-divider"></div>
         <!-- PANEL 4 · SUMMARY -->
         <button class="tbtn" data-grp="summary" onclick="sw('summary',this)" style="color:#f5a623">🧭 Executive Summary</button>
@@ -712,13 +721,13 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
         </div>
         <div class="tw"><table id="agTable">
           <thead id="agThead"><tr>
-            <th>#</th>
-            <th>Agent Name</th>
-            <th>Team Leader</th>
-            <th id="agDynHead">RRR %</th>
-            <th>Distinct MTSN</th>
-            <th>Repeat Flags</th>
-            <th>Volume</th>
+            <th onclick="srt('agentData','rank',1,'agTbody',drawAg)">#</th>
+            <th onclick="srt('agentData','name',-1,'agTbody',drawAg)">Agent Name</th>
+            <th onclick="srt('agentData','tl',-1,'agTbody',drawAg)">Team Leader</th>
+            <th id="agDynHead" onclick="srt('agentData','pct',-1,'agTbody',drawAg)">RRR %</th>
+            <th onclick="srt('agentData','totalWO',-1,'agTbody',drawAg)">Distinct MTSN</th>
+            <th onclick="srt('agentData','rrrWO',-1,'agTbody',drawAg)">Repeat Flags</th>
+            <th onclick="srt('agentData','impact',-1,'agTbody',drawAg)">Impact (Vol × RRR%)</th>
           </tr></thead>
           <tbody id="agTbody"></tbody>
         </table></div>
@@ -804,7 +813,15 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
           <input class="ts" id="tlSearch" placeholder="Search TL…" oninput="srch('tlTbody',this.value)"/>
         </div>
         <div class="tw"><table id="tlTable">
-          <thead id="tlThead"><tr><th>#</th><th>Team Leader</th><th>Agents</th><th id="tlDynHead">RRR %</th><th>Distinct MTSN</th><th>Repeat Flags</th></tr></thead>
+          <thead id="tlThead"><tr>
+            <th onclick="srt('tlData','rank',1,'tlTbody',drawTL)">#</th>
+            <th onclick="srt('tlData','name',-1,'tlTbody',drawTL)">Team Leader</th>
+            <th onclick="srt('tlData','agents',-1,'tlTbody',drawTL)">Agents</th>
+            <th id="tlDynHead" onclick="srt('tlData','pct',-1,'tlTbody',drawTL)">RRR %</th>
+            <th onclick="srt('tlData','totalWO',-1,'tlTbody',drawTL)">Distinct MTSN</th>
+            <th onclick="srt('tlData','rrrWO',-1,'tlTbody',drawTL)">Repeat Flags</th>
+            <th onclick="srt('tlData','impact',-1,'tlTbody',drawTL)">Impact (Vol × RRR%)</th>
+          </tr></thead>
           <tbody id="tlTbody"></tbody>
         </table></div>
       </div>
@@ -842,11 +859,16 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
     <div class="tab" id="tab-reason">
       <div class="tc">
         <div class="tc-hd">
-          <div class="tc-title">Repair Reasons (Flag = 1 only)</div>
+          <div><div class="tc-title">Repeat Repair Reasons</div><div class="tc-meta" id="resMeta">Sorted by repeat-reason count. Click a row to see the Work Order numbers behind each reason.</div></div>
           <input class="ts" id="resSearch" placeholder="Search reason…" oninput="srch('resTbody',this.value)"/>
         </div>
         <div class="tw"><table>
-          <thead><tr><th onclick="srt('reasonData','rank',1,'resTbody',drawRes)">#</th><th onclick="srt('reasonData','name',-1,'resTbody',drawRes)">Repeat Repair Reason</th><th onclick="srt('reasonData','totalWO',-1,'resTbody',drawRes)">Distinct MTSN</th><th onclick="srt('reasonData','rrrWO',-1,'resTbody',drawRes)">Repeat Flags</th><th onclick="srt('reasonData','pct',-1,'resTbody',drawRes)">RRR %</th></tr></thead>
+          <thead><tr>
+            <th onclick="srt('reasonData','rank',1,'resTbody',drawRes)">#</th>
+            <th onclick="srt('reasonData','name',-1,'resTbody',drawRes)">Repeat Repair Reason</th>
+            <th onclick="srt('reasonData','count',-1,'resTbody',drawRes)">Repair Reason Count</th>
+            <th onclick="srt('reasonData','pct',-1,'resTbody',drawRes)">RRR %</th>
+          </tr></thead>
           <tbody id="resTbody"></tbody>
         </table></div>
       </div>
@@ -1333,6 +1355,25 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
       </div>
     </div>
 
+    <!-- TAB: VENDOR COMPARE (Leadership) -->
+    <div class="tab" id="tab-vendorcompare">
+      <div class="tc">
+        <div class="tc-hd">
+          <div>
+            <div class="tc-title">🆚 Vendor Compare — Vendor X vs Vendor Y</div>
+            <div class="tc-meta">Pick two vendors and one or more months/weeks. See side-by-side MTSN, Repeat Flags, RRR%, repair-reason mix and region-wise RRR%. Any reason containing "Workmanship" expands into the full Work Order list for direct case lookup.</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" type="button" onclick="VendorCompare && VendorCompare.exportCSV()">⬇ Export CSV</button>
+          </div>
+        </div>
+        <div id="vcmpBody" style="padding:14px">
+          <div style="padding:32px;text-align:center;color:var(--t3);font-size:12px">Upload a file to compare vendors.</div>
+        </div>
+      </div>
+    </div>
+
+
 
 
 
@@ -1636,6 +1677,8 @@ function analyze(){
   try{
     const cmpTab = document.getElementById('tab-compare');
     if(cmpTab && cmpTab.classList.contains('on') && window.Compare && window.Compare.onOpen) window.Compare.onOpen();
+    const vcmpTab = document.getElementById('tab-vendorcompare');
+    if(vcmpTab && vcmpTab.classList.contains('on') && window.VendorCompare && window.VendorCompare.onOpen) window.VendorCompare.onOpen();
   }catch(e){ console.error('post-analyze refresh', e); }
 }
 
@@ -1664,11 +1707,12 @@ function grp(rows,keyFn){
   const results=Object.values(m).map(g=>{
     const totalWO = g.mtsnMap.size; let cleanWO = 0;
     for (const hits of g.mtsnMap.values()) if (hits === 0) cleanWO++;
-    return {...g, totalWO, rrrWO: g.num, cleanWO, pct: totalWO>0 ? (g.num/totalWO*100) : 0}
+    const pct = totalWO>0 ? (g.num/totalWO*100) : 0;
+    return {...g, totalWO, rrrWO: g.num, cleanWO, pct, impact: totalWO * pct}
   })
-  const high=results.filter(r=>r.totalWO>15), low=results.filter(r=>r.totalWO<=15)
-  const sortC=items=>{ if(!items.length) return; const mx=items.reduce((m,r)=>r.totalWO>m?r.totalWO:m,1); items.sort((a,b)=>((b.totalWO/mx*40)+(b.pct*.6))-((a.totalWO/mx*40)+(a.pct*.6))) }
-  sortC(high); sortC(low); return[...high,...low].map((g,i)=>({...g,rank:i+1}))
+  // Sort by Impact = Volume × RRR% (desc). High volume + high RRR floats to top; low volume noise sinks.
+  results.sort((a,b)=>b.impact-a.impact)
+  return results.map((g,i)=>({...g,rank:i+1}))
 }
 
 /* ── DATA BUILDERS ── */
@@ -1680,10 +1724,11 @@ function buildAg(rows){
   })
   agentData=Object.values(m).map(g=>{
     const totalWO = g.mtsnMap.size; let cleanWO = 0; for (const hits of g.mtsnMap.values()) if(hits === 0) cleanWO++;
-    return {name:g.name, tl:g.tl, totalWO, rrrWO: g.num, cleanWO, pct:totalWO>0 ? (g.num/totalWO*100) : 0}
-  }).sort((a,b)=>b.pct-a.pct).map((g,i)=>({...g,rank:i+1}))
+    const pct = totalWO>0 ? (g.num/totalWO*100) : 0;
+    return {name:g.name, tl:g.tl, totalWO, rrrWO: g.num, cleanWO, pct, impact: totalWO * pct}
+  }).sort((a,b)=>b.impact-a.impact).map((g,i)=>({...g,rank:i+1}))
   const mxWO = agentData.reduce((m,a)=>a.totalWO>m?a.totalWO:m, 1); agentData.forEach(a=>a.barW=a.totalWO/mxWO*80)
-  document.getElementById('agMeta').textContent=`${agentData.length} agents · ${agentData.filter(a=>a.pct>=15).length} high-risk`; drawAg()
+  document.getElementById('agMeta').textContent=`${agentData.length} agents · ${agentData.filter(a=>a.pct>=15).length} high-risk · Sorted by Impact (Volume × RRR%)`; drawAg()
 }
 
 function buildTL(rows){
@@ -1695,14 +1740,37 @@ function buildTL(rows){
   })
   tlData=Object.values(m).map(g=>{
     const totalWO = g.mtsnMap.size; let cleanWO = 0; for (const hits of g.mtsnMap.values()) if(hits === 0) cleanWO++;
-    return {name:g.name, agents:g.agSet.size, totalWO, rrrWO: g.num, cleanWO, pct:totalWO>0 ? (g.num/totalWO*100) : 0}
-  }).sort((a,b)=>b.pct-a.pct).map((g,i)=>({...g,rank:i+1}))
-  document.getElementById('tlMeta').textContent=`${tlData.length} team leaders`; drawTL()
+    const pct = totalWO>0 ? (g.num/totalWO*100) : 0;
+    return {name:g.name, agents:g.agSet.size, totalWO, rrrWO: g.num, cleanWO, pct, impact: totalWO * pct}
+  }).sort((a,b)=>b.impact-a.impact).map((g,i)=>({...g,rank:i+1}))
+  document.getElementById('tlMeta').textContent=`${tlData.length} team leaders · Sorted by Impact (Volume × RRR%)`; drawTL()
 }
 
 function buildMod(rows){ modelData=grp(rows,r=>r.SUB); document.getElementById('modMeta').textContent=`${modelData.length} sub-series · ${modelData.filter(m=>m.pct>=15).length} high-risk`; drawMod() }
 function buildVen(rows){ vendorData=grp(rows,r=>r.VENDOR); drawVen() }
-function buildRes(rows){ reasonData=grp(rows,r=>r.REASON).filter(g=>g.name!=='Unknown'&&g.name!=='Not Specified').map((g,i)=>({...g, rank:i+1})); drawRes() }
+function buildRes(rows){
+  // Repeat Repair Reasons — uses "Next SO Repeat Repair Reason" on RRR-hit rows (Repeat Flag = 1).
+  // Count = number of RRR hit WOs carrying that Next SO reason. RRR% = count ÷ total RRR hits × 100.
+  const m={}
+  let totalHits=0
+  rows.forEach(r=>{
+    if(r.FLAG!=='1') return
+    totalHits++
+    let raw=(r.NEXT_REASON==null?'':String(r.NEXT_REASON)).trim()
+    if(!raw || /^(not specified|unknown|na|n\/a|null|undefined)$/i.test(raw)) raw='(Blank / Not Captured)'
+    if(!m[raw]) m[raw]={name:raw, count:0, records:[]}
+    m[raw].count++; m[raw].records.push(r)
+  })
+  const denom=totalHits||1
+  reasonData=Object.values(m)
+    .map(g=>({name:g.name, count:g.count, pct:g.count/denom*100, records:g.records}))
+    .sort((a,b)=>b.count-a.count)
+    .map((g,i)=>({...g, rank:i+1}))
+  const meta=document.getElementById('resMeta')
+  if(meta) meta.textContent=`${reasonData.length} Next SO repeat reasons · ${totalHits.toLocaleString()} RRR hits in current filter · RRR% = reason count ÷ RRR hits`
+  drawRes()
+}
+
 function buildSym(rows){ symptomData=grp(rows,r=>r.SYMPTOM); document.getElementById('symMeta').textContent=`${symptomData.length} symptoms — Click any row to view top models causing the issue.`; drawSym() }
 function buildAcc(rows){ accountData=grp(rows,r=>r.ACCOUNT); drawAcc() }
 function buildWk(rows){ weekData=grp(rows,r=>r.WEEK).sort((a,b)=>String(a.name).localeCompare(String(b.name))); drawWk() }
@@ -2343,7 +2411,7 @@ function drawAg(){
       <td><span class="pill ${pc(dispPct)}">${dispPct.toFixed(1)}%</span></td>
       <td class="mono">${dispMtsn.toLocaleString()}</td>
       <td class="mono">${dispRep}</td>
-      <td><div class="ibar-w"><div class="ibar" style="width:${(a.totalWO/mxWO*80)||2}px"></div><span style="font-size:10px;color:var(--t3)">${a.totalWO}</span></div></td>
+      <td><div class="ibar-w"><div class="ibar" style="width:${(a.totalWO/mxWO*80)||2}px"></div><span style="font-size:10px;color:var(--t3);margin-left:4px" title="Impact = Distinct MTSN × RRR%">${Math.round(a.impact||0).toLocaleString()}</span></div></td>
     </tr>
     <tr class="expand-detail" id="ag-expand-${encodeURIComponent(a.name)}" style="display:none">
       <td colspan="7" style="padding:0;background:var(--card2)"><div id="ag-expand-inner-${encodeURIComponent(a.name)}"></div></td>
@@ -2446,9 +2514,10 @@ function drawTL(){
       <td><span class="pill ${pc(dispPct)}">${dispPct.toFixed(1)}%</span></td>
       <td class="mono">${dispMtsn.toLocaleString()}</td>
       <td class="mono">${dispRep}</td>
+      <td class="mono" title="Impact = Distinct MTSN × RRR%">${Math.round(t.impact||0).toLocaleString()}</td>
     </tr>
     <tr class="expand-detail" id="tl-expand-${encodeURIComponent(t.name)}" style="display:none">
-      <td colspan="6" style="padding:0;background:var(--card2)"><div id="tl-expand-inner-${encodeURIComponent(t.name)}"></div></td>
+      <td colspan="7" style="padding:0;background:var(--card2)"><div id="tl-expand-inner-${encodeURIComponent(t.name)}"></div></td>
     </tr>`
   }).join('')
 }
@@ -2636,7 +2705,72 @@ function buildExpandPanel(title, items){
     <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:8px">${title}</div>
     ${rows}</div>`
 }
-function drawRes(){ document.getElementById('resTbody').innerHTML=reasonData.map((r,i)=>`<tr><td><span class="rnk ${rk(i)}">${i+1}</span></td><td style="font-weight:600">${r.name}</td><td class="mono">${r.totalWO.toLocaleString()}</td><td class="mono">${r.rrrWO.toLocaleString()}</td><td><span class="pill ${pc(r.pct)}">${r.pct.toFixed(1)}%</span></td></tr>`).join('') }
+function drawRes(){
+  document.getElementById('resTbody').innerHTML=reasonData.map((r,i)=>{
+    const enc=encodeURIComponent(r.name)
+    return `<tr class="expand-trigger" onclick="toggleResExpand(this,'${enc}')" style="cursor:pointer" title="Click to see Work Order numbers">
+      <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+      <td style="font-weight:600">${r.name} <span style="font-size:10px;color:var(--t3);margin-left:4px">▾</span></td>
+      <td class="mono">${(r.count||0).toLocaleString()}</td>
+      <td><span class="pill ${pc(r.pct)}">${(r.pct||0).toFixed(1)}%</span></td>
+    </tr>
+    <tr class="expand-detail" id="res-expand-${enc}" style="display:none">
+      <td colspan="4" style="padding:0;background:var(--card2)"><div id="res-expand-inner-${enc}"></div></td>
+    </tr>`
+  }).join('')
+}
+function toggleResExpand(triggerRow, keyEnc){
+  const detailRow=document.getElementById('res-expand-'+keyEnc)
+  const inner=document.getElementById('res-expand-inner-'+keyEnc)
+  const isOpen=detailRow.style.display!=='none'
+  document.querySelectorAll('#resTbody .expand-detail').forEach(r=>r.style.display='none')
+  document.querySelectorAll('#resTbody .expand-trigger td:nth-child(2) span').forEach(s=>s.textContent='▾')
+  if(isOpen) return
+  const name=decodeURIComponent(keyEnc)
+  const row=reasonData.find(r=>r.name===name)
+  const recs=(row&&row.records)||[]
+  if(!recs.length){
+    inner.innerHTML=`<div style="padding:12px 18px;color:var(--t3);font-size:11px">No work orders available for this reason.</div>`
+    detailRow.style.display=''; triggerRow.querySelector('td:nth-child(2) span').textContent='▴'; return
+  }
+  // Show all WO rows carrying this repair reason so leadership can look up each case in the source file
+  const rowsHtml=recs.map((r,i)=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
+    <td style="padding:5px 10px;color:var(--t3);font-family:'IBM Plex Mono',monospace">${i+1}</td>
+    <td style="padding:5px 10px;font-family:'IBM Plex Mono',monospace;font-weight:600">${r.WO_NUM||'—'}</td>
+    <td style="padding:5px 10px;font-family:'IBM Plex Mono',monospace">${r.MTSN||'—'}</td>
+    <td style="padding:5px 10px">${r.NAME||'—'}</td>
+    <td style="padding:5px 10px">${r.SUB||'—'}</td>
+    <td style="padding:5px 10px">${r.SYMPTOM||'—'}</td>
+    <td style="padding:5px 10px">${r.VENDOR||'—'}</td>
+    <td style="padding:5px 10px">${r.ACCOUNT||'—'}</td>
+    <td style="padding:5px 10px;color:var(--t3)">${r.MONTH||'—'}</td>
+  </tr>`).join('')
+  inner.innerHTML=`
+    <div style="padding:14px 18px;border-top:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--red)">▸ Work Orders — ${name}</div>
+        <div style="font-size:10px;color:var(--t3)">${recs.length.toLocaleString()} work order${recs.length===1?'':'s'}</div>
+      </div>
+      <div style="max-height:360px;overflow:auto;border:1px solid var(--border);border-radius:4px">
+      <table style="width:100%;font-size:11px;border-collapse:collapse">
+        <thead style="position:sticky;top:0;background:var(--card2);z-index:1"><tr style="border-bottom:1px solid var(--border)">
+          <th style="padding:6px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">#</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">WO Number</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">MTSN</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Agent</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Sub Series</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Symptom</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Vendor</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Account</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Month</th>
+        </tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+      </div>
+    </div>`
+  detailRow.style.display=''
+  triggerRow.querySelector('td:nth-child(2) span').textContent='▴'
+}
 
 function drawSym(){
   document.getElementById('symTbody').innerHTML=symptomData.map((s,i)=>`
@@ -3404,6 +3538,9 @@ function sw(name,btn){
   }
   if(name==='insights'){
     try{ window.Insights && window.Insights.onOpen && window.Insights.onOpen(); }catch(e){ console.error('insights open', e); }
+  }
+  if(name==='vendorcompare'){
+    try{ window.VendorCompare && window.VendorCompare.onOpen && window.VendorCompare.onOpen(); }catch(e){ console.error('vendorcompare open', e); }
   }
 }
 function exportCSV(){
@@ -6254,7 +6391,10 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
       const contrib = ((volB>0? B.rep/volB:0) - (volA>0? A.rep/volA:0)) * 100;
       rows.push({key:k, volA:A.vol, volB:B.vol, repA:A.rep, repB:B.rep, pctA, pctB, dPP:pctB-pctA, contrib});
     });
-    rows.sort((a,b)=>Math.abs(b.contrib)-Math.abs(a.contrib));
+    // Rank by Impact = Volume × RRR% (repeat-flag count) — biggest of the two periods.
+    // This surfaces high-volume + high-RRR entities first and pushes tiny-volume noise down.
+    rows.forEach(r=>{ r.impact = Math.max(r.volA * r.pctA, r.volB * r.pctB) / 100; });
+    rows.sort((a,b)=> b.impact - a.impact || Math.abs(b.contrib) - Math.abs(a.contrib));
     return rows;
   }
 
@@ -6335,16 +6475,19 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
       const A=mA.get(k)||{mtsn:new Map(),rep:0}, B=mB.get(k)||{mtsn:new Map(),rep:0};
       const vA=A.mtsn.size, vB=B.mtsn.size;
       const pA=vA>0?A.rep/vA*100:0, pB=vB>0?B.rep/vB*100:0;
-      return {k, vA, vB, pA, pB, dPP:pB-pA};
-    }).sort((a,b)=>Math.abs(b.dPP)-Math.abs(a.dPP)).slice(0,10);
+      // Impact = Vol × RRR% (max of the two periods) → real repeat volume, not tiny outliers
+      const impact = Math.max(vA*pA, vB*pB) / 100;
+      return {k, vA, vB, pA, pB, dPP:pB-pA, impact};
+    }).sort((a,b)=> b.impact - a.impact || Math.abs(b.dPP) - Math.abs(a.dPP)).slice(0,10);
     if(!rowsOut.length) return `<em style="color:var(--t3)">No sub-detail for ${esc(key)}.</em>`;
     const body = rowsOut.map((r,i)=>`<tr><td class="n">${i+1}. ${esc(r.k)}</td>
       <td>${fmt(r.vA)}</td><td>${fmt(r.vB)}</td>
       <td>${r.pA.toFixed(2)}%</td><td>${r.pB.toFixed(2)}%</td>
-      <td class="contrib ${r.dPP>0.001?'up':(r.dPP<-0.001?'down':'')}">${pp(r.dPP)}</td></tr>`).join('');
+      <td class="contrib ${r.dPP>0.001?'up':(r.dPP<-0.001?'down':'')}">${pp(r.dPP)}</td>
+      <td title="Vol × RRR% (worst period)">${fmt(r.impact)}</td></tr>`).join('');
     return `<div class="drill-inner">
-      <div><div style="font-size:10.5px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${esc(key)} · split by ${secondary.label}</div>
-        <table><thead><tr><th class="n">Row</th><th>Vol A</th><th>Vol B</th><th>RRR% A</th><th>RRR% B</th><th>Δ pp</th></tr></thead>
+      <div><div style="font-size:10.5px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${esc(key)} · split by ${secondary.label} <span style="color:var(--t3);text-transform:none;letter-spacing:.3px;margin-left:6px">· ranked by Impact (Vol × RRR%)</span></div>
+        <table><thead><tr><th class="n">Row</th><th>Vol A</th><th>Vol B</th><th>RRR% A</th><th>RRR% B</th><th>Δ pp</th><th>Impact</th></tr></thead>
         <tbody>${body}</tbody></table></div>
       <div><div style="font-size:10.5px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Period trend</div>
         ${trendSpark(getRows(), key, dim.key).replace('width="80"','width="220"').replace('height="22"','height="60"').replace('viewBox="0 0 80 22"','viewBox="0 0 80 22" preserveAspectRatio="none"')}
@@ -7477,7 +7620,328 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     }
   };
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   VENDOR COMPARE — X vs Y across selected months/weeks
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+  const state = {
+    vendorA: '', vendorB: '',
+    gran: 'MONTH',   // 'MONTH' | 'WEEK'
+    periods: [],     // array of month or week values
+    reasonExpanded: new Set(), // key = side|reason
+  };
+
+  const $ = (id)=>document.getElementById(id);
+  const esc = (s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const pct = (n,d)=> d>0 ? (n*100/d) : 0;
+  const rows = ()=> {
+    const fd = (typeof filteredData!=='undefined' && filteredData) ? filteredData : (window.filteredData||null);
+    if(fd && fd.length) return fd;
+    const rd = (typeof rawData!=='undefined' && rawData) ? rawData : (window.rawData||null);
+    return (rd && rd.length) ? rd : [];
+  };
+  const normRegion = (r)=> (typeof normalizeRegion==='function') ? normalizeRegion(r) : (r||'Unmapped');
+
+  function uniqSorted(field){
+    const s = new Set();
+    rows().forEach(r=>{ const v=r[field]; if(v!=null && String(v).trim()) s.add(String(v)); });
+    return [...s].sort((a,b)=>String(a).localeCompare(String(b), undefined, {numeric:true}));
+  }
+
+  function calcSlice(vendor){
+    const gr = state.gran, per = new Set(state.periods.map(String));
+    const out = { mtsnSet:new Set(), flags:0, total:0, byReason:{}, byRegion:{}, byMonth:{}, workmanshipWO:[] };
+    if(!vendor) return out;
+    const data = rows();
+    for(const r of data){
+      if(String(r.VENDOR||'') !== vendor) continue;
+      const pk = String(r[gr]||'');
+      if(per.size && !per.has(pk)) continue;
+      out.total++;
+      if(r.MTSN) out.mtsnSet.add(r.MTSN);
+      const hit = r.FLAG === '1';
+      if(hit) out.flags++;
+      // reasons — only across RRR hits (same convention as elsewhere)
+      if(hit){
+        const raw = (r.NEXT_REASON==null?'':String(r.NEXT_REASON)).trim();
+        const key = raw || '(Blank / Not Captured)';
+        if(!out.byReason[key]) out.byReason[key] = { count:0, workmanship: /workman/i.test(key), wos:[] };
+        out.byReason[key].count++;
+        out.byReason[key].wos.push(r);
+        if(/workman/i.test(key)) out.workmanshipWO.push(r);
+      }
+      // region
+      const rg = normRegion(r.REGION);
+      if(!out.byRegion[rg]) out.byRegion[rg] = { total:0, flags:0 };
+      out.byRegion[rg].total++;
+      if(hit) out.byRegion[rg].flags++;
+      // month trend
+      const mo = r.MONTH || '?';
+      if(!out.byMonth[mo]) out.byMonth[mo] = { total:0, flags:0 };
+      out.byMonth[mo].total++;
+      if(hit) out.byMonth[mo].flags++;
+    }
+    out.mtsn = out.mtsnSet.size;
+    out.rrr = pct(out.flags, out.total);
+    return out;
+  }
+
+  function renderKPI(a,b){
+    const cmp = (va,vb,invert)=>{
+      const d = va - vb;
+      const cls = (invert ? d<0 : d>0) ? '#ff6b7a' : (d===0?'var(--t2)':'#00c896');
+      const arr = d>0?'▲':(d<0?'▼':'—');
+      return `<span style="color:${cls};font-weight:600">${arr} ${Math.abs(d).toFixed(2)}</span>`;
+    };
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        ${[['A',a,state.vendorA,'#7ce0ff'],['B',b,state.vendorB,'#ffb347']].map(([lbl,d,name,col])=>`
+          <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid ${col};border-radius:8px;padding:12px 14px">
+            <div style="font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--t3);margin-bottom:4px">Vendor ${lbl}</div>
+            <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:10px">${esc(name||'—')}</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+              <div><div style="font-size:10px;color:var(--t3)">MTSN</div><div style="font-size:18px;font-weight:700">${d.mtsn.toLocaleString()}</div></div>
+              <div><div style="font-size:10px;color:var(--t3)">Total WOs</div><div style="font-size:18px;font-weight:700">${d.total.toLocaleString()}</div></div>
+              <div><div style="font-size:10px;color:var(--t3)">Repeat Flags</div><div style="font-size:18px;font-weight:700">${d.flags.toLocaleString()}</div></div>
+              <div><div style="font-size:10px;color:var(--t3)">RRR %</div><div style="font-size:18px;font-weight:700;color:${d.rrr>=15?'#ff6b7a':(d.rrr>=8?'#f5a623':'#00c896')}">${d.rrr.toFixed(2)}%</div></div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--t2);display:flex;gap:22px;flex-wrap:wrap">
+        <span>Δ MTSN (A−B): ${cmp(a.mtsn,b.mtsn,false)}</span>
+        <span>Δ Repeat Flags: ${cmp(a.flags,b.flags,true)}</span>
+        <span>Δ RRR %: ${cmp(a.rrr,b.rrr,true)} pp</span>
+      </div>`;
+  }
+
+  function renderReasonTable(side, slice){
+    const total = slice.flags;
+    const list = Object.entries(slice.byReason)
+      .map(([k,v])=>({ reason:k, count:v.count, wos:v.wos, workmanship:v.workmanship }))
+      .sort((x,y)=>y.count-x.count);
+    if(!list.length) return `<div style="padding:14px;color:var(--t3);font-size:12px">No repeat flags in slice.</div>`;
+    return `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="color:var(--t3);text-align:left;border-bottom:1px solid var(--border)">
+        <th style="padding:6px 8px">Repeat Repair Reason</th>
+        <th style="padding:6px 8px;text-align:right">Count</th>
+        <th style="padding:6px 8px;text-align:right">RRR %</th>
+      </tr></thead><tbody>
+      ${list.map(row=>{
+        const key = side+'|'+row.reason;
+        const isOpen = state.reasonExpanded.has(key);
+        const isWork = row.workmanship;
+        const share = total>0 ? (row.count*100/total).toFixed(1) : '0.0';
+        return `
+          <tr class="${isWork?'vcmp-work':''}" style="border-bottom:1px solid var(--border);${isWork?'cursor:pointer':''}"
+              ${isWork?`onclick="VendorCompare.toggleReason('${side}', ${JSON.stringify(row.reason).replace(/"/g,'&quot;')})"`:''}>
+            <td style="padding:6px 8px;color:var(--t1)">${isWork?'<span style="color:#ffb347;font-weight:700;margin-right:6px">'+(isOpen?'▾':'▸')+'</span>':''}${esc(row.reason)}${isWork?' <span style="font-size:10px;background:rgba(255,179,71,.15);color:#ffb347;padding:1px 6px;border-radius:99px;margin-left:6px">WORKMANSHIP</span>':''}</td>
+            <td style="padding:6px 8px;text-align:right;font-family:'IBM Plex Mono',monospace">${row.count}</td>
+            <td style="padding:6px 8px;text-align:right;font-family:'IBM Plex Mono',monospace">${share}%</td>
+          </tr>
+          ${isWork && isOpen ? `<tr><td colspan="3" style="padding:0 8px 10px;background:var(--bg)">${renderWOs(row.wos)}</td></tr>` : ''}
+        `;
+      }).join('')}
+      </tbody></table>`;
+  }
+
+  function renderWOs(wos){
+    if(!wos.length) return `<div style="padding:10px;color:var(--t3);font-size:11px">No work orders.</div>`;
+    return `<div style="max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:6px;margin-top:6px">
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="color:var(--t3);text-align:left;background:var(--card);position:sticky;top:0">
+          <th style="padding:5px 8px">WO Number</th><th style="padding:5px 8px">MTSN</th>
+          <th style="padding:5px 8px">Agent</th><th style="padding:5px 8px">Sub-Series</th>
+          <th style="padding:5px 8px">Symptom</th><th style="padding:5px 8px">Account</th>
+          <th style="padding:5px 8px">Region</th><th style="padding:5px 8px">City</th>
+          <th style="padding:5px 8px">${state.gran==='WEEK'?'Week':'Month'}</th>
+        </tr></thead><tbody>
+        ${wos.map(r=>`<tr style="border-top:1px solid var(--border)">
+          <td style="padding:4px 8px;font-family:'IBM Plex Mono',monospace;font-weight:600">${esc(r.WO_NUM||'—')}</td>
+          <td style="padding:4px 8px;font-family:'IBM Plex Mono',monospace">${esc(r.MTSN||'—')}</td>
+          <td style="padding:4px 8px">${esc(r.NAME||'—')}</td>
+          <td style="padding:4px 8px">${esc(r.SUB||'—')}</td>
+          <td style="padding:4px 8px">${esc(r.SYMPTOM||'—')}</td>
+          <td style="padding:4px 8px">${esc(r.ACCOUNT||'—')}</td>
+          <td style="padding:4px 8px">${esc(normRegion(r.REGION))}</td>
+          <td style="padding:4px 8px">${esc(r.CITY||'—')}</td>
+          <td style="padding:4px 8px">${esc(r[state.gran]||'—')}</td>
+        </tr>`).join('')}
+        </tbody></table></div>`;
+  }
+
+  function renderRegionTable(a,b){
+    const regions = ['North','South','East','West'];
+    // include any "Unmapped" if present
+    const extras = [...new Set([...Object.keys(a.byRegion),...Object.keys(b.byRegion)])].filter(r=>!regions.includes(r));
+    const all = [...regions, ...extras];
+    return `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="color:var(--t3);text-align:left;border-bottom:1px solid var(--border)">
+        <th style="padding:6px 8px">Region</th>
+        <th style="padding:6px 8px;text-align:right" colspan="2" >${esc(state.vendorA||'Vendor A')}</th>
+        <th style="padding:6px 8px;text-align:right" colspan="2">${esc(state.vendorB||'Vendor B')}</th>
+        <th style="padding:6px 8px;text-align:right">Δ RRR pp</th>
+      </tr>
+      <tr style="color:var(--t3);border-bottom:1px solid var(--border);font-size:10px">
+        <th></th>
+        <th style="padding:4px 8px;text-align:right">MTSN / Flags</th><th style="padding:4px 8px;text-align:right">RRR%</th>
+        <th style="padding:4px 8px;text-align:right">MTSN / Flags</th><th style="padding:4px 8px;text-align:right">RRR%</th>
+        <th></th>
+      </tr></thead><tbody>
+      ${all.map(rg=>{
+        const ra = a.byRegion[rg]||{total:0,flags:0}, rb = b.byRegion[rg]||{total:0,flags:0};
+        const pa = pct(ra.flags,ra.total), pb = pct(rb.flags,rb.total);
+        const d = pa-pb; const dc = d>0?'#ff6b7a':(d<0?'#00c896':'var(--t2)');
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:6px 8px;color:var(--t1);font-weight:600">${esc(rg)}</td>
+          <td style="padding:6px 8px;text-align:right;font-family:'IBM Plex Mono',monospace">${ra.total} / ${ra.flags}</td>
+          <td style="padding:6px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:${pa>=15?'#ff6b7a':(pa>=8?'#f5a623':'#00c896')}">${pa.toFixed(2)}%</td>
+          <td style="padding:6px 8px;text-align:right;font-family:'IBM Plex Mono',monospace">${rb.total} / ${rb.flags}</td>
+          <td style="padding:6px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:${pb>=15?'#ff6b7a':(pb>=8?'#f5a623':'#00c896')}">${pb.toFixed(2)}%</td>
+          <td style="padding:6px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:${dc};font-weight:700">${d>0?'+':''}${d.toFixed(2)}</td>
+        </tr>`;
+      }).join('')}
+      </tbody></table>`;
+  }
+
+  function renderPicker(){
+    const vendors = uniqSorted('VENDOR');
+    const periods = uniqSorted(state.gran);
+    const chipHtml = periods.map(p=>{
+      const on = state.periods.includes(p);
+      return `<button type="button" class="cmp-chip ${on?'on':''}" onclick="VendorCompare.togglePeriod('${esc(p)}')">${esc(p)}</button>`;
+    }).join('');
+    const vendorSel = (id,cur,label,col)=>`
+      <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid ${col};border-radius:8px;padding:10px 12px">
+        <div style="font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--t3);margin-bottom:6px">${label}</div>
+        <select id="${id}" onchange="VendorCompare.setVendor('${id}',this.value)" style="width:100%;background:var(--bg);color:var(--t1);border:1px solid var(--border);border-radius:5px;padding:6px 8px;font-size:12px">
+          <option value="">— Select vendor —</option>
+          ${vendors.map(v=>`<option value="${esc(v)}" ${v===cur?'selected':''}>${esc(v)}</option>`).join('')}
+        </select>
+      </div>`;
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        ${vendorSel('vcmpA', state.vendorA, 'Vendor A', '#7ce0ff')}
+        ${vendorSel('vcmpB', state.vendorB, 'Vendor B', '#ffb347')}
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--t3)">Compare across (${state.gran==='WEEK'?'Weeks':'Months'})</div>
+          <div style="display:inline-flex;background:var(--bg);border:1px solid var(--border);border-radius:5px;overflow:hidden">
+            <button type="button" onclick="VendorCompare.setGran('MONTH')" style="background:${state.gran==='MONTH'?'var(--red)':'transparent'};color:${state.gran==='MONTH'?'#fff':'var(--t2)'};border:none;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer">Month</button>
+            <button type="button" onclick="VendorCompare.setGran('WEEK')" style="background:${state.gran==='WEEK'?'var(--red)':'transparent'};color:${state.gran==='WEEK'?'#fff':'var(--t2)'};border:none;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer">Week</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;max-height:96px;overflow-y:auto;padding:6px;background:var(--bg);border:1px solid var(--border);border-radius:5px;margin-bottom:6px">${chipHtml||'<span style="color:var(--t3);font-size:11px;padding:4px">No values.</span>'}</div>
+        <div style="display:flex;gap:6px">
+          <button type="button" class="cmp-preset" onclick="VendorCompare.periodsAll()" style="padding:3px 9px;background:transparent;color:var(--t3);border:1px dashed var(--border);border-radius:4px;font-size:10.5px;cursor:pointer">All</button>
+          <button type="button" class="cmp-preset" onclick="VendorCompare.periodsNone()" style="padding:3px 9px;background:transparent;color:var(--t3);border:1px dashed var(--border);border-radius:4px;font-size:10.5px;cursor:pointer">Clear</button>
+          <span style="color:var(--t3);font-size:11px;align-self:center">${state.periods.length} selected</span>
+        </div>
+      </div>`;
+  }
+
+  function render(){
+    const body = $('vcmpBody'); if(!body) return;
+    if(!rows().length){ body.innerHTML = '<div style="padding:32px;text-align:center;color:var(--t3);font-size:12px">Upload a file to compare vendors.</div>'; return; }
+    const picker = renderPicker();
+    if(!state.vendorA || !state.vendorB){
+      body.innerHTML = picker + '<div style="padding:24px;text-align:center;color:var(--t3);font-size:12px;border:1px dashed var(--border);border-radius:8px">Pick both vendors to start comparing.</div>';
+      return;
+    }
+    const a = calcSlice(state.vendorA), b = calcSlice(state.vendorB);
+    body.innerHTML = picker + renderKPI(a,b) + `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        <div style="background:var(--card);border:1px solid var(--border);border-top:3px solid #7ce0ff;border-radius:8px;padding:10px 12px">
+          <div style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3);margin-bottom:8px">Repair Reasons — ${esc(state.vendorA)}</div>
+          ${renderReasonTable('A', a)}
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-top:3px solid #ffb347;border-radius:8px;padding:10px 12px">
+          <div style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3);margin-bottom:8px">Repair Reasons — ${esc(state.vendorB)}</div>
+          ${renderReasonTable('B', b)}
+        </div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:14px">
+        <div style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3);margin-bottom:8px">Region-wise RRR %</div>
+        ${renderRegionTable(a,b)}
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:11.5px;color:var(--t2);line-height:1.55">
+        <b style="color:var(--t1)">How this is calculated</b><br>
+        • Slice = rows where <code>Primary Vendor Name</code> matches the vendor and the ${state.gran==='WEEK'?'RRR Week':'RRR Month'} is in the selection.<br>
+        • <b>RRR %</b> = Repeat Flags (FLAG = 1) ÷ Total WOs in that slice × 100.<br>
+        • <b>Repair Reasons</b> uses <code>Next SO Repeat Repair Reason</code> across FLAG = 1 rows only. RRR% share = reason count ÷ total repeat flags for that vendor.<br>
+        • Rows whose reason contains <b>"Workmanship"</b> are highlighted and click-to-expand into the full underlying Work Order list (WO Number, MTSN, Agent, Sub-Series, Symptom, Account, Region, City, ${state.gran==='WEEK'?'Week':'Month'}).<br>
+        • Region is canonicalised via <code>normalizeRegion()</code> into North / South / East / West.
+      </div>`;
+  }
+
+  function autoDefaults(){
+    const data = rows(); if(!data.length) return;
+    // Auto-pick all periods if none picked
+    if(!state.periods.length) state.periods = uniqSorted(state.gran);
+    // Auto-pick top 2 vendors by Impact (Vol × RRR%) if not both chosen
+    if(!state.vendorA || !state.vendorB){
+      const agg = {};
+      for(const r of data){
+        const v = String(r.VENDOR||'').trim(); if(!v) continue;
+        if(!agg[v]) agg[v] = { total:0, flags:0 };
+        agg[v].total++; if(r.FLAG==='1') agg[v].flags++;
+      }
+      const ranked = Object.entries(agg)
+        .map(([v,d])=>({ v, total:d.total, rrr: d.total>0? d.flags*100/d.total : 0 }))
+        .filter(x=>x.total>=10)
+        .map(x=>({ ...x, impact: x.total * x.rrr }))
+        .sort((a,b)=>b.impact-a.impact);
+      if(ranked.length){
+        if(!state.vendorA) state.vendorA = ranked[0].v;
+        if(!state.vendorB) state.vendorB = (ranked.find(x=>x.v!==state.vendorA)||ranked[0]).v;
+      }
+    }
+  }
+
+  window.VendorCompare = {
+    onOpen(){ autoDefaults(); render(); },
+    onDataChanged(){ state.vendorA=''; state.vendorB=''; state.periods=[]; state.reasonExpanded.clear(); autoDefaults(); render(); },
+    setVendor(id,val){ if(id==='vcmpA') state.vendorA=val; else state.vendorB=val; state.reasonExpanded.clear(); render(); },
+    setGran(g){ if(state.gran===g) return; state.gran=g; state.periods=uniqSorted(g); state.reasonExpanded.clear(); render(); },
+    togglePeriod(p){ const i=state.periods.indexOf(p); if(i>=0) state.periods.splice(i,1); else state.periods.push(p); render(); },
+    periodsAll(){ state.periods = uniqSorted(state.gran); render(); },
+    periodsNone(){ state.periods = []; render(); },
+    toggleReason(side, reason){ const k=side+'|'+reason; if(state.reasonExpanded.has(k)) state.reasonExpanded.delete(k); else state.reasonExpanded.add(k); render(); },
+    exportCSV(){
+      if(!state.vendorA || !state.vendorB){ alert('Pick both vendors first.'); return; }
+      const a = calcSlice(state.vendorA), b = calcSlice(state.vendorB);
+      const lines = [['Section','Vendor','Key','Metric','Value'].join(',')];
+      const push = (sec,v,k,m,val)=>lines.push([sec,v,k,m,val].map(x=>`"${String(x==null?'':x).replace(/"/g,'""')}"`).join(','));
+      [['A',a,state.vendorA],['B',b,state.vendorB]].forEach(([lbl,d,name])=>{
+        push('KPI',name,'—','MTSN',d.mtsn);
+        push('KPI',name,'—','Total WO',d.total);
+        push('KPI',name,'—','Repeat Flags',d.flags);
+        push('KPI',name,'—','RRR%',d.rrr.toFixed(2));
+        Object.entries(d.byReason).sort((x,y)=>y[1].count-x[1].count).forEach(([k,v])=>{
+          push('Reason',name,k,'Count',v.count);
+          push('Reason',name,k,'Share%', d.flags>0?(v.count*100/d.flags).toFixed(2):'0');
+        });
+        Object.entries(d.byRegion).forEach(([k,v])=>{
+          push('Region',name,k,'MTSN',v.total);
+          push('Region',name,k,'Flags',v.flags);
+          push('Region',name,k,'RRR%', pct(v.flags,v.total).toFixed(2));
+        });
+        d.workmanshipWO.forEach(r=>{
+          push('Workmanship WO',name,r.WO_NUM||'—',
+            `${r.MTSN||''} | ${r.NAME||''} | ${r.SUB||''} | ${r.SYMPTOM||''} | ${r.ACCOUNT||''} | ${normRegion(r.REGION)} | ${r.CITY||''}`,
+            r[state.gran]||'');
+        });
+      });
+      const blob = new Blob([lines.join('\n')],{type:'text/csv'});
+      const a2 = document.createElement('a'); a2.href = URL.createObjectURL(blob);
+      a2.download = `VendorCompare_${new Date().toISOString().slice(0,10)}.csv`; a2.click();
+    }
+  };
+})();
 </script>
+
 
 </body>
 
