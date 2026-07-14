@@ -687,19 +687,21 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
         <button class="tbtn" data-grp="mgmt" onclick="sw('correlation',this)" style="color:#b86bff">🧠 Correlation & Anomaly</button>
         <button class="tbtn" data-grp="mgmt" onclick="sw('rca',this)" style="color:#ff6bcb">🩺 Model × Symptom RCA</button>
          <button class="tbtn" data-grp="mgmt" onclick="sw('combos',this)" style="color:#ffd166">🧩 Combination Miner</button>
-         <button class="tbtn" data-grp="mgmt" onclick="sw('rccc',this)" style="color:#ff8fa3">🧠 Root Cause Chain</button>
+          <button class="tbtn" data-grp="mgmt" onclick="sw('rccc',this)" style="color:#ff8fa3">🧠 Root Cause Chain</button>
+          <button class="tbtn" data-grp="mgmt" onclick="sw('pattern',this)" style="color:#8ce7ff">🧬 Pattern Relation</button>
+          <button class="tbtn" data-grp="mgmt" onclick="sw('techrep',this)" style="color:#ffb347">🧑‍🔧 Technician Report</button>
+          <button class="tbtn" data-grp="mgmt" onclick="sw('vendorrep',this)" style="color:#7ce0ff">📒 Vendor RRR Report</button>
          <div class="tab-divider"></div>
          <!-- PANEL 3 · LEADERSHIP LEVEL -->
          <button class="tbtn" data-grp="leadership" onclick="sw('forecast',this)" style="color:#00c896">🔮 Forecast (Next 2 Wks)</button>
          <button class="tbtn" data-grp="leadership" onclick="sw('vendormap',this)" style="color:#ff9f4a">🗺️ Vendor Mapping</button>
          <button class="tbtn" data-grp="leadership" onclick="sw('accountmap',this)" style="color:#ff9f4a">🗺️ Account Mapping</button>
-         <button class="tbtn" data-grp="leadership" onclick="sw('actionplan',this)" style="color:#f5a623">🛠️ RRR Action Plan</button>
-         <button class="tbtn" data-grp="leadership" onclick="sw('simulator',this)" style="color:#f5a623">🎯 Reduction Simulator</button>
-         <button class="tbtn" data-grp="leadership" onclick="sw('ledger',this)" style="color:#7ce0ff">👤 Accountability Ledger</button>
-          <button class="tbtn" data-grp="leadership" onclick="sw('pareto',this)" style="color:#00c896">📊 Fix List (80-20)</button>
-          <button class="tbtn" data-grp="leadership" onclick="sw('compare',this)" style="color:#7ce0ff">⚖️ Compare Periods</button>
-          <button class="tbtn" data-grp="leadership" onclick="sw('insights',this)" style="color:#a3f0c0">🔎 Insights</button>
-         <button class="tbtn" data-grp="leadership" onclick="sw('vendorcompare',this)" style="color:#ffb347">🆚 Vendor Compare</button>
+          <button class="tbtn" data-grp="leadership" onclick="sw('actionplan',this)" style="color:#f5a623">🛠️ RRR Action Plan</button>
+          <button class="tbtn" data-grp="leadership" onclick="sw('frujourney',this)" style="color:#a3f0c0">🧩 FRU Journey</button>
+          <button class="tbtn" data-grp="leadership" onclick="sw('simulator',this)" style="color:#f5a623">🎯 Reduction Simulator</button>
+           <button class="tbtn" data-grp="leadership" onclick="sw('compare',this)" style="color:#7ce0ff">⚖️ Compare Periods</button>
+           <button class="tbtn" data-grp="leadership" onclick="sw('insights',this)" style="color:#a3f0c0">🔎 Insights</button>
+          <button class="tbtn" data-grp="leadership" onclick="sw('vendorcompare',this)" style="color:#ffb347">🆚 Vendor Compare</button>
         <div class="tab-divider"></div>
         <!-- PANEL 4 · SUMMARY -->
         <button class="tbtn" data-grp="summary" onclick="sw('summary',this)" style="color:#f5a623">🧭 Executive Summary</button>
@@ -1311,12 +1313,33 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
     <div class="tab" id="tab-rccc">
       <div class="tc"><div class="tc-hd"><div><div class="tc-title">🧠 Root Cause Chain — WHY in one line</div><div class="tc-meta" id="rcccMeta">Auto-composed sentence per top offender combining Vendor × Model × City × Symptom × failing part × fix part. One line, all numbers.</div></div></div><div id="rcccBody" style="padding:14px"><div style="padding:32px;text-align:center;color:var(--t3);font-size:12px">Upload a file to build the root cause chain.</div></div></div>
     </div>
-    <div class="tab" id="tab-ledger">
-      <div class="tc"><div class="tc-hd"><div><div class="tc-title">👤 Accountability Ledger — WHO owns this RRR</div><div class="tc-meta" id="ledgerMeta">Every offending entity, its owner, its pp contribution to national RRR delta, its 30-day gap-to-target, and the exact number of repeats to eliminate.</div></div><div><button class="btn btn-r" onclick="rce_exportLedger()">⬇ Export Ledger (XLSX)</button></div></div><div id="ledgerBody" style="padding:14px"><div style="padding:32px;text-align:center;color:var(--t3);font-size:12px">Upload a file to build the accountability ledger.</div></div></div>
+    <!-- TAB: FRU JOURNEY -->
+    <div class="tab" id="tab-frujourney">
+      <div class="tc">
+        <div class="tc-hd">
+          <div>
+            <div class="tc-title">🧩 FRU Journey — Model × Symptom → Resolving FRU</div>
+            <div class="tc-meta" id="fruMeta">Scans the entire dataset. For each Sub-Series (ranked by repeat volume), pick a symptom to see the First WO FRU# that was sent vs the Next SO FRU# that actually resolved the repeat. Excludes DOA.</div>
+          </div>
+          <input class="ts" id="fruSearch" placeholder="Search model…" oninput="srch('fruTbody',this.value)"/>
+        </div>
+        <div class="tw">
+          <table id="fruTable">
+            <thead><tr>
+              <th>#</th>
+              <th>Sub Series (Model)</th>
+              <th>Top Symptom (highest RRR)</th>
+              <th>Recommended Fix FRU#</th>
+            </tr></thead>
+            <tbody id="fruTbody"></tbody>
+          </table>
+        </div>
+        <div style="padding:12px 16px;font-size:11px;color:var(--t3);line-height:1.6;border-top:1px solid var(--border)">
+          <b>How this is calculated:</b> For every repeat-flag WO (FLAG=1, excluding DOA) where the first-visit symptom loosely matches the next-visit symptom, we take the <code>First WO FRU#</code> (what was sent originally) and the <code>Next SO FRU#</code> (what was sent on the second WO that closed the case). Rows where the two FRUs are identical or blank are excluded — those don't teach us anything. Volumes beside model / symptom / FRU show <b>repeat hits</b> tied to that combination, so you can size the opportunity: “sending FRU X first for Model Y × Symptom Z avoids N repeats”.
+        </div>
+      </div>
     </div>
-    <div class="tab" id="tab-pareto">
-      <div class="tc"><div class="tc-hd"><div><div class="tc-title">📊 The Fix List (80-20 Pareto)</div><div class="tc-meta" id="paretoMeta">Smallest set of entities that together explain 80% of all repeat flags — the true action list.</div></div><div><button class="btn btn-r" onclick="rce_exportPareto()">⬇ Export Fix List (XLSX)</button></div></div><div id="paretoBody" style="padding:14px"><div style="padding:32px;text-align:center;color:var(--t3);font-size:12px">Upload a file to build the fix list.</div></div></div>
-    </div>
+
 
     <!-- TAB: COMPARE PERIODS (Leadership) -->
     <div class="tab" id="tab-compare">
@@ -1373,11 +1396,68 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
       </div>
     </div>
 
+    <!-- TAB: PATTERN RELATION -->
+    <div class="tab" id="tab-pattern">
+      <div class="tc">
+        <div class="tc-hd">
+          <div>
+            <div class="tc-title">🧬 Pattern Relation — Consistent Repeat Offenders</div>
+            <div class="tc-meta">Cumulative view across the entire uploaded dataset. Expand any row to see the month-on-month trend and the underlying drivers.<br><b>How it's ranked:</b> Impact = Volume × RRR% — highlights offenders that are both frequent and high-failure, filtering out low-volume noise.</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" type="button" onclick="Pattern && Pattern.exportCSV && Pattern.exportCSV()">⬇ CSV</button>
+            <button class="btn" type="button" onclick="Pattern && Pattern.exportXLSX && Pattern.exportXLSX()">⬇ Excel</button>
+            <button class="btn" type="button" onclick="Pattern && Pattern.exportPDF && Pattern.exportPDF()">⬇ PDF</button>
+          </div>
+        </div>
+        <div id="patternBody" style="padding:14px">
+          <div style="padding:32px;text-align:center;color:var(--t3);font-size:12px">Upload a file to see repeat patterns.</div>
+        </div>
+      </div>
+    </div>
 
+    <!-- TAB: TECHNICIAN REPORT -->
+    <div class="tab" id="tab-techrep">
+      <div class="tc">
+        <div class="tc-hd">
+          <div>
+            <div class="tc-title">🧑‍🔧 Technician Report — Field Accountability</div>
+            <div class="tc-meta">Which on-site technicians visited machines but the fix didn't hold, leading to a repeat repair. Sorted by Impact (RRR% × Volume). Any Workmanship reason expands into the underlying Work Orders for direct case review.<br><b>Fields:</b> Final Tech ID · Name · FS_Partner (Vendor) · PUDO · City · Volume · Repeat Flags · RRR%.</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <label style="font-size:11px;color:var(--t2);display:flex;align-items:center;gap:6px"><input type="checkbox" id="techShowAll" onchange="TechReport && TechReport.toggleShowAll(this.checked)"> Show all</label>
+            <input class="ts" id="techSearch" placeholder="Search tech / vendor / city…" oninput="TechReport && TechReport.search(this.value)" style="min-width:220px"/>
+            <button class="btn" type="button" onclick="TechReport && TechReport.exportCSV && TechReport.exportCSV()">⬇ CSV</button>
+            <button class="btn" type="button" onclick="TechReport && TechReport.exportXLSX && TechReport.exportXLSX()">⬇ Excel</button>
+            <button class="btn" type="button" onclick="TechReport && TechReport.exportPDF && TechReport.exportPDF()">⬇ PDF</button>
+          </div>
+        </div>
+        <div id="techBody" style="padding:14px">
+          <div style="padding:32px;text-align:center;color:var(--t3);font-size:12px">Upload a file to see the technician report.</div>
+        </div>
+      </div>
+    </div>
 
-
+    <!-- TAB: VENDOR RRR REPORT (Management) -->
+    <div class="tab" id="tab-vendorrep">
+      <div class="tc">
+        <div class="tc-hd">
+          <div>
+            <div class="tc-title">📒 Vendor RRR Report — RRR-Hit Work Orders</div>
+            <div class="tc-meta">Multi-select vendors and months (or weeks). Above the picker: the RRR% trend of every vendor across the dataset with their current RRR%. Below: every RRR-hit Work Order (FLAG = 1) for the selection with WO Number, Serial, Month, PUDO Code and Repair Reason. One-click Excel export gives you the full RRR-hit WO list ready for auditing.</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" type="button" onclick="VendorReport && VendorReport.exportXLSX()">⬇ Export Excel</button>
+          </div>
+        </div>
+        <div id="vrepBody" style="padding:14px">
+          <div style="padding:32px;text-align:center;color:var(--t3);font-size:12px">Upload a file to see the vendor RRR report.</div>
+        </div>
+      </div>
+    </div>
 
   </div><!-- /dashboard -->
+
 </main>
 
 
@@ -1417,7 +1497,9 @@ const COLS = {
   HCS:'HCS', SCENARIO:'Scenario',
   PROB_CAT1:'Problem Category 1', NEXT_SYM:'Next WO Symptom',
   FIRST_COMM:'First WO Commodity Name', NEXT_COMM:'Next SO Commodity Name',
-  REGION:'Region2', CITY:'City'
+  FIRST_FRU:'First WO FRU#', NEXT_FRU:'Next SO FRU#',
+  REGION:'Region2', CITY:'City',
+  TECH_ID:'Final Tech ID', TECH_NAME:'Name', FS_PARTNER:'FS_Partner', PUDO:'PUDO'
 }
 const CHIP_IDS = {
   WO_NUM:'chip-wonum', MTSN:'chip-mtsn', SUB:'chip-sub', MONTH:'chip-month',
@@ -1433,7 +1515,7 @@ let IDX = {}
 let rawData=[], filteredData=[]
 let agentData=[], tlData=[], modelData=[], vendorData=[]
 let symptomData=[], reasonData=[], accountData=[], weekData=[]
-let agentRiskData=[], actionPlanData=[]
+let agentRiskData=[], actionPlanData=[], fruJourneyData=[]
 let venMapData=[], accMapData=[], venMapRaw=null, accMapRaw=null
 let venMapTopSort='impact', accMapTopSort='impact'
 
@@ -1456,8 +1538,14 @@ const COL_ALIASES = {
   NEXT_SYM:['Next WO Symptom', 'Next SO Symptom', 'Second WO Symptom'],
   FIRST_COMM:['First WO Commodity Name', 'First WO Commodity', 'First SO Commodity Name'],
   NEXT_COMM:['Next SO Commodity Name', 'Next WO Commodity Name', 'Next Commodity Name'],
+  FIRST_FRU:['First WO FRU#', 'First WO FRU #', 'First WO FRU', 'First WO FRU Number', 'First SO FRU#'],
+  NEXT_FRU:['Next SO FRU#', 'Next SO FRU #', 'Next SO FRU', 'Next WO FRU#', 'Next WO FRU', 'Next SO FRU Number'],
   REGION:['Region2','Region 2','Region','Zone','Region Name'],
-  CITY:['City','City Name','Location','Site City']
+  CITY:['City','City Name','Location','Site City'],
+  TECH_ID:['Final Tech ID','Tech ID','Technician ID','Final Technician ID'],
+  TECH_NAME:['Final Tech Name','Technician Name','Tech Name'],
+  FS_PARTNER:['FS_Partner','FS Partner','Field Service Partner','Partner'],
+  PUDO:['PUDO','Pudo','PUDO Name','PUDO Code']
 }
 
 /* ── RRR FILE UPLOAD ── */
@@ -1534,6 +1622,8 @@ function detectCols(headers){
     if(chip) chip.classList.toggle('found', idx>=0)
     chips.push(`<span class="cb-chip ${idx>=0?'cb-ok':'cb-miss'}">${idx>=0?'✓':'✗'} ${wanted}${idx<0?' ← NOT FOUND':''}</span>`)
   }
+  // Fallback: exact "Name" column for technician name when no better alias matched
+  if(IDX.TECH_NAME<0){ const i = headers.findIndex(h=>h.trim().toLowerCase()==='name'); if(i>=0) IDX.TECH_NAME = i; }
   document.getElementById('colBannerChips').innerHTML = chips.join('')
   document.getElementById('colBanner').classList.add('show')
 }
@@ -1662,6 +1752,7 @@ function analyze(){
     ['Agent Risk…',      ()=>{ buildAgentRisk(rows) }],
     ['HCS…',             ()=>{ buildHCSAnalyzer() }],
     ['Action Plan…',     ()=>{ buildActionPlanData(rawData); drawActionPlan() }],
+    ['FRU Journey…',     ()=>{ buildFruJourneyData(rawData); drawFruJourney() }],
   ]
 
   const sched = typeof requestIdleCallback==='function' ? cb => requestIdleCallback(cb,{timeout:300}) : cb => setTimeout(cb,0)
@@ -1679,6 +1770,12 @@ function analyze(){
     if(cmpTab && cmpTab.classList.contains('on') && window.Compare && window.Compare.onOpen) window.Compare.onOpen();
     const vcmpTab = document.getElementById('tab-vendorcompare');
     if(vcmpTab && vcmpTab.classList.contains('on') && window.VendorCompare && window.VendorCompare.onOpen) window.VendorCompare.onOpen();
+    const patTab = document.getElementById('tab-pattern');
+    if(patTab && patTab.classList.contains('on') && window.Pattern && window.Pattern.onDataChanged) window.Pattern.onDataChanged();
+    const techTab = document.getElementById('tab-techrep');
+    if(techTab && techTab.classList.contains('on') && window.TechReport && window.TechReport.onDataChanged) window.TechReport.onDataChanged();
+    const vrepTab = document.getElementById('tab-vendorrep');
+    if(vrepTab && vrepTab.classList.contains('on') && window.VendorReport && window.VendorReport.onDataChanged) window.VendorReport.onDataChanged();
   }catch(e){ console.error('post-analyze refresh', e); }
 }
 
@@ -2374,10 +2471,171 @@ function apShowSymptom(keyEnc, idxStr) {
     </div>`;
 }
 
+/* ── FRU JOURNEY ─────────────────────────────────────────────────────────
+   Same shape as Action Plan but keyed on First WO FRU# and Next SO FRU#.
+   For every repeat-flag row (FLAG='1', not DOA) with a loose symptom match
+   between first and next WO, we count (Model → Symptom → FirstFRU/NextFRU).
+   Rows where FRUs are missing or identical are skipped. */
+let fruNameMap = {}; // FRU# → most common part/commodity name
+function buildFruJourneyData(rows){
+  const map = {};
+  const nameCounts = {}; // fru → { name: count }
+  const bumpName = (fru, name) => {
+    if (!fru || !name) return;
+    if (!nameCounts[fru]) nameCounts[fru] = {};
+    nameCounts[fru][name] = (nameCounts[fru][name] || 0) + 1;
+  };
+  rows.forEach(r => {
+    // learn FRU→name mapping from every row we can (not just repeat hits)
+    if (r.FIRST_FRU && r.FIRST_COMM) bumpName(r.FIRST_FRU.trim(), (r.FIRST_COMM||'').trim());
+    if (r.NEXT_FRU  && r.NEXT_COMM)  bumpName(r.NEXT_FRU.trim(),  (r.NEXT_COMM||'').trim());
+    if (r.FLAG !== '1') return;
+    const reason = (r.REASON || '').toUpperCase();
+    if (reason.includes('DOA')) return;
+    const s1 = r.PROB_CAT1 || r.SYMPTOM || '';
+    const s2 = r.NEXT_SYM || '';
+    if (!s1 || !s2 || !looseMatch(s1, s2)) return;
+    const f1 = r.FIRST_FRU ? r.FIRST_FRU.trim() : '';
+    const f2 = r.NEXT_FRU  ? r.NEXT_FRU.trim()  : '';
+    if (!f1 || !f2) return;
+    if (f1.toLowerCase() === f2.toLowerCase()) return;
+    const mod = r.SUB || 'Unknown';
+    if (!map[mod]) map[mod] = { name: mod, hits: 0, syms: {} };
+    map[mod].hits++;
+    const symKey = s1.trim();
+    if (!map[mod].syms[symKey]) map[mod].syms[symKey] = { sym: symKey, hits: 0, firstFRUs: {}, fixFRUs: {} };
+    const sObj = map[mod].syms[symKey];
+    sObj.hits++;
+    sObj.firstFRUs[f1] = (sObj.firstFRUs[f1] || 0) + 1;
+    sObj.fixFRUs[f2]   = (sObj.fixFRUs[f2]   || 0) + 1;
+  });
+  // Resolve each FRU to its most-seen commodity name
+  fruNameMap = {};
+  Object.keys(nameCounts).forEach(fru => {
+    const best = Object.entries(nameCounts[fru]).filter(([n])=>n).sort((a,b)=>b[1]-a[1])[0];
+    if (best) fruNameMap[fru] = best[0];
+  });
+  fruJourneyData = Object.values(map).map(m => {
+    const symptoms = Object.values(m.syms).map(s => {
+      const first = Object.entries(s.firstFRUs).sort((a,b)=>b[1]-a[1]);
+      const fix   = Object.entries(s.fixFRUs).sort((a,b)=>b[1]-a[1]);
+      return {
+        sym: s.sym, hits: s.hits,
+        firstFRU: first[0] ? first[0][0] : '—', firstFRUCount: first[0] ? first[0][1] : 0,
+        fixFRU:   fix[0]   ? fix[0][0]   : '—', fixFRUCount:   fix[0]   ? fix[0][1]   : 0,
+        firstList: first, fixList: fix
+      };
+    }).sort((a,b) => b.hits - a.hits);
+    return { name: m.name, hits: m.hits, symptoms };
+  }).filter(m => m.symptoms.length > 0).sort((a,b) => b.hits - a.hits);
+}
+function fruLabel(fru){
+  if (!fru || fru === '—') return fru || '—';
+  const n = fruNameMap[fru];
+  return n ? `${fru} <span style="font-size:10px;color:var(--t3);font-weight:500">— ${n}</span>` : fru;
+}
+
+function drawFruJourney(){
+  const tbody = document.getElementById('fruTbody'); if(!tbody) return;
+  const meta = document.getElementById('fruMeta');
+  if (!fruJourneyData.length){
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--t3);padding:30px">No actionable FRU pairs found. Check that "First WO FRU#" and "Next SO FRU#" columns are present in the file.</td></tr>`;
+    return;
+  }
+  if (meta) meta.textContent = `${fruJourneyData.length} models with distinct First → Next FRU journeys · ranked by repeat volume`;
+  tbody.innerHTML = fruJourneyData.map((m, i) => {
+    const top = m.symptoms[0];
+    const topSym = top ? `${top.sym} <span style="font-size:10px;color:var(--t3)">(${top.hits} hits)</span>` : '—';
+    const topFix = top ? `${fruLabel(top.fixFRU)} <span style="font-size:10px;color:var(--t3)">(used on ${top.fixFRUCount} fixes)</span>` : '—';
+    return `
+    <tr class="expand-trigger" onclick="toggleFruExpand(this, '${encodeURIComponent(m.name)}')">
+      <td><span class="rnk ${rk(i)}">${i+1}</span></td>
+      <td style="font-weight:600">${m.name} <span style="font-size:11px;color:var(--t3);font-weight:500">(${m.hits} repeat hits · ${m.symptoms.length} symptoms)</span> <span style="font-size:10px;color:var(--t3);margin-left:4px">▾</span></td>
+      <td style="font-size:12px;color:var(--t1)">${topSym}</td>
+      <td style="font-weight:600;color:var(--ok)">${topFix}</td>
+    </tr>
+    <tr class="expand-detail" id="fru-expand-${encodeURIComponent(m.name)}" style="display:none">
+      <td colspan="4" style="padding:0;background:var(--card2)"><div id="fru-expand-inner-${encodeURIComponent(m.name)}"></div></td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleFruExpand(triggerRow, keyEnc){
+  const detailRow = document.getElementById('fru-expand-'+keyEnc), inner = document.getElementById('fru-expand-inner-'+keyEnc);
+  const isOpen = detailRow.style.display !== 'none';
+  document.querySelectorAll('#fruTbody .expand-detail').forEach(r => r.style.display='none');
+  document.querySelectorAll('#fruTbody .expand-trigger td:nth-child(2) span:first-of-type').forEach(s => s.textContent='▾');
+  if (isOpen) return;
+  const mData = fruJourneyData.find(m => m.name === decodeURIComponent(keyEnc)); if (!mData) return;
+  const selId = 'fru-sym-sel-' + keyEnc, outId = 'fru-sym-out-' + keyEnc;
+  const options = mData.symptoms.map((s, idx) => `<option value="${idx}">${s.sym} — ${s.hits} hits</option>`).join('');
+  inner.innerHTML = `
+    <div style="padding:16px 20px; border-top:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px">
+        <label style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:1.5px">Symptom</label>
+        <select id="${selId}" class="ts" style="min-width:320px" onchange="fruShowSymptom('${keyEnc}', this.value)">
+          <option value="">— Select a symptom —</option>
+          ${options}
+        </select>
+        <span style="font-size:11px;color:var(--t3)">${mData.symptoms.length} symptoms · ${mData.hits} repeat hits for this model</span>
+      </div>
+      <div id="${outId}" style="font-size:12px;color:var(--t3);padding:6px 0">Select a symptom to see which FRU was sent first and which FRU actually resolved the repeat.</div>
+    </div>`;
+  detailRow.style.display = ''; triggerRow.querySelector('td:nth-child(2) span:first-of-type').textContent = '▴';
+}
+
+function fruShowSymptom(keyEnc, idxStr){
+  const out = document.getElementById('fru-sym-out-'+keyEnc); if(!out) return;
+  const mData = fruJourneyData.find(m => m.name === decodeURIComponent(keyEnc)); if(!mData) return;
+  if(idxStr === '' || idxStr == null){
+    out.innerHTML = '<span style="color:var(--t3)">Select a symptom to see the recommended fix FRU.</span>'; return;
+  }
+  const s = mData.symptoms[parseInt(idxStr,10)]; if(!s) return;
+  const listRows = (arr, colorHex) => arr.slice(0, 5).map(([fru,c],i)=>`
+    <tr>
+      <td style="padding:4px 10px;color:var(--t2);font-size:11px">${i+1}</td>
+      <td style="padding:4px 10px;font-weight:${i===0?'600':'500'};color:${i===0?colorHex:'var(--t1)'};font-size:12px">${fruLabel(fru)}</td>
+      <td style="padding:4px 10px;text-align:right;color:var(--t2);font-size:11px">${c}</td>
+    </tr>`).join('');
+  out.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px">
+      <div style="background:rgba(255,159,74,0.08);border:1px solid rgba(255,159,74,0.25);border-radius:6px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">First WO FRU# Sent</div>
+        <div style="font-size:16px;font-weight:700;color:var(--t1)">${fruLabel(s.firstFRU)}</div>
+        <div style="font-size:10px;color:var(--t3);margin-top:4px">Used on ${s.firstFRUCount} of ${s.hits} repeat hits for this symptom</div>
+        <table style="width:100%;margin-top:10px;border-top:1px solid var(--border);border-collapse:collapse">
+          <thead><tr>
+            <th style="padding:4px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;text-transform:uppercase">#</th>
+            <th style="padding:4px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;text-transform:uppercase">FRU#</th>
+            <th style="padding:4px 10px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;text-transform:uppercase">Times</th>
+          </tr></thead>
+          <tbody>${listRows(s.firstList, 'var(--warn)')}</tbody>
+        </table>
+      </div>
+      <div style="background:rgba(0,201,109,0.08);border:1px solid rgba(0,201,109,0.30);border-radius:6px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Next SO FRU# That Resolved</div>
+        <div style="font-size:16px;font-weight:700;color:var(--t1)">${fruLabel(s.fixFRU)}</div>
+        <div style="font-size:10px;color:var(--t3);margin-top:4px">Closed ${s.fixFRUCount} of ${s.hits} repeat hits for this symptom</div>
+        <table style="width:100%;margin-top:10px;border-top:1px solid var(--border);border-collapse:collapse">
+          <thead><tr>
+            <th style="padding:4px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;text-transform:uppercase">#</th>
+            <th style="padding:4px 10px;text-align:left;color:var(--t3);font-size:9px;font-weight:700;text-transform:uppercase">FRU#</th>
+            <th style="padding:4px 10px;text-align:right;color:var(--t3);font-size:9px;font-weight:700;text-transform:uppercase">Fixes</th>
+          </tr></thead>
+          <tbody>${listRows(s.fixList, 'var(--ok)')}</tbody>
+        </table>
+      </div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:12px 14px;font-size:12px;line-height:1.6;color:var(--t1)">
+      <strong style="color:var(--red)">Recommendation:</strong> For model <strong>${mData.name}</strong>, symptom <em>“${s.sym}”</em> (${s.hits} repeat hits), sending FRU <strong style="color:var(--ok)">${fruLabel(s.fixFRU)}</strong> on the <em>first</em> visit — instead of the current default <strong style="color:var(--warn)">${fruLabel(s.firstFRU)}</strong> — is the highest-probability one-shot fix and directly attacks this RRR bucket.
+    </div>`;
+}
+
 
 
 
 /* ── DRAW TABLES ── */
+
 function pc(p){return p>=15?'p-bad':p>=8?'p-mid':'p-ok'}
 function rk(i){return i<3?`r${i+1}`:'rx'}
 
@@ -3541,6 +3799,15 @@ function sw(name,btn){
   }
   if(name==='vendorcompare'){
     try{ window.VendorCompare && window.VendorCompare.onOpen && window.VendorCompare.onOpen(); }catch(e){ console.error('vendorcompare open', e); }
+  }
+  if(name==='pattern'){
+    try{ window.Pattern && window.Pattern.onOpen && window.Pattern.onOpen(); }catch(e){ console.error('pattern open', e); }
+  }
+  if(name==='techrep'){
+    try{ window.TechReport && window.TechReport.onOpen && window.TechReport.onOpen(); }catch(e){ console.error('techrep open', e); }
+  }
+  if(name==='vendorrep'){
+    try{ window.VendorReport && window.VendorReport.onOpen && window.VendorReport.onOpen(); }catch(e){ console.error('vendorrep open', e); }
   }
 }
 function exportCSV(){
@@ -6197,10 +6464,32 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
   #tab-compare .cmp-spark{display:inline-block;vertical-align:middle}
   #tab-compare .cmp-spark line.b{stroke:var(--border)}
   #tab-compare .cmp-tf{background:var(--bg);font-weight:700}
+  #tab-compare .cmp-diff{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+  #tab-compare .cmp-diff .col{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;max-height:360px;overflow-y:auto}
+  #tab-compare .cmp-diff .col.improved{border-left:3px solid #00c896}
+  #tab-compare .cmp-diff .col.worsen{border-left:3px solid #ff6b7a}
+  #tab-compare .cmp-diff h4{margin:0 0 8px;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;color:var(--t2)}
+  #tab-compare .cmp-diff h4 .cnt{font-size:10px;color:var(--t3);font-weight:500;letter-spacing:.4px;text-transform:none}
+  #tab-compare .cmp-diff .col.improved h4{color:#00c896}
+  #tab-compare .cmp-diff .col.worsen h4{color:#ff6b7a}
+  #tab-compare .cmp-diff ul{list-style:none;margin:0;padding:0}
+  #tab-compare .cmp-diff li{padding:6px 0;border-top:1px solid var(--border);font-size:11.5px;line-height:1.5;color:var(--t1);display:flex;gap:8px;align-items:flex-start}
+  #tab-compare .cmp-diff li:first-child{border-top:none}
+  #tab-compare .cmp-diff li .dot{flex:0 0 auto;width:6px;height:6px;border-radius:50%;margin-top:6px}
+  #tab-compare .cmp-diff .col.improved li .dot{background:#00c896}
+  #tab-compare .cmp-diff .col.worsen li .dot{background:#ff6b7a}
+  #tab-compare .cmp-diff .tag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:1px 6px;border-radius:3px;background:var(--bg);color:var(--t2);border:1px solid var(--border);margin-right:6px;vertical-align:middle}
+  #tab-compare .cmp-diff .k{font-weight:600;color:var(--t1)}
+  #tab-compare .cmp-diff .m{color:var(--t3);font-size:10.5px;margin-left:4px}
+  #tab-compare .cmp-diff .pp.up{color:#ff6b7a;font-weight:700}
+  #tab-compare .cmp-diff .pp.down{color:#00c896;font-weight:700}
+  #tab-compare .cmp-diff .empty{color:var(--t3);font-size:11px;font-style:italic;padding:8px 0}
   @media (max-width:900px){
     #tab-compare .cmp-picker{grid-template-columns:1fr}
     #tab-compare .cmp-headline{grid-template-columns:repeat(2,1fr)}
+    #tab-compare .cmp-diff{grid-template-columns:1fr}
   }
+
   @media (prefers-reduced-motion:reduce){#tab-compare *{transition:none!important;animation:none!important}}
 </style>
 <script>
@@ -6518,7 +6807,102 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
     </div>`;
   }
 
+  // Extended dimension list for the Improved / Worsened summary bullets.
+  // Includes Technician (with PUDO in brackets) and PUDO — beyond the DIMS
+  // used for the per-section drill tables — because leadership scans this
+  // block first to see WHO/WHERE moved the needle.
+  const SUMMARY_DIMS = [
+    {key:'NAME',      label:'Agent'},
+    {key:'TECH',      label:'Technician'},
+    {key:'SUB',       label:'Model'},
+    {key:'SYMPTOM',   label:'Symptom'},
+    {key:'REASON',    label:'Repair Reason'},
+    {key:'VENDOR',    label:'Vendor'},
+    {key:'ACCOUNT',   label:'Account'},
+    {key:'REGION_S',  label:'Region'},
+    {key:'PUDO',      label:'PUDO'},
+  ];
+  function sumDimVal(r,dim){
+    if(dim==='TECH'){
+      const nm = (r.TECH_NAME||r.NAME||'').toString().trim();
+      const pu = (r.PUDO||'').toString().trim();
+      if(!nm && !pu) return '';
+      return pu ? `${nm||'Unknown Tech'} (${pu})` : nm;
+    }
+    if(dim==='REGION_S'){ return (r.REGION||'').toString().trim(); }
+    if(dim==='PUDO'){ return (r.PUDO||'').toString().trim(); }
+    const v = r[dim];
+    return v==null? '' : String(v).trim();
+  }
+  function summaryContribs(rows, dimKey, volA, volB){
+    // Aggregate by extended dim, then compute per-key contribution to ΔRRR%.
+    const mA=new Map(), mB=new Map();
+    rows.forEach(r=>{
+      const k = sumDimVal(r,dimKey); if(!k) return;
+      const inA = state.A.has(periodKey(r));
+      const inB = state.B.has(periodKey(r));
+      if(!inA && !inB) return;
+      const map = inA? mA : mB;
+      let o = map.get(k); if(!o){ o={mtsn:new Map(), rep:0}; map.set(k,o); }
+      const hit = r.FLAG==='1'; if(hit) o.rep++;
+      if(r.MTSN) o.mtsn.set(r.MTSN,(o.mtsn.get(r.MTSN)||0)+(hit?1:0));
+    });
+    const keys = new Set([...mA.keys(),...mB.keys()]);
+    const out = [];
+    keys.forEach(k=>{
+      const A = mA.get(k), B = mB.get(k);
+      const vA = A? A.mtsn.size:0, vB = B? B.mtsn.size:0;
+      const rA = A? A.rep:0, rB = B? B.rep:0;
+      const pA = vA>0? rA/vA*100:0, pB = vB>0? rB/vB*100:0;
+      const contrib = ((volB>0? rB/volB:0) - (volA>0? rA/volA:0)) * 100;
+      const impact = Math.max(vA*pA, vB*pB) / 100;
+      out.push({key:k, vA, vB, rA, rB, pA, pB, dPP:pB-pA, contrib, impact});
+    });
+    return out;
+  }
+  function buildSummary(A0, B0, rows){
+    const volA = A0.vol, volB = B0.vol;
+    const improved = []; // {dimLabel, key, contrib, ...}
+    const worsen   = [];
+    // Noise filter: require some Volume × RRR% presence in at least one period,
+    // so a one-off WO can't hijack the bullet list.
+    const MIN_IMPACT = 0.5; // ≈ 1 flag baseline
+    SUMMARY_DIMS.forEach(d=>{
+      const rowsD = summaryContribs(rows, d.key, volA, volB)
+        .filter(r=> r.impact >= MIN_IMPACT)
+        .filter(r=> Math.abs(r.contrib) >= 0.005); // ≥ 0.005 pp
+      // rank each side by |contrib| but weight by impact so high-Vol × high-RRR% wins
+      const scored = rowsD.map(r=>({...r, score: Math.abs(r.contrib) * Math.max(1, Math.log10(1+r.impact)) }));
+      scored.filter(r=>r.contrib<0).sort((a,b)=> b.score - a.score).slice(0,3)
+        .forEach(r=> improved.push({dim:d.label, ...r}));
+      scored.filter(r=>r.contrib>0).sort((a,b)=> b.score - a.score).slice(0,3)
+        .forEach(r=> worsen.push({dim:d.label, ...r}));
+    });
+    // Global sort inside each column by |contrib| so the single biggest movers surface first.
+    improved.sort((a,b)=> a.contrib - b.contrib); // most negative first
+    worsen  .sort((a,b)=> b.contrib - a.contrib); // most positive first
+    const bullet = (r)=>{
+      const cls = r.contrib>0? 'up':'down';
+      const sign = r.contrib>0? '+':'';
+      return `<li><span class="dot"></span><div>
+        <span class="tag">${esc(r.dim)}</span><span class="k">${esc(r.key)}</span>
+        <span class="pp ${cls}">${sign}${r.contrib.toFixed(2)} pp</span>
+        <span class="m">· RRR ${r.pA.toFixed(1)}% → ${r.pB.toFixed(1)}% · Vol ${fmt(r.vA)}→${fmt(r.vB)} · Flags ${fmt(r.rA)}→${fmt(r.rB)}</span>
+      </div></li>`;
+    };
+    const impHTML = improved.length? `<ul>${improved.map(bullet).join('')}</ul>` : `<div class="empty">No dimension shows a material improvement between the selected periods.</div>`;
+    const worHTML = worsen.length?   `<ul>${worsen.map(bullet).join('')}</ul>`   : `<div class="empty">No dimension shows a material regression between the selected periods.</div>`;
+    return `<div class="cmp-diff" role="table" aria-label="Improved vs Worsened summary">
+      <div class="col improved" role="rowgroup"><h4>✅ Improved <span class="cnt">${improved.length} drivers · lowered RRR%</span></h4>${impHTML}</div>
+      <div class="col worsen"   role="rowgroup"><h4>⚠️ Worsened <span class="cnt">${worsen.length} drivers · raised RRR%</span></h4>${worHTML}</div>
+    </div>
+    <div style="font-size:10.5px;color:var(--t3);margin:-6px 0 12px;line-height:1.55">
+      <b style="color:var(--red)">ℹ️ How this is built:</b> For every dimension (Agent, Technician <i>(with PUDO in brackets)</i>, Model, Symptom, Repair Reason, Vendor, Account, Region, PUDO) we compute each entity's <b>contribution to ΔRRR%</b> = (repeat flags<sub>B</sub> ÷ total Vol<sub>B</sub>) − (repeat flags<sub>A</sub> ÷ total Vol<sub>A</sub>). We keep only entities with meaningful <b>Impact (Vol × RRR%)</b> to strip out tiny-volume noise, then list top 3 improvers and top 3 regressors per dimension. Negative contribution → moved into the <b>Improved</b> column; positive → <b>Worsened</b>.
+    </div>`;
+  }
+
   function render(){
+
     const body = document.getElementById('cmpBody');
     if(!body) return;
     const rows = getRows();
@@ -6553,7 +6937,9 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
     const headline = buildHeadline(A0,B0,dec);
     const narrative = buildNarrative(A0,B0,dec,dimResults);
     const dims = dimResults.map(dr=>buildDim(dr.dim, dr.A, dr.B, A0.vol, B0.vol, rows)).join('');
-    body.innerHTML = pickerHTML + headline + narrative + dims;
+    const summary = buildSummary(A0, B0, rows);
+    body.innerHTML = pickerHTML + summary + headline + narrative + dims;
+
     state.lastResult = { A0, B0, dec, dimResults };
   }
 
@@ -6712,6 +7098,31 @@ body.light-mode #tab-insights .drill-tbl tr.child > td{background:rgba(0,0,0,0.0
 #tab-insights .drill-tbl .ex-ic{display:inline-block;width:12px;transition:transform .2s;color:var(--red);font-size:10px}
 #tab-insights .drill-tbl tr.expanded .ex-ic{transform:rotate(90deg)}
 #tab-insights .drill-tbl .scroll{overflow-x:auto}
+
+/* ── Shared drill-tbl behavior for Pattern Relation & Technician Report ── */
+#tab-pattern .drill-tbl, #tab-techrep .drill-tbl{width:100%;border-collapse:collapse;font-size:12px}
+#tab-pattern .drill-tbl th, #tab-techrep .drill-tbl th{text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);font-weight:700;border-bottom:1px solid var(--border);white-space:nowrap;background:transparent}
+#tab-pattern .drill-tbl td, #tab-techrep .drill-tbl td{padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;color:var(--t1);font-size:12px}
+#tab-pattern .drill-tbl td.mono, #tab-techrep .drill-tbl td.mono{font-family:'IBM Plex Mono',monospace}
+#tab-pattern .drill-tbl td.hits, #tab-techrep .drill-tbl td.hits{font-family:'IBM Plex Mono',monospace;color:var(--red);font-weight:600}
+#tab-pattern .drill-tbl tr.row, #tab-techrep .drill-tbl tr.row{cursor:pointer;transition:background .18s ease}
+#tab-pattern .drill-tbl tr.row:hover, #tab-techrep .drill-tbl tr.row:hover{background:rgba(226,0,26,0.06)}
+#tab-pattern .drill-tbl tr.row.expanded, #tab-techrep .drill-tbl tr.row.expanded{background:rgba(226,0,26,0.04)}
+#tab-pattern .drill-tbl tr.child, #tab-techrep .drill-tbl tr.child{display:none}
+#tab-pattern .drill-tbl tr.child.open, #tab-techrep .drill-tbl tr.child.open{display:table-row;animation:drillFade .22s ease}
+#tab-pattern .drill-tbl tr.child > td, #tab-techrep .drill-tbl tr.child > td{background:rgba(0,0,0,0.25);padding:0}
+body.light-mode #tab-pattern .drill-tbl tr.child > td, body.light-mode #tab-techrep .drill-tbl tr.child > td{background:rgba(0,0,0,0.03)}
+#tab-pattern .drill-tbl .ex-ic, #tab-techrep .drill-tbl .ex-ic{display:inline-block;width:12px;transition:transform .22s ease;color:var(--red);font-size:10px}
+#tab-pattern .drill-tbl tr.expanded .ex-ic, #tab-techrep .drill-tbl tr.expanded .ex-ic{transform:rotate(90deg)}
+#tab-pattern .sub-tbl, #tab-techrep .sub-tbl{width:100%;border-collapse:collapse;font-size:11.5px}
+#tab-pattern .sub-tbl td, #tab-techrep .sub-tbl td{border-bottom:1px dashed var(--border)}
+#tab-pattern .combo-row, #tab-techrep .combo-row{cursor:pointer;transition:background .18s ease;user-select:none}
+#tab-pattern .combo-row:hover, #tab-techrep .combo-row:hover{background:rgba(226,0,26,0.05)}
+#tab-pattern .combo-child, #tab-techrep .combo-child{display:none}
+#tab-pattern .combo-child.open, #tab-techrep .combo-child.open{display:table-row;animation:drillFade .22s ease}
+#tab-pattern .combo-ic, #tab-techrep .combo-ic{display:inline-block;width:10px;color:var(--red);transition:transform .22s ease;font-size:9px}
+#tab-pattern .combo-row.expanded .combo-ic, #tab-techrep .combo-row.expanded .combo-ic{transform:rotate(90deg)}
+@keyframes drillFade{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 #tab-insights .rrr-bar{display:inline-block;width:52px;height:5px;background:var(--border2);border-radius:3px;overflow:hidden;vertical-align:middle;margin-right:6px}
 #tab-insights .rrr-bar-fill{height:100%;border-radius:3px}
 #tab-insights .pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:.3px;font-family:'IBM Plex Sans',sans-serif;white-space:nowrap}
@@ -7937,6 +8348,951 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
       const blob = new Blob([lines.join('\n')],{type:'text/csv'});
       const a2 = document.createElement('a'); a2.href = URL.createObjectURL(blob);
       a2.download = `VendorCompare_${new Date().toISOString().slice(0,10)}.csv`; a2.click();
+    }
+  };
+})();
+
+/* ══════════════════════════════════════════════════════════════════
+   🧬 PATTERN RELATION + 🧑‍🔧 TECHNICIAN REPORT
+   ══════════════════════════════════════════════════════════════════ */
+(function(){
+  const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const pct = (n,d) => d>0 ? (n*100/d) : 0;
+  const normReg = (r)=> (typeof normalizeRegion==='function') ? normalizeRegion(r) : (r||'Unmapped');
+  const pillOf = p => p>=15?'pill-crit':p>=8?'pill-hi':p>=4?'pill-mid':'pill-ok';
+  const rows = () => (typeof filteredData!=='undefined' && filteredData && filteredData.length) ? filteredData : (typeof rawData!=='undefined' ? rawData : []);
+  const isFlag = r => String(r.FLAG||'').trim()==='1';
+  const monthsSorted = data => Array.from(new Set(data.map(r=>r.MONTH).filter(Boolean))).sort();
+
+  // ─── Aggregation helpers ───
+  function agg(data, keyFn){
+    const map = new Map();
+    for(const r of data){
+      const k = keyFn(r); if(!k) continue;
+      let o = map.get(k); if(!o){ o = {key:k, vol:0, flags:0}; map.set(k,o); }
+      o.vol++; if(isFlag(r)) o.flags++;
+    }
+    for(const o of map.values()){ o.rrr = pct(o.flags,o.vol); o.impact = o.vol * o.rrr; }
+    return Array.from(map.values());
+  }
+  function aggByMonth(data, keyFn){
+    // returns Map<key, Map<month, {vol,flags}>>
+    const map = new Map();
+    for(const r of data){
+      const k = keyFn(r); if(!k) continue;
+      const m = r.MONTH||'—';
+      let o = map.get(k); if(!o){ o = new Map(); map.set(k,o); }
+      let mm = o.get(m); if(!mm){ mm = {vol:0,flags:0}; o.set(m,mm); }
+      mm.vol++; if(isFlag(r)) mm.flags++;
+    }
+    return map;
+  }
+
+  // ═════════════ PATTERN RELATION ═════════════
+  const pState = { expanded:new Set() };
+
+  function renderPattern(){
+    const body = document.getElementById('patternBody'); if(!body) return;
+    const data = rows();
+    if(!data.length){ body.innerHTML = '<div style="padding:32px;text-align:center;color:var(--t3);font-size:12px">Upload a file to see repeat patterns.</div>'; return; }
+    const months = monthsSorted(data);
+
+    // Section 1: Top 5 defaulter agents by Impact
+    const agents = agg(data, r=>r.NAME).filter(a=>a.vol>=10).sort((a,b)=>b.impact-a.impact).slice(0,5);
+    const agentsMoM = aggByMonth(data, r=>r.NAME);
+
+    // Section 2: Top 10 Symptom × Product
+    const sxp = agg(data, r=>(r.SYMPTOM && r.SUB) ? (r.SYMPTOM+' ⟂ '+r.SUB) : '').filter(a=>a.vol>=5).sort((a,b)=>b.impact-a.impact).slice(0,10);
+    const sxpMoM = aggByMonth(data, r=>(r.SYMPTOM && r.SUB) ? (r.SYMPTOM+' ⟂ '+r.SUB) : '');
+
+    // Section 3: Parts consistently sent (First WO Commodity) — use only repeat-flag rows so it reflects actual RRR
+    const partsAll = agg(data, r=>r.FIRST_COMM);
+    const partsFlagOnly = agg(data.filter(isFlag), r=>r.FIRST_COMM);
+    // merge: total sends vs sends that ended in a repeat
+    const partMap = new Map();
+    partsAll.forEach(p=>partMap.set(p.key,{key:p.key, sent:p.vol, flags:0}));
+    partsFlagOnly.forEach(p=>{ const o = partMap.get(p.key); if(o) o.flags = p.vol; });
+    const parts = Array.from(partMap.values()).filter(p=>p.sent>=10).map(p=>{ p.rrr = pct(p.flags,p.sent); p.impact = p.sent * p.rrr; return p; }).sort((a,b)=>b.impact-a.impact).slice(0,10);
+    const partsMoM = aggByMonth(data, r=>r.FIRST_COMM);
+
+    // ─── Build HTML ───
+    let html = '';
+
+    // ─ Agents section ─
+    html += sectionShell('👤 Top 5 Repeat-Offender Agents',
+      `Agents ranked by <b>Impact = Volume × RRR%</b> (min 10 WOs). Expand to see their month-on-month RRR trend plus top failing symptoms, models and parts they handled.`,
+      buildAgentTable(agents, agentsMoM, data, months));
+
+    // ─ Symptom × Product ─
+    html += sectionShell('🩺 Top 10 Symptom × Product Combinations',
+      `Symptom + Sub-Series pairs ranked by Impact. These are the exact failure modes on specific models that drive RRR. Expand for month-wise trend and the top contributing accounts, vendors and agents on that combination.`,
+      buildSxpTable(sxp, sxpMoM, data, months));
+
+    // ─ Parts ─
+    html += sectionShell('🔩 Parts Consistently Sent on Repeats',
+      `First WO Commodity ranked by Impact = Sends × Repeat-Rate. Shows parts that keep going out but keep leading to a second visit. Expand for month-wise send trend and which model/symptom combos they attach to.`,
+      buildPartsTable(parts, partsMoM, data, months));
+
+    body.innerHTML = html;
+  }
+
+  function sectionShell(title, note, inner){
+    return `<div class="ins-sect" style="margin-bottom:18px">
+      <div class="ins-sect-hd"><div class="ins-sect-title"><span class="dot"></span>${title}</div></div>
+      <div style="font-size:11px;color:var(--t3);margin:-4px 0 10px;line-height:1.5">${note}</div>
+      ${inner}
+      <div style="margin-top:8px;padding:8px 10px;background:rgba(0,0,0,.18);border-left:2px solid var(--red);font-size:10.5px;color:var(--t2);line-height:1.5">
+        <b style="color:var(--red)">ℹ️ How this is calculated:</b> Volume = distinct rows on that key. Repeat Flags = rows where <code>RRR MTSN 30D NOC × Labor = 1</code>. RRR% = Flags ÷ Volume. Impact = Volume × RRR%. Sorting by Impact keeps high-volume + high-RRR offenders on top and hides low-volume noise.
+      </div>
+    </div>`;
+  }
+
+  function trendCells(mmMap, key, months){
+    const inner = mmMap.get(key) || new Map();
+    return months.map(m=>{
+      const v = inner.get(m); if(!v || !v.vol) return `<td class="mono" style="color:var(--t3)">—</td>`;
+      const p = pct(v.flags,v.vol);
+      return `<td class="mono"><span class="pill ${pillOf(p)}" style="font-size:9px">${p.toFixed(1)}%</span><div style="font-size:9px;color:var(--t3);margin-top:2px">${v.vol}·${v.flags}</div></td>`;
+    }).join('');
+  }
+
+  function buildAgentTable(agents, mmMap, data, months){
+    if(!agents.length) return '<div style="padding:16px;color:var(--t3);font-size:12px">No agents with ≥10 WOs.</div>';
+    let h = `<div style="overflow-x:auto"><table class="drill-tbl"><thead><tr>
+      <th style="width:24px"></th><th>#</th><th>Agent</th><th>TL</th><th>Vol</th><th>Repeat Flags</th><th>RRR%</th><th>Impact</th>
+    </tr></thead><tbody>`;
+    agents.forEach((a,i)=>{
+      const key = 'agent|'+a.key; const open = pState.expanded.has(key);
+      const tl = (data.find(r=>r.NAME===a.key)||{}).TL||'—';
+      h += `<tr class="row ${open?'expanded':''}" onclick="Pattern.toggle('${esc(key)}')">
+        <td><span class="ex-ic">▶</span></td><td class="mono">${i+1}</td>
+        <td><b>${esc(a.key||'—')}</b></td><td>${esc(tl)}</td>
+        <td class="mono">${a.vol}</td><td class="hits">${a.flags}</td>
+        <td class="mono"><span class="pill ${pillOf(a.rrr)}">${a.rrr.toFixed(2)}%</span></td>
+        <td class="mono">${a.impact.toFixed(0)}</td>
+      </tr>`;
+      h += `<tr class="child ${open?'open':''}"><td colspan="8"><div style="padding:12px 14px">${agentDetail(a.key, data, months)}</div></td></tr>`;
+    });
+    h += '</tbody></table></div>';
+    return h;
+  }
+
+  function agentDetail(name, data, months){
+    const sub = data.filter(r=>r.NAME===name);
+    // MoM strip
+    const mm = new Map();
+    sub.forEach(r=>{ const m=r.MONTH||'—'; let o=mm.get(m); if(!o){o={vol:0,flags:0}; mm.set(m,o);} o.vol++; if(isFlag(r)) o.flags++; });
+    let strip = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">';
+    months.forEach(m=>{ const v=mm.get(m); if(!v) return; const p=pct(v.flags,v.vol);
+      strip += `<div style="background:var(--card2);border:1px solid var(--border);border-radius:5px;padding:6px 10px;min-width:90px">
+        <div style="font-size:9px;color:var(--t3);letter-spacing:1px">${esc(m)}</div>
+        <div style="font-size:14px;font-family:'IBM Plex Mono',monospace"><span class="pill ${pillOf(p)}" style="font-size:9px">${p.toFixed(1)}%</span></div>
+        <div style="font-size:9px;color:var(--t3);margin-top:2px">${v.vol} WO · ${v.flags} hits</div>
+      </div>`;
+    });
+    strip += '</div>';
+
+    // Combined Symptom × Sub-Series (the actual failing pair on that agent's WOs)
+    const comboAgg = agg(sub, r=>(r.SYMPTOM && r.SUB) ? (r.SYMPTOM+' ⟂ '+r.SUB) : '')
+      .filter(x=>x.key)
+      .sort((a,b)=>b.impact-a.impact).slice(0,5);
+    const topPart = agg(sub, r=>r.FIRST_COMM).sort((a,b)=>b.impact-a.impact).slice(0,5);
+    const rMap = new Map(); sub.filter(isFlag).forEach(r=>{ const k=(r.NEXT_REASON||'—').trim()||'—'; rMap.set(k,(rMap.get(k)||0)+1); });
+    const topReason = Array.from(rMap.entries()).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+    const mini = (title, arr, valFn) => `<div style="flex:1;min-width:260px">
+      <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px">${title}</div>
+      <table class="sub-tbl" style="width:100%"><tbody>${arr.map(x=>valFn(x)).join('')||'<tr><td style="color:var(--t3);padding:4px 6px">—</td></tr>'}</tbody></table>
+    </div>`;
+
+    const comboRow = c=>{
+      const [sy,mo] = (c.key||'').split(' ⟂ ');
+      return `<tr>
+        <td style="padding:3px 6px"><b>${esc(mo||'—')}</b> <span style="color:var(--t3)">·</span> ${esc(sy||'—')}</td>
+        <td class="mono" style="padding:3px 6px;text-align:right">${c.vol}·${c.flags}</td>
+        <td style="padding:3px 6px;text-align:right"><span class="pill ${pillOf(c.rrr)}" style="font-size:9px">${c.rrr.toFixed(1)}%</span></td>
+      </tr>`;
+    };
+
+    return strip + `<div style="display:flex;gap:14px;flex-wrap:wrap">
+      ${mini('Top Symptom × Sub-Series', comboAgg, comboRow)}
+      ${mini('Parts Sent', topPart, s=>`<tr><td style="padding:3px 6px">${esc(s.key||'—')}</td><td class="mono" style="padding:3px 6px;text-align:right">${s.vol}·${s.flags}</td><td style="padding:3px 6px;text-align:right"><span class="pill ${pillOf(s.rrr)}" style="font-size:9px">${s.rrr.toFixed(1)}%</span></td></tr>`)}
+      ${mini('Repeat Repair Reasons (on hits)', topReason, ([k,v])=>`<tr><td style="padding:3px 6px">${esc(k)}</td><td class="mono" style="padding:3px 6px;text-align:right">${v}</td></tr>`)}
+    </div>`;
+  }
+
+  function buildSxpTable(sxp, mmMap, data, months){
+    if(!sxp.length) return '<div style="padding:16px;color:var(--t3);font-size:12px">No qualifying symptom × product combinations.</div>';
+    let h = `<div style="overflow-x:auto"><table class="drill-tbl"><thead><tr>
+      <th style="width:24px"></th><th>#</th><th>Symptom × Sub-Series</th><th>Vol</th><th>Repeat Flags</th><th>RRR%</th><th>Impact</th>
+    </tr></thead><tbody>`;
+    sxp.forEach((a,i)=>{
+      const key='sxp|'+a.key; const open=pState.expanded.has(key);
+      const [sym,mod] = a.key.split(' ⟂ ');
+      h += `<tr class="row ${open?'expanded':''}" onclick="Pattern.toggle('${esc(key)}')">
+        <td><span class="ex-ic">▶</span></td><td class="mono">${i+1}</td>
+        <td><b>${esc(sym)}</b> <span style="color:var(--t3)">on</span> <b>${esc(mod)}</b></td>
+        <td class="mono">${a.vol}</td><td class="hits">${a.flags}</td>
+        <td class="mono"><span class="pill ${pillOf(a.rrr)}">${a.rrr.toFixed(2)}%</span></td>
+        <td class="mono">${a.impact.toFixed(0)}</td>
+      </tr>`;
+      h += `<tr class="child ${open?'open':''}"><td colspan="7"><div style="padding:12px 14px">${sxpDetail(sym, mod, data, months)}</div></td></tr>`;
+    });
+    h += '</tbody></table></div>';
+    return h;
+  }
+
+  function sxpDetail(sym, mod, data, months){
+    const sub = data.filter(r=>r.SYMPTOM===sym && r.SUB===mod);
+    // MoM strip
+    const mm = new Map();
+    sub.forEach(r=>{ const m=r.MONTH||'—'; let o=mm.get(m); if(!o){o={vol:0,flags:0}; mm.set(m,o);} o.vol++; if(isFlag(r)) o.flags++; });
+    let strip = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">';
+    months.forEach(m=>{ const v=mm.get(m); if(!v) return; const p=pct(v.flags,v.vol);
+      strip += `<div style="background:var(--card2);border:1px solid var(--border);border-radius:5px;padding:6px 10px;min-width:90px">
+        <div style="font-size:9px;color:var(--t3);letter-spacing:1px">${esc(m)}</div>
+        <div style="font-size:14px"><span class="pill ${pillOf(p)}" style="font-size:9px">${p.toFixed(1)}%</span></div>
+        <div style="font-size:9px;color:var(--t3);margin-top:2px">${v.vol} WO · ${v.flags} hits</div>
+      </div>`;
+    });
+    strip += '</div>';
+
+    const topAcc = agg(sub, r=>r.ACCOUNT).sort((a,b)=>b.impact-a.impact).slice(0,5);
+    const topVen = agg(sub, r=>r.VENDOR).sort((a,b)=>b.impact-a.impact).slice(0,5);
+    const topAg  = agg(sub, r=>r.NAME).sort((a,b)=>b.impact-a.impact).slice(0,5);
+    const topPart= agg(sub, r=>r.FIRST_COMM).sort((a,b)=>b.impact-a.impact).slice(0,5);
+
+    const mini = (title, arr) => `<div style="flex:1;min-width:220px">
+      <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px">${title}</div>
+      <table class="sub-tbl" style="width:100%"><tbody>${arr.map(s=>`<tr><td style="padding:3px 6px">${esc(s.key||'—')}</td><td class="mono" style="padding:3px 6px;text-align:right">${s.vol}·${s.flags}</td><td style="padding:3px 6px;text-align:right"><span class="pill ${pillOf(s.rrr)}" style="font-size:9px">${s.rrr.toFixed(1)}%</span></td></tr>`).join('')||'<tr><td style="color:var(--t3);padding:4px 6px">—</td></tr>'}</tbody></table>
+    </div>`;
+
+    return strip + `<div style="display:flex;gap:14px;flex-wrap:wrap">
+      ${mini('Top Accounts', topAcc)}
+      ${mini('Top Vendors', topVen)}
+      ${mini('Top Agents', topAg)}
+      ${mini('Parts Sent', topPart)}
+    </div>`;
+  }
+
+  function buildPartsTable(parts, mmMap, data, months){
+    if(!parts.length) return '<div style="padding:16px;color:var(--t3);font-size:12px">No qualifying parts.</div>';
+    let h = `<div style="overflow-x:auto"><table class="drill-tbl"><thead><tr>
+      <th style="width:24px"></th><th>#</th><th>Part (First WO Commodity)</th><th>Sends</th><th>Ended in Repeat</th><th>Repeat-Rate</th><th>Impact</th>
+    </tr></thead><tbody>`;
+    parts.forEach((a,i)=>{
+      const key='part|'+a.key; const open=pState.expanded.has(key);
+      h += `<tr class="row ${open?'expanded':''}" onclick="Pattern.toggle('${esc(key)}')">
+        <td><span class="ex-ic">▶</span></td><td class="mono">${i+1}</td>
+        <td><b>${esc(a.key||'—')}</b></td>
+        <td class="mono">${a.sent}</td><td class="hits">${a.flags}</td>
+        <td class="mono"><span class="pill ${pillOf(a.rrr)}">${a.rrr.toFixed(2)}%</span></td>
+        <td class="mono">${a.impact.toFixed(0)}</td>
+      </tr>`;
+      h += `<tr class="child ${open?'open':''}"><td colspan="7"><div style="padding:12px 14px">${partDetail(a.key, data, months)}</div></td></tr>`;
+    });
+    h += '</tbody></table></div>';
+    return h;
+  }
+
+  function partDetail(part, data, months){
+    const sub = data.filter(r=>r.FIRST_COMM===part);
+    // MoM strip
+    const mm = new Map();
+    sub.forEach(r=>{ const m=r.MONTH||'—'; let o=mm.get(m); if(!o){o={vol:0,flags:0}; mm.set(m,o);} o.vol++; if(isFlag(r)) o.flags++; });
+    let strip = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">';
+    months.forEach(m=>{ const v=mm.get(m); if(!v) return; const p=pct(v.flags,v.vol);
+      strip += `<div style="background:var(--card2);border:1px solid var(--border);border-radius:5px;padding:6px 10px;min-width:90px">
+        <div style="font-size:9px;color:var(--t3);letter-spacing:1px">${esc(m)}</div>
+        <div style="font-size:14px"><span class="pill ${pillOf(p)}" style="font-size:9px">${p.toFixed(1)}%</span></div>
+        <div style="font-size:9px;color:var(--t3);margin-top:2px">${v.vol} sent · ${v.flags} repeat</div>
+      </div>`;
+    });
+    strip += '</div>';
+
+    // Group repeat-flag rows by Model × Symptom combo, ranked by Impact (Vol × RRR%)
+    const flagRows = sub.filter(isFlag);
+    const comboMap = new Map();
+    // total sends per combo comes from ALL sub rows (denominator for RRR% on that combo)
+    sub.forEach(r=>{
+      const mod = (r.SUB||'').trim(), sym = (r.SYMPTOM||'').trim();
+      if(!mod || !sym) return;
+      const k = mod+' ⟂ '+sym;
+      let o = comboMap.get(k); if(!o){ o={key:k, mod, sym, vol:0, flags:0, nextParts:new Map()}; comboMap.set(k,o); }
+      o.vol++;
+      if(isFlag(r)){
+        o.flags++;
+        const np = (r.NEXT_COMM||'').trim() || '—';
+        o.nextParts.set(np, (o.nextParts.get(np)||0)+1);
+      }
+    });
+    let combos = Array.from(comboMap.values()).filter(c=>c.flags>0);
+    combos.forEach(c=>{ c.rrr = pct(c.flags,c.vol); c.impact = c.vol*c.rrr; });
+    combos.sort((a,b)=>b.impact-a.impact);
+    combos = combos.slice(0,10);
+
+    let comboHtml = `<div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.2px;margin:8px 0 6px">
+      Next part that resolved the repeat — grouped by Top Model × Symptom (ranked by Impact = Vol × RRR%)
+    </div>`;
+
+    if(!combos.length){
+      comboHtml += '<div style="padding:10px;color:var(--t3);font-size:12px">No repeat-flag rows for this part.</div>';
+    } else {
+      comboHtml += `<table class="sub-tbl" style="width:100%"><thead><tr>
+        <th style="text-align:left;padding:4px 8px;color:var(--t3);font-size:10px;width:20px"></th>
+        <th style="text-align:left;padding:4px 8px;color:var(--t3);font-size:10px">Sub-Series · Symptom</th>
+        <th style="text-align:right;padding:4px 8px;color:var(--t3);font-size:10px">Vol</th>
+        <th style="text-align:right;padding:4px 8px;color:var(--t3);font-size:10px">Repeat Hits</th>
+        <th style="text-align:right;padding:4px 8px;color:var(--t3);font-size:10px">RRR%</th>
+      </tr></thead><tbody>`;
+      combos.forEach(c=>{
+        const ck = 'partcombo|'+part+'|'+c.key;
+        const cOpen = pState.expanded.has(ck);
+        comboHtml += `<tr class="combo-row ${cOpen?'expanded':''}" onclick="event.stopPropagation();Pattern.toggle('${esc(ck).replace(/'/g,"\\'")}')">
+          <td style="padding:5px 8px"><span class="combo-ic">▶</span></td>
+          <td style="padding:5px 8px"><b>${esc(c.mod)}</b> <span style="color:var(--t3)">·</span> ${esc(c.sym)}</td>
+          <td class="mono" style="padding:5px 8px;text-align:right">${c.vol}</td>
+          <td class="mono" style="padding:5px 8px;text-align:right;color:var(--red);font-weight:600">${c.flags}</td>
+          <td style="padding:5px 8px;text-align:right"><span class="pill ${pillOf(c.rrr)}" style="font-size:9px">${c.rrr.toFixed(1)}%</span></td>
+        </tr>`;
+        // Expanded: next parts that fixed this combo (from 2nd WO)
+        const nextList = Array.from(c.nextParts.entries()).sort((a,b)=>b[1]-a[1]);
+        const topNext = nextList[0];
+        const nextRows = nextList.map(([np,cnt])=>{
+          const share = pct(cnt, c.flags);
+          const isTop = topNext && np===topNext[0];
+          return `<tr><td style="padding:3px 8px 3px 22px">${isTop?'✅ ':''}${esc(np)}</td>
+            <td class="mono" style="padding:3px 8px;text-align:right">${cnt}</td>
+            <td style="padding:3px 8px;text-align:right"><span class="pill ${pillOf(share)}" style="font-size:9px">${share.toFixed(1)}%</span></td></tr>`;
+        }).join('');
+        comboHtml += `<tr class="combo-child ${cOpen?'open':''}"><td colspan="5" style="padding:0 8px 10px">
+          <div style="background:rgba(255,255,255,0.02);border-left:2px solid var(--red);padding:8px 10px;border-radius:0 4px 4px 0">
+            <div style="font-size:10px;color:var(--t3);margin-bottom:6px">
+              For <b>${esc(c.mod)}</b> + <em>${esc(c.sym)}</em> — <b>${c.flags}</b> repeat WOs required a 2nd visit. Below: the replacement part shipped on the 2nd WO that closed the case${topNext?`. <span style="color:var(--red)">Recommended fix part: <b>${esc(topNext[0])}</b> (${topNext[1]}/${c.flags}, ${pct(topNext[1],c.flags).toFixed(0)}% of resolutions)</span>`:''}.
+            </div>
+            <table class="sub-tbl" style="width:100%"><thead><tr>
+              <th style="text-align:left;padding:3px 8px;color:var(--t3);font-size:10px">Replacement Part on 2nd WO</th>
+              <th style="text-align:right;padding:3px 8px;color:var(--t3);font-size:10px">Times used</th>
+              <th style="text-align:right;padding:3px 8px;color:var(--t3);font-size:10px">Share</th>
+            </tr></thead><tbody>${nextRows||'<tr><td style="padding:6px 8px;color:var(--t3)" colspan="3">—</td></tr>'}</tbody></table>
+          </div>
+        </td></tr>`;
+      });
+      comboHtml += '</tbody></table>';
+    }
+    return strip + comboHtml;
+  }
+
+  window.Pattern = {
+    onOpen(){ renderPattern(); },
+    onDataChanged(){ pState.expanded.clear(); renderPattern(); },
+    toggle(k){ if(pState.expanded.has(k)) pState.expanded.delete(k); else pState.expanded.add(k); renderPattern(); },
+    exportCSV(){
+      const data = rows(); if(!data.length){ alert('No data'); return; }
+      const lines = [['Section','Key','Volume','Repeat Flags','RRR%','Impact'].join(',')];
+      agg(data, r=>r.NAME).filter(a=>a.vol>=10).sort((a,b)=>b.impact-a.impact).slice(0,5)
+        .forEach(a=>lines.push(['Agent',a.key,a.vol,a.flags,a.rrr.toFixed(2),a.impact.toFixed(0)].map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')));
+      agg(data, r=>(r.SYMPTOM && r.SUB)?(r.SYMPTOM+' ⟂ '+r.SUB):'').filter(a=>a.vol>=5).sort((a,b)=>b.impact-a.impact).slice(0,10)
+        .forEach(a=>lines.push(['SxP',a.key,a.vol,a.flags,a.rrr.toFixed(2),a.impact.toFixed(0)].map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')));
+      const blob = new Blob([lines.join('\n')],{type:'text/csv'});
+      const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
+      link.download = 'PatternRelation_'+new Date().toISOString().slice(0,10)+'.csv'; link.click();
+    },
+    _buildRows(){
+      const data = rows(); if(!data.length) return null;
+      const out = { agents:[], sxp:[], parts:[], partCombos:[] };
+      agg(data, r=>r.NAME).filter(a=>a.vol>=10).sort((a,b)=>b.impact-a.impact).slice(0,5)
+        .forEach(a=>out.agents.push([a.key,a.vol,a.flags,+a.rrr.toFixed(2),+a.impact.toFixed(0)]));
+      agg(data, r=>(r.SYMPTOM && r.SUB)?(r.SYMPTOM+' ⟂ '+r.SUB):'').filter(a=>a.vol>=5).sort((a,b)=>b.impact-a.impact).slice(0,10)
+        .forEach(a=>out.sxp.push([a.key,a.vol,a.flags,+a.rrr.toFixed(2),+a.impact.toFixed(0)]));
+      // parts
+      const pa = agg(data, r=>r.FIRST_COMM);
+      const pf = agg(data.filter(isFlag), r=>r.FIRST_COMM);
+      const pm = new Map(); pa.forEach(p=>pm.set(p.key,{key:p.key,sent:p.vol,flags:0}));
+      pf.forEach(p=>{ const o=pm.get(p.key); if(o) o.flags=p.vol; });
+      const parts = Array.from(pm.values()).filter(p=>p.sent>=10).map(p=>{p.rrr=pct(p.flags,p.sent); p.impact=p.sent*p.rrr; return p;}).sort((a,b)=>b.impact-a.impact).slice(0,10);
+      parts.forEach(p=>out.parts.push([p.key,p.sent,p.flags,+p.rrr.toFixed(2),+p.impact.toFixed(0)]));
+      // part × combo × next part
+      parts.forEach(p=>{
+        const sub = data.filter(r=>r.FIRST_COMM===p.key);
+        const cmap = new Map();
+        sub.forEach(r=>{
+          const mod=(r.SUB||'').trim(), sym=(r.SYMPTOM||'').trim(); if(!mod||!sym) return;
+          const k=mod+' ⟂ '+sym; let o=cmap.get(k); if(!o){o={mod,sym,vol:0,flags:0,next:new Map()}; cmap.set(k,o);}
+          o.vol++; if(isFlag(r)){ o.flags++; const np=(r.NEXT_COMM||'').trim()||'—'; o.next.set(np,(o.next.get(np)||0)+1); }
+        });
+        const combos = Array.from(cmap.values()).filter(c=>c.flags>0).map(c=>{c.rrr=pct(c.flags,c.vol); c.impact=c.vol*c.rrr; return c;}).sort((a,b)=>b.impact-a.impact).slice(0,10);
+        combos.forEach(c=>{
+          const nextArr = Array.from(c.next.entries()).sort((a,b)=>b[1]-a[1]);
+          const top = nextArr[0]||['—',0];
+          out.partCombos.push([p.key, c.mod, c.sym, c.vol, c.flags, +c.rrr.toFixed(2), +c.impact.toFixed(0), top[0], top[1], nextArr.map(([n,c2])=>`${n} (${c2})`).join(' | ')]);
+        });
+      });
+      return out;
+    },
+    exportXLSX(){
+      try{
+        if(typeof XLSX==='undefined'){ alert('Excel library not loaded.'); return; }
+        const r = this._buildRows(); if(!r){ alert('No data'); return; }
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Agent','Volume','Repeat Flags','RRR%','Impact'], ...r.agents]), 'Top Agents');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Symptom ⟂ Sub-Series','Volume','Repeat Flags','RRR%','Impact'], ...r.sxp]), 'Symptom×Product');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['First WO Part','Sends','Ended in Repeat','Repeat-Rate%','Impact'], ...r.parts]), 'Parts on Repeats');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['First WO Part','Sub-Series','Symptom','Vol','Repeat Hits','RRR%','Impact','Recommended Next Part','Times Used','All Next Parts'], ...r.partCombos]), 'Next-Part Fix Map');
+        XLSX.writeFile(wb, 'PatternRelation_'+new Date().toISOString().slice(0,10)+'.xlsx');
+      }catch(e){ console.error(e); alert('Excel export failed.'); }
+    },
+    exportPDF(){
+      try{
+        if(!window.jspdf){ alert('PDF library not loaded.'); return; }
+        const r = this._buildRows(); if(!r){ alert('No data'); return; }
+        const { jsPDF } = window.jspdf; const doc = new jsPDF({orientation:'landscape'});
+        doc.setFontSize(14); doc.setTextColor(226,0,26); doc.text('Pattern Relation — Consistent Repeat Offenders', 14, 14);
+        doc.setFontSize(9); doc.setTextColor(80);
+        doc.text('Generated: '+new Date().toLocaleString()+'   Ranking: Impact = Volume × RRR%', 14, 20);
+        const tbl = (title, head, body) => {
+          doc.autoTable({ head:[head], body, startY: doc.lastAutoTable? doc.lastAutoTable.finalY+8 : 26,
+            styles:{fontSize:8, cellPadding:2}, headStyles:{fillColor:[226,0,26]}, margin:{left:10,right:10},
+            didDrawPage:()=>{ doc.setFontSize(11); doc.setTextColor(226,0,26); doc.text(title, 14, 12); doc.setTextColor(80); doc.setFontSize(9); }
+          });
+        };
+        tbl('Top 5 Repeat-Offender Agents', ['Agent','Vol','Flags','RRR%','Impact'], r.agents);
+        tbl('Top 10 Symptom × Sub-Series', ['Symptom ⟂ Sub-Series','Vol','Flags','RRR%','Impact'], r.sxp);
+        tbl('Parts Consistently Sent on Repeats', ['First WO Part','Sends','Repeat','RRR%','Impact'], r.parts);
+        tbl('Next-Part Fix Map (per Model × Symptom)', ['First Part','Sub-Series','Symptom','Vol','Hits','RRR%','Impact','Recommended Next Part','Used'], r.partCombos.map(row=>row.slice(0,9)));
+        doc.save('PatternRelation_'+new Date().toISOString().slice(0,10)+'.pdf');
+      }catch(e){ console.error(e); alert('PDF export failed.'); }
+    }
+  };
+
+  // ═════════════ TECHNICIAN REPORT ═════════════
+  const tState = { expanded:new Set(), reasonExpanded:new Set(), showAll:false, search:'' };
+
+  function techKey(r){ return (r.TECH_ID||'').trim() || (r.TECH_NAME||'').trim(); }
+
+  function renderTech(){
+    const body = document.getElementById('techBody'); if(!body) return;
+    const data = rows();
+    if(!data.length){ body.innerHTML = '<div style="padding:32px;text-align:center;color:var(--t3);font-size:12px">Upload a file to see the technician report.</div>'; return; }
+
+    // Aggregate by technician
+    const map = new Map();
+    for(const r of data){
+      const k = techKey(r); if(!k) continue;
+      let o = map.get(k);
+      if(!o){ o = {key:k, id:r.TECH_ID||'', name:r.TECH_NAME||'', vendor:r.FS_PARTNER||'', pudo:r.PUDO||'', city:r.CITY||'', vol:0, flags:0, rows:[]}; map.set(k,o); }
+      // capture the most populated metadata seen
+      if(!o.id && r.TECH_ID) o.id = r.TECH_ID;
+      if(!o.name && r.TECH_NAME) o.name = r.TECH_NAME;
+      if(!o.vendor && r.FS_PARTNER) o.vendor = r.FS_PARTNER;
+      if(!o.pudo && r.PUDO) o.pudo = r.PUDO;
+      if(!o.city && r.CITY) o.city = r.CITY;
+      o.vol++; if(isFlag(r)) o.flags++;
+      o.rows.push(r);
+    }
+
+    // If no tech data at all, tell the user which columns are missing
+    if(!map.size){
+      const missing = [];
+      if(IDX.TECH_ID<0) missing.push('Final Tech ID');
+      if(IDX.TECH_NAME<0) missing.push('Name');
+      if(IDX.FS_PARTNER<0) missing.push('FS_Partner');
+      if(IDX.PUDO<0) missing.push('PUDO');
+      body.innerHTML = `<div style="padding:24px;text-align:center;color:var(--t3);font-size:12px">No technician data found in the uploaded file.${missing.length?`<br><span style="color:var(--warn)">Missing columns: <b>${missing.join(', ')}</b></span>`:''}</div>`;
+      return;
+    }
+
+    let list = Array.from(map.values());
+    list.forEach(o=>{ o.rrr = pct(o.flags,o.vol); o.impact = o.vol*o.rrr; });
+    list.sort((a,b)=>b.impact-a.impact);
+
+    // Apply search
+    const q = tState.search.trim().toLowerCase();
+    if(q) list = list.filter(o => (o.id+' '+o.name+' '+o.vendor+' '+o.city+' '+o.pudo).toLowerCase().includes(q));
+
+    const shown = tState.showAll ? list : list.slice(0,10);
+
+    // Summary line
+    const totalV = list.reduce((s,o)=>s+o.vol,0);
+    const totalF = list.reduce((s,o)=>s+o.flags,0);
+    const summary = `<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px">
+      ${statTile('Distinct Technicians', list.length.toLocaleString())}
+      ${statTile('Total WOs (with tech)', totalV.toLocaleString())}
+      ${statTile('Repeat Flags', totalF.toLocaleString())}
+      ${statTile('Overall RRR%', pct(totalF,totalV).toFixed(2)+'%')}
+    </div>`;
+
+    let h = summary + `<div style="overflow-x:auto"><table class="drill-tbl"><thead><tr>
+      <th style="width:24px"></th><th>#</th><th>Tech ID</th><th>Name</th><th>Vendor (FS_Partner)</th><th>PUDO</th><th>City</th>
+      <th>Vol</th><th>Repeat Flags</th><th>RRR%</th><th>Impact</th>
+    </tr></thead><tbody>`;
+    shown.forEach((t,i)=>{
+      const open = tState.expanded.has(t.key);
+      h += `<tr class="row ${open?'expanded':''}" onclick="TechReport.toggle('${esc(t.key).replace(/'/g,"\\'")}')">
+        <td><span class="ex-ic">▶</span></td><td class="mono">${i+1}</td>
+        <td class="mono">${esc(t.id||'—')}</td>
+        <td><b>${esc(t.name||'—')}</b></td>
+        <td>${esc(t.vendor||'—')}</td>
+        <td>${esc(t.pudo||'—')}</td>
+        <td>${esc(t.city||'—')}</td>
+        <td class="mono">${t.vol}</td>
+        <td class="hits">${t.flags}</td>
+        <td class="mono"><span class="pill ${pillOf(t.rrr)}">${t.rrr.toFixed(2)}%</span></td>
+        <td class="mono">${t.impact.toFixed(0)}</td>
+      </tr>`;
+      h += `<tr class="child ${open?'open':''}"><td colspan="11"><div style="padding:12px 14px">${techDetail(t)}</div></td></tr>`;
+    });
+    h += '</tbody></table></div>';
+
+    if(!tState.showAll && list.length>10){
+      h += `<div style="margin-top:10px;font-size:11px;color:var(--t3);text-align:center">Showing top 10 of ${list.length} technicians · toggle "Show all" to see the rest</div>`;
+    }
+
+    h += `<div style="margin-top:14px;padding:10px 12px;background:rgba(0,0,0,.18);border-left:2px solid var(--red);font-size:10.5px;color:var(--t2);line-height:1.55">
+      <b style="color:var(--red)">ℹ️ How this is calculated:</b> One row per technician (keyed by <code>Final Tech ID</code>, falls back to <code>Name</code>). Vol = WOs handled. Repeat Flags = rows where <code>RRR MTSN 30D NOC × Labor = 1</code>. RRR% = Flags ÷ Vol. Impact = Vol × RRR% — so a tech with 200 WOs at 8% ranks above one with 15 WOs at 20%. Expanded view groups by <b>Next SO Repeat Repair Reason</b> on repeat WOs only; any reason containing "workmanship" expands to the underlying Work Orders for direct case review.
+    </div>`;
+
+    body.innerHTML = h;
+  }
+
+  function statTile(l,v){
+    return `<div style="background:var(--card2);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:5px;padding:8px 12px;min-width:150px">
+      <div style="font-size:9px;font-weight:700;color:var(--t3);letter-spacing:1.4px;text-transform:uppercase">${l}</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;color:var(--t1);margin-top:2px">${v}</div>
+    </div>`;
+  }
+
+  function techDetail(t){
+    // Reason breakdown from repeat-flag rows only
+    const flagRows = t.rows.filter(isFlag);
+    const reasons = new Map();
+    flagRows.forEach(r=>{ const k = (r.NEXT_REASON||'—').trim()||'—'; let o = reasons.get(k); if(!o){ o={key:k, count:0, rows:[]}; reasons.set(k,o); } o.count++; o.rows.push(r); });
+    const list = Array.from(reasons.values()).sort((a,b)=>b.count-a.count);
+    const totalFlags = flagRows.length;
+
+    // Month-wise strip
+    const months = monthsSorted(t.rows);
+    const mm = new Map();
+    t.rows.forEach(r=>{ const m=r.MONTH||'—'; let o=mm.get(m); if(!o){o={vol:0,flags:0}; mm.set(m,o);} o.vol++; if(isFlag(r)) o.flags++; });
+    let strip = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">';
+    months.forEach(m=>{ const v=mm.get(m); if(!v) return; const p=pct(v.flags,v.vol);
+      strip += `<div style="background:var(--card2);border:1px solid var(--border);border-radius:5px;padding:6px 10px;min-width:90px">
+        <div style="font-size:9px;color:var(--t3);letter-spacing:1px">${esc(m)}</div>
+        <div><span class="pill ${pillOf(p)}" style="font-size:9px">${p.toFixed(1)}%</span></div>
+        <div style="font-size:9px;color:var(--t3);margin-top:2px">${v.vol} WO · ${v.flags} hits</div>
+      </div>`;
+    });
+    strip += '</div>';
+
+    if(!list.length){
+      return strip + '<div style="padding:8px;color:var(--t3);font-size:12px">No repeat-flag WOs mapped to this technician.</div>';
+    }
+
+    let h = strip + `<div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.2px;margin:0 0 6px">Repeat Repair Reasons (from repeat-flag WOs · ${totalFlags} total)</div>`;
+    h += `<table class="sub-tbl" style="width:100%"><thead><tr>
+      <th style="text-align:left;padding:4px 8px;color:var(--t3);font-size:10px">Reason</th>
+      <th style="text-align:right;padding:4px 8px;color:var(--t3);font-size:10px">Count</th>
+      <th style="text-align:right;padding:4px 8px;color:var(--t3);font-size:10px">Share of hits</th>
+      <th style="padding:4px 8px"></th>
+    </tr></thead><tbody>`;
+    list.forEach(rz=>{
+      const share = pct(rz.count, totalFlags);
+      const isWork = /workmanship/i.test(rz.key);
+      const rk = t.key+'|'+rz.key;
+      const rOpen = tState.reasonExpanded.has(rk);
+      h += `<tr><td style="padding:4px 8px">${isWork?'🔧 ':''}${esc(rz.key)}</td>
+        <td class="mono" style="padding:4px 8px;text-align:right">${rz.count}</td>
+        <td style="padding:4px 8px;text-align:right"><span class="pill ${pillOf(share)}" style="font-size:9px">${share.toFixed(1)}%</span></td>
+        <td style="padding:4px 8px;text-align:right">${isWork?`<button class="btn" style="padding:2px 8px;font-size:10px" onclick="event.stopPropagation();TechReport.toggleReason('${esc(rk).replace(/'/g,"\\'")}')">${rOpen?'Hide':'Show'} WOs</button>`:''}</td></tr>`;
+      if(isWork && rOpen){
+        h += `<tr><td colspan="4" style="padding:0 8px 8px"><div style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:4px">
+          <table class="sub-tbl" style="width:100%;font-size:10.5px"><thead><tr>
+            <th style="padding:4px 8px;text-align:left;background:var(--card2)">WO #</th>
+            <th style="padding:4px 8px;text-align:left;background:var(--card2)">MTSN</th>
+            <th style="padding:4px 8px;text-align:left;background:var(--card2)">Sub-Series</th>
+            <th style="padding:4px 8px;text-align:left;background:var(--card2)">Symptom</th>
+            <th style="padding:4px 8px;text-align:left;background:var(--card2)">Account</th>
+            <th style="padding:4px 8px;text-align:left;background:var(--card2)">Vendor</th>
+            <th style="padding:4px 8px;text-align:left;background:var(--card2)">Region</th>
+            <th style="padding:4px 8px;text-align:left;background:var(--card2)">City</th>
+            <th style="padding:4px 8px;text-align:left;background:var(--card2)">Month</th>
+          </tr></thead><tbody>${rz.rows.map(r=>`<tr>
+            <td class="mono" style="padding:3px 8px">${esc(r.WO_NUM||'—')}</td>
+            <td class="mono" style="padding:3px 8px">${esc(r.MTSN||'—')}</td>
+            <td style="padding:3px 8px">${esc(r.SUB||'—')}</td>
+            <td style="padding:3px 8px">${esc(r.SYMPTOM||'—')}</td>
+            <td style="padding:3px 8px">${esc(r.ACCOUNT||'—')}</td>
+            <td style="padding:3px 8px">${esc(r.VENDOR||'—')}</td>
+            <td style="padding:3px 8px">${esc(normReg(r.REGION))}</td>
+            <td style="padding:3px 8px">${esc(r.CITY||'—')}</td>
+            <td style="padding:3px 8px">${esc(r.MONTH||'—')}</td>
+          </tr>`).join('')}</tbody></table></div></td></tr>`;
+      }
+    });
+    h += '</tbody></table>';
+    return h;
+  }
+
+  window.TechReport = {
+    onOpen(){ renderTech(); },
+    onDataChanged(){ tState.expanded.clear(); tState.reasonExpanded.clear(); renderTech(); },
+    toggle(k){ if(tState.expanded.has(k)) tState.expanded.delete(k); else tState.expanded.add(k); renderTech(); },
+    toggleReason(k){ if(tState.reasonExpanded.has(k)) tState.reasonExpanded.delete(k); else tState.reasonExpanded.add(k); renderTech(); },
+    toggleShowAll(v){ tState.showAll = !!v; renderTech(); },
+    search(v){ tState.search = v||''; renderTech(); },
+    exportCSV(){
+      const data = rows(); if(!data.length){ alert('No data'); return; }
+      const map = new Map();
+      for(const r of data){ const k=techKey(r); if(!k) continue;
+        let o = map.get(k); if(!o){ o={id:r.TECH_ID||'',name:r.TECH_NAME||'',vendor:r.FS_PARTNER||'',pudo:r.PUDO||'',city:r.CITY||'',vol:0,flags:0,reasons:new Map()}; map.set(k,o); }
+        o.vol++; if(isFlag(r)){ o.flags++; const rz=(r.NEXT_REASON||'—').trim()||'—'; o.reasons.set(rz,(o.reasons.get(rz)||0)+1); }
+      }
+      const lines = [['Tech ID','Name','Vendor','PUDO','City','Vol','Flags','RRR%','Impact','Top Reason','Top Reason Count'].join(',')];
+      Array.from(map.values()).map(o=>{ o.rrr=pct(o.flags,o.vol); o.impact=o.vol*o.rrr;
+        const top = Array.from(o.reasons.entries()).sort((a,b)=>b[1]-a[1])[0]||['—',0];
+        return [o.id,o.name,o.vendor,o.pudo,o.city,o.vol,o.flags,o.rrr.toFixed(2),o.impact.toFixed(0),top[0],top[1]];
+      }).sort((a,b)=>Number(b[8])-Number(a[8])).forEach(row=>lines.push(row.map(x=>`"${String(x==null?'':x).replace(/"/g,'""')}"`).join(',')));
+      const blob = new Blob([lines.join('\n')],{type:'text/csv'});
+      const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
+      link.download = 'TechnicianReport_'+new Date().toISOString().slice(0,10)+'.csv'; link.click();
+    },
+    _buildRows(){
+      const data = rows(); if(!data.length) return null;
+      const map = new Map();
+      for(const r of data){ const k=techKey(r); if(!k) continue;
+        let o = map.get(k); if(!o){ o={id:r.TECH_ID||'',name:r.TECH_NAME||'',vendor:r.FS_PARTNER||'',pudo:r.PUDO||'',city:r.CITY||'',vol:0,flags:0,reasons:new Map(),workRows:[]}; map.set(k,o); }
+          if(!o.id && r.TECH_ID) o.id=r.TECH_ID; if(!o.name && r.TECH_NAME) o.name=r.TECH_NAME;
+          if(!o.vendor && r.FS_PARTNER) o.vendor=r.FS_PARTNER; if(!o.pudo && r.PUDO) o.pudo=r.PUDO; if(!o.city && r.CITY) o.city=r.CITY;
+        o.vol++;
+        if(isFlag(r)){ o.flags++; const rz=(r.NEXT_REASON||'—').trim()||'—'; o.reasons.set(rz,(o.reasons.get(rz)||0)+1);
+          if(/workmanship/i.test(rz)) o.workRows.push(r);
+        }
+      }
+      const list = Array.from(map.values()).map(o=>{ o.rrr=pct(o.flags,o.vol); o.impact=o.vol*o.rrr; return o; }).sort((a,b)=>b.impact-a.impact);
+      const summary = list.map(o=>{ const top=Array.from(o.reasons.entries()).sort((a,b)=>b[1]-a[1])[0]||['—',0];
+        return [o.id||'',o.name||'',o.vendor||'',o.pudo||'',o.city||'',o.vol,o.flags,+o.rrr.toFixed(2),+o.impact.toFixed(0),top[0],top[1]];
+      });
+      const reasons = [];
+      list.forEach(o=>{
+        Array.from(o.reasons.entries()).sort((a,b)=>b[1]-a[1]).forEach(([rz,cnt])=>{
+          reasons.push([o.id||'',o.name||'',o.vendor||'',o.city||'',rz,cnt,+pct(cnt,o.flags).toFixed(2)]);
+        });
+      });
+      const work = [];
+      list.forEach(o=>{
+        o.workRows.forEach(r=> work.push([o.id||'',o.name||'',o.vendor||'',o.city||'',r.WO_NUM||'',r.MTSN||'',r.SUB||'',r.SYMPTOM||'',r.ACCOUNT||'',r.VENDOR||'',(r.REGION?normReg(r.REGION):''),r.MONTH||'']));
+      });
+      return { summary, reasons, work };
+    },
+    exportXLSX(){
+      try{
+        if(typeof XLSX==='undefined'){ alert('Excel library not loaded.'); return; }
+        const r = this._buildRows(); if(!r){ alert('No data'); return; }
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Tech ID','Name','Vendor','PUDO','City','Vol','Flags','RRR%','Impact','Top Reason','Top Reason Count'], ...r.summary]), 'Technicians');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Tech ID','Name','Vendor','City','Repeat Reason','Count','Share of Hits %'], ...r.reasons]), 'Reasons');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Tech ID','Name','Vendor','City','WO #','MTSN','Sub-Series','Symptom','Account','Vendor (Row)','Region','Month'], ...r.work]), 'Workmanship WOs');
+        XLSX.writeFile(wb, 'TechnicianReport_'+new Date().toISOString().slice(0,10)+'.xlsx');
+      }catch(e){ console.error(e); alert('Excel export failed.'); }
+    },
+    exportPDF(){
+      try{
+        if(!window.jspdf){ alert('PDF library not loaded.'); return; }
+        const r = this._buildRows(); if(!r){ alert('No data'); return; }
+        const { jsPDF } = window.jspdf; const doc = new jsPDF({orientation:'landscape'});
+        doc.setFontSize(14); doc.setTextColor(226,0,26); doc.text('Technician Report — Field Accountability', 14, 14);
+        doc.setFontSize(9); doc.setTextColor(80);
+        doc.text('Generated: '+new Date().toLocaleString()+'   Sorted by Impact = Volume × RRR%', 14, 20);
+        doc.autoTable({ head:[['#','Tech ID','Name','Vendor','PUDO','City','Vol','Flags','RRR%','Impact','Top Reason']],
+          body: r.summary.slice(0,25).map((row,i)=>[i+1, ...row.slice(0,10)]),
+          startY:26, styles:{fontSize:7, cellPadding:1.6}, headStyles:{fillColor:[226,0,26]}, margin:{left:10,right:10} });
+        if(r.work.length){
+          doc.addPage(); doc.setFontSize(12); doc.setTextColor(226,0,26); doc.text('Workmanship — Underlying Work Orders', 14, 14);
+          doc.autoTable({ head:[['Tech ID','Name','Vendor','City','WO #','MTSN','Sub-Series','Symptom','Account','Region','Month']],
+            body: r.work.slice(0,300).map(row=>[row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[10],row[11]]),
+            startY:20, styles:{fontSize:7, cellPadding:1.4}, headStyles:{fillColor:[226,0,26]}, margin:{left:10,right:10} });
+        }
+        doc.save('TechnicianReport_'+new Date().toISOString().slice(0,10)+'.pdf');
+      }catch(e){ console.error(e); alert('PDF export failed.'); }
+    }
+  };
+})();
+
+/* ══════════════════════════════════════════════════════════════════
+   📒 VENDOR RRR REPORT — RRR-hit WO listing by vendor × month
+   ══════════════════════════════════════════════════════════════════ */
+(function(){
+  const state = { vendors:[], gran:'MONTH', periods:[], vSearch:'', sortKey:'MONTH', sortDir:1, showAll:false };
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const pct = (n,d) => d>0 ? (n*100/d) : 0;
+  const rows = () => {
+    const fd = (typeof filteredData!=='undefined' && filteredData) ? filteredData : (window.filteredData||null);
+    if(fd && fd.length) return fd;
+    const rd = (typeof rawData!=='undefined' && rawData) ? rawData : (window.rawData||null);
+    return (rd && rd.length) ? rd : [];
+  };
+  const uniqSorted = (field) => {
+    const s = new Set();
+    rows().forEach(r=>{ const v=r[field]; if(v!=null && String(v).trim()) s.add(String(v)); });
+    return [...s].sort((a,b)=>String(a).localeCompare(String(b), undefined, {numeric:true}));
+  };
+
+  function vendorAgg(){
+    const data = rows(); const map = {};
+    for(const r of data){
+      const v = String(r.VENDOR||'').trim(); if(!v) continue;
+      if(!map[v]) map[v] = { vendor:v, total:0, flags:0, months:{} };
+      map[v].total++;
+      const mo = String(r.MONTH||''); if(mo){
+        if(!map[v].months[mo]) map[v].months[mo] = {total:0,flags:0};
+        map[v].months[mo].total++;
+      }
+      if(r.FLAG==='1'){ map[v].flags++; if(mo) map[v].months[mo].flags++; }
+    }
+    return Object.values(map).map(o=>{ o.rrr = pct(o.flags,o.total); return o; })
+      .sort((a,b)=>(b.rrr*b.total)-(a.rrr*a.total));
+  }
+
+  function slice(){
+    const vs = new Set(state.vendors), ps = new Set(state.periods.map(String));
+    const gr = state.gran;
+    return rows().filter(r=>{
+      if(vs.size && !vs.has(String(r.VENDOR||''))) return false;
+      if(ps.size && !ps.has(String(r[gr]||''))) return false;
+      return true;
+    });
+  }
+  const hitRows = () => slice().filter(r=>r.FLAG==='1');
+
+  function renderTrend(){
+    const vlist = vendorAgg();
+    const months = uniqSorted('MONTH');
+    const selVs = new Set(state.vendors);
+    const shown = state.showAll ? vlist : vlist.slice(0,15);
+    const spark = (v)=>{
+      if(!months.length) return '';
+      const vals = months.map(m=>{ const d=v.months[m]; return d? pct(d.flags,d.total):0; });
+      const max = Math.max(1,...vals);
+      const W=140,H=28,step = months.length>1 ? W/(months.length-1) : 0;
+      const pts = vals.map((y,i)=>`${(i*step).toFixed(1)},${(H-(y/max)*(H-4)-2).toFixed(1)}`).join(' ');
+      return `<svg width="${W}" height="${H}" style="display:block"><polyline fill="none" stroke="#7ce0ff" stroke-width="1.5" points="${pts}"/></svg>`;
+    };
+    const body = shown.map(v=>{
+      const rc = v.rrr>=15?'#ff6b7a':v.rrr>=8?'#f5a623':'#00c896';
+      const on = selVs.has(v.vendor);
+      return `<tr style="border-bottom:1px solid var(--border);cursor:pointer;${on?'background:rgba(124,224,255,0.06)':''}" onclick="VendorReport.toggleVendor(${JSON.stringify(v.vendor).replace(/"/g,'&quot;')})">
+        <td style="padding:5px 8px"><input type="checkbox" ${on?'checked':''} onclick="event.stopPropagation();VendorReport.toggleVendor(${JSON.stringify(v.vendor).replace(/"/g,'&quot;')})"></td>
+        <td style="padding:5px 8px;color:var(--t1);font-weight:600">${esc(v.vendor)}</td>
+        <td style="padding:5px 8px;text-align:right;font-family:'IBM Plex Mono',monospace">${v.total.toLocaleString()}</td>
+        <td style="padding:5px 8px;text-align:right;font-family:'IBM Plex Mono',monospace">${v.flags.toLocaleString()}</td>
+        <td style="padding:5px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:${rc};font-weight:700">${v.rrr.toFixed(2)}%</td>
+        <td style="padding:5px 8px">${spark(v)}</td>
+      </tr>`;
+    }).join('');
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)">All Vendors — RRR% Trend (click a row to add/remove from selection)</div>
+        <label style="font-size:10.5px;color:var(--t2);display:flex;align-items:center;gap:6px"><input type="checkbox" ${state.showAll?'checked':''} onchange="VendorReport.setShowAll(this.checked)"> Show all ${vlist.length}</label>
+      </div>
+      <div style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:6px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="color:var(--t3);text-align:left;background:var(--bg);position:sticky;top:0">
+            <th style="padding:6px 8px"></th>
+            <th style="padding:6px 8px">Vendor</th>
+            <th style="padding:6px 8px;text-align:right">Total WO</th>
+            <th style="padding:6px 8px;text-align:right">RRR Hits</th>
+            <th style="padding:6px 8px;text-align:right">Current RRR%</th>
+            <th style="padding:6px 8px">Trend (by ${state.gran==='WEEK'?'week':'month'})</th>
+          </tr></thead><tbody>${body || `<tr><td colspan="6" style="padding:12px;text-align:center;color:var(--t3)">No vendors.</td></tr>`}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
+  function renderFilter(){
+    const allV = uniqSorted('VENDOR');
+    const q = state.vSearch.toLowerCase();
+    const vlist = q ? allV.filter(v=>v.toLowerCase().includes(q)) : allV;
+    const periods = uniqSorted(state.gran);
+    const vChips = vlist.slice(0,400).map(v=>{
+      const on = state.vendors.includes(v);
+      return `<button type="button" onclick="VendorReport.toggleVendor(${JSON.stringify(v).replace(/"/g,'&quot;')})" style="padding:3px 9px;border-radius:99px;font-size:11px;cursor:pointer;border:1px solid ${on?'#7ce0ff':'var(--border)'};background:${on?'rgba(124,224,255,.14)':'transparent'};color:${on?'#7ce0ff':'var(--t2)'}">${esc(v)}</button>`;
+    }).join('');
+    const pChips = periods.map(p=>{
+      const on = state.periods.includes(p);
+      return `<button type="button" onclick="VendorReport.togglePeriod(${JSON.stringify(p).replace(/"/g,'&quot;')})" style="padding:3px 9px;border-radius:99px;font-size:11px;cursor:pointer;border:1px solid ${on?'#ffb347':'var(--border)'};background:${on?'rgba(255,179,71,.14)':'transparent'};color:${on?'#ffb347':'var(--t2)'}">${esc(p)}</button>`;
+    }).join('');
+    return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid #7ce0ff;border-radius:8px;padding:10px 12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--t3)">Vendors (multi-select)</div>
+          <div style="display:flex;gap:6px">
+            <button type="button" onclick="VendorReport.setVendorsAll()" style="padding:2px 8px;background:transparent;color:var(--t3);border:1px dashed var(--border);border-radius:4px;font-size:10.5px;cursor:pointer">All</button>
+            <button type="button" onclick="VendorReport.setVendorsNone()" style="padding:2px 8px;background:transparent;color:var(--t3);border:1px dashed var(--border);border-radius:4px;font-size:10.5px;cursor:pointer">Clear</button>
+          </div>
+        </div>
+        <input class="ts" placeholder="Search vendor…" value="${esc(state.vSearch)}" oninput="VendorReport.setSearch(this.value)" style="width:100%;background:var(--bg);color:var(--t1);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;margin-bottom:6px"/>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;max-height:120px;overflow:auto;padding:6px;background:var(--bg);border:1px solid var(--border);border-radius:5px">${vChips || '<span style="color:var(--t3);font-size:11px">No match.</span>'}</div>
+        <div style="color:var(--t3);font-size:11px;margin-top:5px">${state.vendors.length} selected</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid #ffb347;border-radius:8px;padding:10px 12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--t3)">${state.gran==='WEEK'?'Weeks':'Months'} (multi-select)</div>
+          <div style="display:inline-flex;background:var(--bg);border:1px solid var(--border);border-radius:5px;overflow:hidden">
+            <button type="button" onclick="VendorReport.setGran('MONTH')" style="background:${state.gran==='MONTH'?'var(--red)':'transparent'};color:${state.gran==='MONTH'?'#fff':'var(--t2)'};border:none;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer">Month</button>
+            <button type="button" onclick="VendorReport.setGran('WEEK')" style="background:${state.gran==='WEEK'?'var(--red)':'transparent'};color:${state.gran==='WEEK'?'#fff':'var(--t2)'};border:none;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer">Week</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;max-height:120px;overflow:auto;padding:6px;background:var(--bg);border:1px solid var(--border);border-radius:5px">${pChips || '<span style="color:var(--t3);font-size:11px">No values.</span>'}</div>
+        <div style="display:flex;gap:6px;margin-top:5px">
+          <button type="button" onclick="VendorReport.setPeriodsAll()" style="padding:2px 8px;background:transparent;color:var(--t3);border:1px dashed var(--border);border-radius:4px;font-size:10.5px;cursor:pointer">All</button>
+          <button type="button" onclick="VendorReport.setPeriodsNone()" style="padding:2px 8px;background:transparent;color:var(--t3);border:1px dashed var(--border);border-radius:4px;font-size:10.5px;cursor:pointer">Clear</button>
+          <span style="color:var(--t3);font-size:11px;align-self:center">${state.periods.length} selected</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function renderKPI(){
+    const s = slice(); const hits = s.filter(r=>r.FLAG==='1');
+    const mtsn = new Set(s.map(r=>r.MTSN).filter(Boolean)).size;
+    // RRR% for the selected month(s) = RRR Hits ÷ Distinct MTSN × 100 in the
+    // current slice. Cumulative when multiple months/weeks are selected; falls
+    // back to the full history when no period filter is applied.
+    const rrr = mtsn ? (hits.length / mtsn) * 100 : 0;
+    const rc = rrr>=15?'#ff6b7a':rrr>=8?'#f5a623':'#00c896';
+    const pLbl = state.periods && state.periods.length
+      ? `${state.periods.length} ${state.gran==='WEEK'?'week':'month'}${state.periods.length===1?'':'s'} selected`
+      : `all ${state.gran==='WEEK'?'weeks':'months'}`;
+    const vLbl = state.vendors && state.vendors.length
+      ? `${state.vendors.length} vendor${state.vendors.length===1?'':'s'}`
+      : 'all vendors';
+    const scopeLbl = `${vLbl} · ${pLbl}`;
+    const k = (l,v,s2,col)=>`<div style="background:var(--card);border:1px solid var(--border);border-top:3px solid ${col};border-radius:8px;padding:10px 12px">
+      <div style="font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--t3)">${l}</div>
+      <div style="font-size:20px;font-weight:700;color:${col};margin-top:2px">${v}</div>
+      <div style="font-size:10.5px;color:var(--t3);margin-top:2px">${s2}</div></div>`;
+    return `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
+      ${k('Total WOs', s.length.toLocaleString(), 'in current slice','#7ce0ff')}
+      ${k('Distinct MTSN', mtsn.toLocaleString(), 'unique serials (slice)','#a3f0c0')}
+      ${k('RRR Hits', hits.length.toLocaleString(), 'FLAG = 1 (slice)','#ffb347')}
+      ${k('RRR %', rrr.toFixed(2)+'%', `Hits ÷ Distinct MTSN · ${scopeLbl}`, rc)}
+    </div>`;
+  }
+
+  function sortHits(list){
+    const k = state.sortKey, dir = state.sortDir;
+    const val = r => {
+      if(k==='WO_NUM') return r.WO_NUM||'';
+      if(k==='MTSN') return r.MTSN||'';
+      if(k==='MONTH') return r.MONTH||'';
+      if(k==='PUDO') return r.PUDO||'';
+      if(k==='REASON') return r.NEXT_REASON || r.REASON || '';
+      if(k==='VENDOR') return r.VENDOR||'';
+      return '';
+    };
+    return list.slice().sort((a,b)=>{
+      const va = String(val(a)).toLowerCase(), vb = String(val(b)).toLowerCase();
+      if(va<vb) return -1*dir; if(va>vb) return 1*dir; return 0;
+    });
+  }
+
+  function renderTable(){
+    const hits = sortHits(hitRows());
+    const cap = 500;
+    const shown = hits.slice(0, cap);
+    const th = (k,label)=>{
+      const active = state.sortKey===k;
+      const arr = active ? (state.sortDir===1?'▲':'▼') : '';
+      return `<th style="padding:6px 8px;cursor:pointer;user-select:none" onclick="VendorReport.sort('${k}')">${label} <span style="color:var(--t3);font-size:9px">${arr}</span></th>`;
+    };
+    const body = shown.map(r=>`<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:5px 8px;font-family:'IBM Plex Mono',monospace;font-weight:600">${esc(r.WO_NUM||'—')}</td>
+      <td style="padding:5px 8px;font-family:'IBM Plex Mono',monospace">${esc(r.MTSN||'—')}</td>
+      <td style="padding:5px 8px">${esc(r.VENDOR||'—')}</td>
+      <td style="padding:5px 8px">${esc(r.MONTH||'—')}</td>
+      <td style="padding:5px 8px">${esc(r.WEEK||'—')}</td>
+      <td style="padding:5px 8px;font-family:'IBM Plex Mono',monospace">${esc(r.PUDO||'—')}</td>
+      <td style="padding:5px 8px">${esc(r.NEXT_REASON || r.REASON || '—')}</td>
+    </tr>`).join('');
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)">RRR-Hit Work Orders — ${hits.length.toLocaleString()} total ${hits.length>cap?`· showing top ${cap} (export to Excel for the full list)`:''}</div>
+        <button class="btn" type="button" onclick="VendorReport.exportXLSX()">⬇ Export Excel</button>
+      </div>
+      <div style="max-height:520px;overflow:auto;border:1px solid var(--border);border-radius:6px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="color:var(--t3);text-align:left;background:var(--bg);position:sticky;top:0">
+            ${th('WO_NUM','WO Number')}${th('MTSN','Serial')}${th('VENDOR','Vendor')}${th('MONTH','Month')}${th('WEEK','Week')}${th('PUDO','PUDO Code')}${th('REASON','Repair Reason')}
+          </tr></thead><tbody>${body || `<tr><td colspan="7" style="padding:14px;text-align:center;color:var(--t3)">No RRR hits in current selection.</td></tr>`}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
+  function render(){
+    const body = $('vrepBody'); if(!body) return;
+    if(!rows().length){ body.innerHTML = '<div style="padding:32px;text-align:center;color:var(--t3);font-size:12px">Upload a file to see the vendor RRR report.</div>'; return; }
+    body.innerHTML = renderTrend() + renderFilter() + renderKPI() + renderTable() + `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:11.5px;color:var(--t2);line-height:1.55">
+        <b style="color:var(--t1)">How this is calculated</b><br>
+        • <b>Trend</b> — every vendor's RRR% computed on the full uploaded dataset (Repeat Flags ÷ Total WO × 100) with a sparkline showing month-over-month movement (or week-over-week if Week mode is on). Rows are sorted by Impact (Volume × RRR%) so the biggest contributors surface first.<br>
+        • <b>Filters</b> — Vendors and Months are independent multi-select chips. Leaving Vendors empty = all vendors, leaving Months empty = all months. Toggle Month/Week to switch the period granularity.<br>
+        • <b>KPIs</b> — Total WOs, Distinct MTSN and RRR Hits are computed on the current slice (vendors ∩ months). <b>RRR %</b> = RRR Hits ÷ Distinct MTSN × 100 for the selected month(s); when multiple months/weeks are selected the figure is cumulative across them. Leave the period filter empty to see the full-history RRR% for the current vendor scope.<br>
+        • <b>RRR-hit Work Orders</b> — every row in the slice with FLAG = 1. Repair Reason uses <code>Next SO Repeat Repair Reason</code> when available, else <code>Repeat Repair Reason1</code>. Click any header to sort.<br>
+        • <b>Export Excel</b> — one click gives you three sheets: a Vendor Trend summary, the Full RRR-hit WO list (uncapped) with WO Number, Serial, Vendor, Month, Week, PUDO Code and Repair Reason plus supporting fields, and a Filters sheet recording the selection.
+      </div>`;
+  }
+
+  window.VendorReport = {
+    onOpen(){ render(); },
+    onDataChanged(){ state.vendors=[]; state.periods=[]; state.vSearch=''; render(); },
+    toggleVendor(v){ const i = state.vendors.indexOf(v); if(i>=0) state.vendors.splice(i,1); else state.vendors.push(v); render(); },
+    togglePeriod(p){ const i = state.periods.indexOf(p); if(i>=0) state.periods.splice(i,1); else state.periods.push(p); render(); },
+    setVendorsAll(){ state.vendors = uniqSorted('VENDOR'); render(); },
+    setVendorsNone(){ state.vendors = []; render(); },
+    setPeriodsAll(){ state.periods = uniqSorted(state.gran); render(); },
+    setPeriodsNone(){ state.periods = []; render(); },
+    setSearch(q){ state.vSearch = q||''; render(); },
+    setGran(g){ if(state.gran===g) return; state.gran=g; state.periods=[]; render(); },
+    setShowAll(v){ state.showAll = !!v; render(); },
+    sort(k){ if(state.sortKey===k) state.sortDir=-state.sortDir; else { state.sortKey=k; state.sortDir=1; } render(); },
+    exportXLSX(){
+      try{
+        if(!rows().length){ alert('No data to export.'); return; }
+        const wb = XLSX.utils.book_new();
+        // Sheet 1 — Vendor Trend
+        const vlist = vendorAgg();
+        const months = uniqSorted('MONTH');
+        const trendHdr = ['Vendor','Total WO','RRR Hits','Overall RRR%'].concat(months.map(m=>m+' RRR%'));
+        const trendRows = vlist.map(v=>{
+          const base = [v.vendor, v.total, v.flags, +v.rrr.toFixed(2)];
+          const mo = months.map(m=>{ const d=v.months[m]; return d ? +pct(d.flags,d.total).toFixed(2) : 0; });
+          return base.concat(mo);
+        });
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([trendHdr, ...trendRows]), 'Vendor Trend');
+        // Sheet 2 — RRR-hit WOs (uncapped)
+        const hits = sortHits(hitRows());
+        const hdr = ['WO Number','Serial (MTSN)','Vendor','Month','Week','PUDO Code','Repair Reason (Next SO)','Repair Reason (1st)','Symptom','Sub-Series','Account','Region','City','Agent','Flag'];
+        const body = hits.map(r=>[
+          r.WO_NUM||'', r.MTSN||'', r.VENDOR||'', r.MONTH||'', r.WEEK||'', r.PUDO||'',
+          r.NEXT_REASON||'', r.REASON||'', r.SYMPTOM||'', r.SUB||'', r.ACCOUNT||'',
+          (typeof normalizeRegion==='function'?normalizeRegion(r.REGION):(r.REGION||'')),
+          r.CITY||'', r.NAME||'', r.FLAG||''
+        ]);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([hdr, ...body]), 'RRR Hit WOs');
+        // Sheet 3 — Filters
+        const filt = [
+          ['Generated', new Date().toLocaleString()],
+          ['Granularity', state.gran],
+          ['Vendors selected', state.vendors.length ? state.vendors.join(', ') : 'ALL'],
+          [state.gran==='WEEK'?'Weeks selected':'Months selected', state.periods.length ? state.periods.join(', ') : 'ALL'],
+          ['Total RRR-hit WOs exported', hits.length]
+        ];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(filt), 'Filters');
+        XLSX.writeFile(wb, `VendorRRRReport_${new Date().toISOString().slice(0,10)}.xlsx`);
+      }catch(e){ console.error(e); alert('Excel export failed.'); }
     }
   };
 })();
