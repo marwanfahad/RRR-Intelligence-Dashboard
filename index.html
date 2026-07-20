@@ -1261,7 +1261,7 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
           </div>
           <div style="display:flex;gap:8px">
             <select id="simDim" onchange="buildSimulator()" style="background:var(--card);border:1px solid var(--border);color:var(--t1);padding:6px 10px;border-radius:4px;font-size:12px">
-              <option value="REASON">By Repair Reason</option>
+              <option value="REASON">By Repeat Repair Reason (Next SO)</option>
               <option value="SYMPTOM">By Symptom</option>
               <option value="VENDOR">By Vendor</option>
               <option value="SUB">By Sub-Series</option>
@@ -4422,15 +4422,24 @@ function buildRecurrence(){
    REDUCTION SIMULATOR
 ══════════════════════════════ */
 let simState={ dim:'REASON', reductions:{} };
+function _simKey(r){
+  if(simState.dim==='REASON'){
+    // Match "Repair Reasons" tab in Agents panel exactly: NEXT_REASON on
+    // repeat-flag rows, blank/unknown collapsed to a single bucket.
+    let raw=(r.NEXT_REASON==null?'':String(r.NEXT_REASON)).trim();
+    if(!raw || /^(not specified|unknown|na|n\/a|null|undefined)$/i.test(raw)) raw='(Blank / Not Captured)';
+    return raw;
+  }
+  return r[simState.dim]||'Unknown';
+}
 function buildSimulator(){
   simState.dim=document.getElementById('simDim').value;
   simState.reductions={};
   const denom=new Set(filteredData.map(r=>r.MTSN).filter(Boolean)).size;
-  const totalHits=filteredData.filter(r=>r.FLAG==='1').length;
+  const hitRows=filteredData.filter(r=>r.FLAG==='1');
+  const totalHits=hitRows.length;
   const map={};
-  filteredData.filter(r=>r.FLAG==='1').forEach(r=>{
-    const k=r[simState.dim]||'Unknown'; map[k]=(map[k]||0)+1;
-  });
+  hitRows.forEach(r=>{ const k=_simKey(r); map[k]=(map[k]||0)+1; });
   const top=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,20);
   document.getElementById('simList').innerHTML=top.map(([name,hits],i)=>`
     <div class="sim-row">
@@ -4442,7 +4451,6 @@ function buildSimulator(){
       </div>
       <div class="sim-saved" id="simSaved-${i}">0</div>
     </div>`).join('') || '<div style="padding:24px;text-align:center;color:var(--t3)">No data.</div>';
-  // index lookup for slider %  label
   document.querySelectorAll('#simList .sim-row').forEach((row,i)=>{ row.dataset.idx=i; row.dataset.hits=top[i][1]; row.dataset.name=top[i][0]; });
   simRefresh(denom, totalHits);
 }
@@ -4461,7 +4469,7 @@ function simUpdate(encName, val, hits, slider){
 function simRefresh(denom, totalHits){
   let saved=0;
   const map={};
-  filteredData.filter(r=>r.FLAG==='1').forEach(r=>{ const k=r[simState.dim]||'Unknown'; map[k]=(map[k]||0)+1; });
+  filteredData.filter(r=>r.FLAG==='1').forEach(r=>{ const k=_simKey(r); map[k]=(map[k]||0)+1; });
   Object.entries(simState.reductions).forEach(([k,p])=>{ saved += (map[k]||0)*p; });
   const newHits=Math.max(0, totalHits - saved);
   const basePct=denom?totalHits/denom*100:0;
@@ -4848,6 +4856,9 @@ function buildSummary(){
   ].filter(Boolean).join('');
 
   host.innerHTML = `
+    <!-- IMPROVED / WORSENED / ACTION PLAN DIFF BOARD -->
+    <div id="sumDiffHost" style="margin-bottom:16px"></div>
+
     <!-- KPI STRIP -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px">
       <div class="split-card" style="padding:12px"><div style="font-size:10px;letter-spacing:1.5px;color:var(--t3);text-transform:uppercase">National RRR%</div><div style="font-size:22px;font-weight:700;color:var(--red);font-family:'IBM Plex Mono',monospace">${_sumFmtPct(nRRR)}</div></div>
@@ -4855,6 +4866,7 @@ function buildSummary(){
       <div class="split-card" style="padding:12px"><div style="font-size:10px;letter-spacing:1.5px;color:var(--t3);text-transform:uppercase">Repeat Flags</div><div style="font-size:22px;font-weight:700;color:var(--red);font-family:'IBM Plex Mono',monospace">${nHits.toLocaleString()}</div></div>
       <div class="split-card" style="padding:12px"><div style="font-size:10px;letter-spacing:1.5px;color:var(--t3);text-transform:uppercase">Filter Scope</div><div style="font-size:12px;line-height:1.4;color:var(--t2)"><b>Month:</b> ${escapeHtml(monthSel)}<br/><b>Week:</b> ${escapeHtml(weekSel)}</div></div>
     </div>
+
 
     <!-- LEVERAGE POINTERS -->
     <div class="split-card" style="padding:14px;margin-bottom:16px;border-left:3px solid #f5a623">
@@ -4894,7 +4906,279 @@ function buildSummary(){
       </div>
     </details>
   `;
+  try{ window.SummaryDiff && window.SummaryDiff.render(); }catch(e){ console.error('SummaryDiff',e); }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SUMMARY DIFF BOARD — Improved / Worsened / Action Plan
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+  const state = { gran:'Month', A:new Set(), B:new Set() };
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmt = (n,d)=> !isFinite(n)?'—':Number(n).toLocaleString(undefined,{minimumFractionDigits:d||0,maximumFractionDigits:d||0});
+  function src(){ return (typeof rawData!=='undefined' && rawData && rawData.length) ? rawData : ((typeof filteredData!=='undefined')? filteredData : []); }
+  function pKey(r){ return state.gran==='Week' ? (r.WEEK||'') : (r.MONTH||''); }
+  function listPeriods(rows){
+    const s = new Set(); rows.forEach(r=>{ const k=pKey(r); if(k) s.add(k); });
+    return [...s].sort((a,b)=>{
+      const na=parseInt(String(a).replace(/\D/g,''),10), nb=parseInt(String(b).replace(/\D/g,''),10);
+      if(!isNaN(na)&&!isNaN(nb)&&na!==nb) return na-nb;
+      return String(a).localeCompare(String(b));
+    });
+  }
+  function autoDefaults(rows){
+    if(state.A.size || state.B.size) return;
+    const p = listPeriods(rows); if(!p.length) return;
+    if(p.length>=2){ state.A.add(p[p.length-2]); state.B.add(p[p.length-1]); }
+    else state.B.add(p[0]);
+  }
+  const DIMS = [
+    {key:'NAME',     label:'Agent'},
+    {key:'TECH',     label:'Technician'},
+    {key:'SUB',      label:'Model'},
+    {key:'SYMPTOM',  label:'Symptom'},
+    {key:'REASON',   label:'Repair Reason'},
+    {key:'VENDOR',   label:'Vendor'},
+    {key:'ACCOUNT',  label:'Account'},
+    {key:'REGION_S', label:'Region'},
+    {key:'PUDO',     label:'PUDO'},
+  ];
+  function dimVal(r,dim){
+    if(dim==='TECH'){
+      const nm=(r.TECH_NAME||r.NAME||'').toString().trim();
+      const pu=(r.PUDO||'').toString().trim();
+      if(!nm && !pu) return '';
+      return pu?`${nm||'Unknown Tech'} (${pu})`:nm;
+    }
+    if(dim==='REGION_S') return (r.REGION||'').toString().trim();
+    if(dim==='PUDO')     return (r.PUDO||'').toString().trim();
+    if(dim==='REASON')   return (r.NEXT_REASON||r.REASON||'').toString().trim();
+    const v = r[dim]; return v==null?'':String(v).trim();
+  }
+  function aggregate(rows, set){
+    const mtsn=new Map(); let rep=0;
+    rows.forEach(r=>{ if(!set.has(pKey(r))) return;
+      const hit=r.FLAG==='1'; if(hit) rep++;
+      if(r.MTSN) mtsn.set(r.MTSN,(mtsn.get(r.MTSN)||0)+(hit?1:0));
+    });
+    const vol=mtsn.size; return { vol, rep, pct: vol>0?rep/vol*100:0 };
+  }
+  function contribs(rows, dimKey, volA, volB){
+    const mA=new Map(), mB=new Map();
+    rows.forEach(r=>{
+      const inA=state.A.has(pKey(r)), inB=state.B.has(pKey(r));
+      if(!inA && !inB) return;
+      const k=dimVal(r,dimKey); if(!k) return;
+      const map=inA?mA:mB;
+      let o=map.get(k); if(!o){ o={mtsn:new Map(), rep:0}; map.set(k,o); }
+      const hit=r.FLAG==='1'; if(hit) o.rep++;
+      if(r.MTSN) o.mtsn.set(r.MTSN,(o.mtsn.get(r.MTSN)||0)+(hit?1:0));
+    });
+    const keys=new Set([...mA.keys(),...mB.keys()]);
+    const out=[];
+    keys.forEach(k=>{
+      const A=mA.get(k), B=mB.get(k);
+      const vA=A?A.mtsn.size:0, vB=B?B.mtsn.size:0;
+      const rA=A?A.rep:0, rB=B?B.rep:0;
+      const pA=vA>0?rA/vA*100:0, pB=vB>0?rB/vB*100:0;
+      const contrib = ((volB>0?rB/volB:0) - (volA>0?rA/volA:0))*100;
+      const impact = Math.max(vA*pA, vB*pB)/100;
+      out.push({key:k, vA, vB, rA, rB, pA, pB, contrib, impact});
+    });
+    return out;
+  }
+  const ACTIONS = {
+    'Agent':      x=>`Retrain <b>${esc(x.key)}</b> on their worst symptom mix; add a 4-week QA audit and pair-work with a top-decile TL.`,
+    'Technician': x=>`Recall visit review for <b>${esc(x.key)}</b>: FRU-selection audit, ride-along on next 5 onsite jobs, and re-certify if workmanship reasons dominate.`,
+    'Model':      x=>`Engineering escalation on <b>${esc(x.key)}</b> — pull FRU Journey for its top symptom, ship the resolving FRU first-visit, refresh the diagnosis SOP.`,
+    'Symptom':    x=>`Root-cause <b>${esc(x.key)}</b> via Model × Symptom RCA — update repair playbook and force secondary confirmation before parts dispatch.`,
+    'Repair Reason': x=>`Playbook update for <b>${esc(x.key)}</b>: block this reason in triage without checklist evidence; sample-audit 20 WOs against source data.`,
+    'Vendor':     x=>`Vendor QBR with <b>${esc(x.key)}</b>: workmanship audit, hold next payment tranche against RRR SLA, cascade top-3 defect reasons.`,
+    'Account':    x=>`Account SPOC review with <b>${esc(x.key)}</b>: joint calibration call, tighten dispatch acceptance, publish weekly repeat-flag scorecard.`,
+    'Region':     x=>`Regional huddle in <b>${esc(x.key)}</b>: deep-dive top-2 PUDOs, redistribute load, dispatch a QC swat for 2 weeks.`,
+    'PUDO':       x=>`On-site audit at <b>${esc(x.key)}</b>: tech re-certification, parts-room hygiene, and re-open closed WOs for random verification.`,
+  };
+  function computeDiff(rows){
+    const A0 = aggregate(rows, state.A);
+    const B0 = aggregate(rows, state.B);
+    const improved=[], worsen=[];
+    const MIN_IMPACT = 0.5;
+    DIMS.forEach(d=>{
+      const list = contribs(rows, d.key, A0.vol, B0.vol)
+        .filter(r=> r.impact>=MIN_IMPACT && Math.abs(r.contrib)>=0.005);
+      const scored = list.map(r=>({...r, score: Math.abs(r.contrib)*Math.max(1, Math.log10(1+r.impact))}));
+      scored.filter(r=>r.contrib<0).sort((a,b)=>b.score-a.score).slice(0,3).forEach(r=>improved.push({dim:d.label,...r}));
+      scored.filter(r=>r.contrib>0).sort((a,b)=>b.score-a.score).slice(0,3).forEach(r=>worsen.push({dim:d.label,...r}));
+    });
+    improved.sort((a,b)=>a.contrib-b.contrib);
+    worsen  .sort((a,b)=>b.contrib-a.contrib);
+    return { A0, B0, improved, worsen };
+  }
+  function bulletHTML(r, kind){
+    const sign = r.contrib>0?'+':'';
+    const cls  = r.contrib>0?'up':'down';
+    return `<li><span class="tag">${esc(r.dim)}</span> <b>${esc(r.key)}</b>
+      <span class="pp ${cls}">${sign}${r.contrib.toFixed(2)} pp</span>
+      <div class="m">RRR ${r.pA.toFixed(1)}% → ${r.pB.toFixed(1)}% · Vol ${fmt(r.vA)}→${fmt(r.vB)} · Flags ${fmt(r.rA)}→${fmt(r.rB)}</div>
+    </li>`;
+  }
+  function actionHTML(r){
+    const fn = ACTIONS[r.dim]; if(!fn) return '';
+    return `<li><span class="tag">${esc(r.dim)}</span> ${fn(r)}</li>`;
+  }
+  function renderPicker(rows){
+    const periods = listPeriods(rows);
+    const chip = (p, side)=>`<span class="cmp-chip ${state[side].has(p)?'on':''}" data-p="${esc(p)}" data-side="${side}" role="button" tabindex="0">${esc(p)}</span>`;
+    const chips = side => periods.length ? periods.map(p=>chip(p,side)).join('')
+      : `<span style="color:var(--t3);font-size:11px;padding:4px">No ${state.gran.toLowerCase()}s in data.</span>`;
+    const gbtn = g => `<button class="${state.gran===g?'on':''}" data-g="${g}" type="button">${g}</button>`;
+    return `
+      <div class="cmp-picker" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="cmp-side a">
+          <h4 style="display:flex;justify-content:space-between;align-items:center;margin:0 0 8px"><span>Period A <span class="tag">baseline</span></span>
+            <span class="cmp-gran" role="tablist">${gbtn('Week')}${gbtn('Month')}</span></h4>
+          <div class="cmp-chips" data-side="A">${chips('A')}</div>
+        </div>
+        <div class="cmp-side b">
+          <h4 style="margin:0 0 8px">Period B <span class="tag">current</span></h4>
+          <div class="cmp-chips" data-side="B">${chips('B')}</div>
+        </div>
+      </div>`;
+  }
+  function render(){
+    const host = document.getElementById('sumDiffHost'); if(!host) return;
+    const rows = src();
+    if(!rows.length){ host.innerHTML = ''; return; }
+    autoDefaults(rows);
+    const picker = renderPicker(rows);
+    if(!state.A.size || !state.B.size){
+      host.innerHTML = wrapper(picker, `<div class="cmp-warn">Pick at least one ${state.gran.toLowerCase()} on each side.</div>`);
+      bind(host); return;
+    }
+    const overlap=[...state.A].filter(x=>state.B.has(x));
+    if(overlap.length){
+      host.innerHTML = wrapper(picker, `<div class="cmp-warn">Periods overlap: ${overlap.map(esc).join(', ')}. Remove overlap for a clean diff.</div>`);
+      bind(host); return;
+    }
+    const {A0,B0,improved,worsen} = computeDiff(rows);
+    const d = B0.pct - A0.pct;
+    const dir = Math.abs(d)<0.05?'was flat':(d>0?'worsened':'improved');
+    const dirColor = Math.abs(d)<0.05?'var(--t2)':(d>0?'#ff4455':'#00c96d');
+    const headline = `<div style="padding:10px 14px;border:1px solid var(--border);border-radius:6px;background:var(--card);font-size:12.5px;line-height:1.55;margin:12px 0">
+      <b>${esc([...state.A].join(', '))}</b> (RRR ${A0.pct.toFixed(2)}%, ${fmt(A0.rep)} flags / ${fmt(A0.vol)} MTSN) →
+      <b>${esc([...state.B].join(', '))}</b> (RRR ${B0.pct.toFixed(2)}%, ${fmt(B0.rep)} flags / ${fmt(B0.vol)} MTSN):
+      RRR% <span style="color:${dirColor};font-weight:700">${dir} by ${(d>=0?'+':'')}${d.toFixed(2)} pp</span>.
+    </div>`;
+    const impHTML = improved.length? `<ul class="sd-list">${improved.map(r=>bulletHTML(r,'imp')).join('')}</ul>` : `<div class="empty">No material improvements.</div>`;
+    const worHTML = worsen.length?   `<ul class="sd-list">${worsen.map(r=>bulletHTML(r,'wor')).join('')}</ul>`   : `<div class="empty">No material regressions.</div>`;
+    const actHTML = worsen.length?   `<ul class="sd-list">${worsen.map(actionHTML).join('')}</ul>` : `<div class="empty">Nothing to action — hold the gains and continue current programs.</div>`;
+    const board = `
+      <div class="sd-grid" style="display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:12px;margin-top:6px">
+        <div class="split-card sd-col sd-imp" style="padding:12px;border-top:3px solid #00c96d">
+          <h4 style="margin:0 0 8px;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:#00c96d">✅ Improved <span style="color:var(--t3);font-weight:500">· ${improved.length}</span></h4>
+          ${impHTML}
+        </div>
+        <div class="split-card sd-col sd-wor" style="padding:12px;border-top:3px solid #ff4455">
+          <h4 style="margin:0 0 8px;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:#ff4455">⚠️ Worsened <span style="color:var(--t3);font-weight:500">· ${worsen.length}</span></h4>
+          ${worHTML}
+        </div>
+        <div class="split-card sd-col sd-act" style="padding:12px;border-top:3px solid #f5a623">
+          <h4 style="margin:0 0 8px;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:#f5a623">🎯 Action Plan <span style="color:var(--t3);font-weight:500">· ${worsen.length}</span></h4>
+          ${actHTML}
+        </div>
+      </div>
+      <div style="font-size:10.5px;color:var(--t3);margin-top:10px;line-height:1.55">
+        <b style="color:var(--red)">ℹ️ How this is built:</b> For every dimension (Agent, Technician <i>with PUDO in brackets</i>, Model, Symptom, Repair Reason <i>uses Next SO Repeat Repair Reason</i>, Vendor, Account, Region, PUDO) we compute each entity's <b>contribution to ΔRRR%</b> = (repeat flags<sub>B</sub> ÷ total Vol<sub>B</sub>) − (repeat flags<sub>A</sub> ÷ total Vol<sub>A</sub>). Impact filter (Vol × RRR% ≥ 0.5) removes tiny-volume noise. Negative → <b>Improved</b>. Positive → <b>Worsened</b>. Each worsened driver gets a templated <b>Action Plan</b> mapped to its dimension — a starting checklist for the owning function, not a substitute for judgement.
+      </div>`;
+    host.innerHTML = wrapper(picker, headline + board);
+    bind(host);
+  }
+  function wrapper(picker, body){
+    return `<div class="split-card" style="padding:12px 14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--t1)">🎯 Improved · Worsened · Action Plan</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:2px">Pick two ${state.gran.toLowerCase()} sets — see what got better, what got worse, and what to do next.</div>
+        </div>
+        <button class="btn btn-r" type="button" onclick="SummaryDiff.exportPDF()">📄 Download PDF</button>
+      </div>
+      ${picker}
+      ${body}
+    </div>`;
+  }
+  function bind(host){
+    host.querySelectorAll('.cmp-gran button').forEach(b=>b.addEventListener('click',()=>{ state.gran=b.dataset.g; state.A.clear(); state.B.clear(); render(); }));
+    host.querySelectorAll('.cmp-chip').forEach(ch=>ch.addEventListener('click',()=>{
+      const side=ch.dataset.side, p=ch.dataset.p;
+      if(state[side].has(p)) state[side].delete(p); else state[side].add(p);
+      render();
+    }));
+  }
+  function exportPDF(){
+    const rows = src(); if(!rows.length || !state.A.size || !state.B.size){ alert('Pick periods on both sides first.'); return; }
+    const {A0,B0,improved,worsen} = computeDiff(rows);
+    const d = B0.pct - A0.pct;
+    if(!window.jspdf){ alert('PDF library not loaded.'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:'pt', format:'a4'});
+    const W = doc.internal.pageSize.getWidth(), M=36; let y=M;
+    doc.setFont('helvetica','bold'); doc.setFontSize(14);
+    doc.text('RRR — Improved / Worsened / Action Plan', M, y); y+=18;
+    doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    doc.text(`Granularity: ${state.gran}    A: ${[...state.A].join(', ')}    B: ${[...state.B].join(', ')}`, M, y); y+=14;
+    doc.text(`A: RRR ${A0.pct.toFixed(2)}% (${A0.rep} flags / ${A0.vol} MTSN)   →   B: RRR ${B0.pct.toFixed(2)}% (${B0.rep} / ${B0.vol})   Δ ${(d>=0?'+':'')}${d.toFixed(2)} pp`, M, y); y+=18;
+    const stripTags = s => String(s).replace(/<[^>]+>/g,'');
+    const section = (title, items, formatter, color) => {
+      doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(...color); doc.text(title, M, y); y+=14;
+      doc.setTextColor(20,20,20); doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+      if(!items.length){ doc.text('— nothing to report —', M+12, y); y+=14; return; }
+      items.forEach(r=>{
+        const line = formatter(r);
+        const wrapped = doc.splitTextToSize(line, W-2*M-12);
+        wrapped.forEach(ln=>{ if(y>doc.internal.pageSize.getHeight()-M){ doc.addPage(); y=M; } doc.text('• '+ln, M+8, y); y+=12; });
+        y+=2;
+      });
+      y+=8;
+    };
+    section('IMPROVED', improved,
+      r=>`[${r.dim}] ${r.key}  ${r.contrib>=0?'+':''}${r.contrib.toFixed(2)} pp | RRR ${r.pA.toFixed(1)}% → ${r.pB.toFixed(1)}% | Vol ${r.vA}→${r.vB} | Flags ${r.rA}→${r.rB}`,
+      [0,150,90]);
+    section('WORSENED', worsen,
+      r=>`[${r.dim}] ${r.key}  +${r.contrib.toFixed(2)} pp | RRR ${r.pA.toFixed(1)}% → ${r.pB.toFixed(1)}% | Vol ${r.vA}→${r.vB} | Flags ${r.rA}→${r.rB}`,
+      [200,50,60]);
+    section('ACTION PLAN', worsen,
+      r=>`[${r.dim}] ${r.key}: ${stripTags((ACTIONS[r.dim]?ACTIONS[r.dim](r):'')).replace(/^\s+/,'')}`,
+      [220,140,30]);
+    doc.save(`RRR_Diff_${state.gran}_${new Date().toISOString().slice(0,10)}.pdf`);
+  }
+  window.SummaryDiff = { render, exportPDF };
+})();
+
+/* Small styling for the diff board */
+(function(){
+  const css = `
+    #sumDiffHost .sd-list{list-style:none;margin:0;padding:0}
+    #sumDiffHost .sd-list li{padding:8px 10px;margin-bottom:6px;border:1px solid var(--border);border-radius:5px;background:var(--bg);font-size:11.5px;line-height:1.5}
+    #sumDiffHost .sd-list .tag{display:inline-block;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);background:var(--card);border:1px solid var(--border);border-radius:3px;padding:1px 6px;margin-right:6px}
+    #sumDiffHost .sd-list .pp{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:11px;margin-left:6px}
+    #sumDiffHost .sd-list .pp.up{color:#ff4455}
+    #sumDiffHost .sd-list .pp.down{color:#00c96d}
+    #sumDiffHost .sd-list .m{color:var(--t3);font-size:10.5px;margin-top:3px}
+    #sumDiffHost .empty{padding:16px;text-align:center;color:var(--t3);font-size:11px;border:1px dashed var(--border);border-radius:5px}
+    #sumDiffHost .cmp-warn{padding:10px 12px;background:rgba(245,166,35,0.1);border:1px solid #f5a623;border-radius:5px;color:var(--t1);font-size:11.5px;margin-top:10px}
+    #sumDiffHost .cmp-chip{display:inline-block;padding:3px 9px;margin:2px 3px;font-size:10.5px;font-family:'IBM Plex Mono',monospace;border:1px solid var(--border);border-radius:12px;color:var(--t2);cursor:pointer;user-select:none;background:var(--bg)}
+    #sumDiffHost .cmp-chip.on{background:var(--red);color:#fff;border-color:var(--red)}
+    #sumDiffHost .cmp-gran button{background:transparent;border:1px solid var(--border);color:var(--t2);padding:3px 9px;font-size:10.5px;cursor:pointer;border-radius:3px;margin-left:4px}
+    #sumDiffHost .cmp-gran button.on{background:var(--red);color:#fff;border-color:var(--red)}
+    #sumDiffHost h4 .tag{font-size:9.5px;letter-spacing:1px;color:var(--t3);text-transform:uppercase;margin-left:4px}
+    @media (max-width: 900px){ #sumDiffHost .sd-grid{grid-template-columns:1fr !important} #sumDiffHost .cmp-picker{grid-template-columns:1fr !important} }
+  `;
+  const s=document.createElement('style'); s.textContent=css; document.head.appendChild(s);
+})();
+
+
+
 
 
 
