@@ -9648,14 +9648,57 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
      Visitors can also paste their own key via the ⚙️ button —
      it is stored in localStorage and overrides the default.
   ============================================================ */
-  const GEMINI_API_KEY = 'AQ.Ab8RN6JejnMgyRJUbLO_k2f1EMibwEg47yEN_xLqnEQ2UMLNjg';
-  const GEMINI_MODEL = 'gemini-2.0-flash';
-  const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent';
+  const GEMINI_API_KEY = 'AQ.Ab8RN6LEt8BfSskmqnXbyQcMRz5EXte2qwv6ZIVt34JImj9yPQ';
+  // Tried in order — first one that answers wins (handles quota/retired models automatically)
+  const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3-flash-preview', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'];
+  const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
-  function getApiKey(){
-    const stored = localStorage.getItem('rrr_gemini_key');
-    return (stored && stored.trim()) ? stored.trim() : (GEMINI_API_KEY && GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY' ? GEMINI_API_KEY : '');
+  // Strip quotes / whitespace / an accidentally pasted "key=" prefix
+  function cleanKey(k){
+    return String(k || '')
+      .trim()
+      .replace(/^['"]|['"]$/g, '')
+      .replace(/^key=/i, '')
+      .replace(/\s+/g, '')
+      .trim();
   }
+  function storedKey(){ return cleanKey(localStorage.getItem('rrr_gemini_key')); }
+  function embeddedKey(){
+    const k = cleanKey(GEMINI_API_KEY);
+    return (k && k !== 'YOUR_GEMINI_API_KEY') ? k : '';
+  }
+  function getApiKey(){ return storedKey() || embeddedKey(); }
+  function keySource(){ return storedKey() ? 'your own key (saved in this browser)' : (embeddedKey() ? 'the built-in key' : 'no key'); }
+  // Google issues both AIza… and AQ.… style API keys — accept anything reasonable.
+  function looksLikeStudioKey(k){ return /^[A-Za-z0-9._\-]{20,}$/.test(k); }
+
+
+  function explainGeminiError(status, msg){
+    const m = String(msg || '');
+    if(/Expected OAuth 2 access token|invalid authentication credentials/i.test(m))
+      return 'This key was not accepted as an API key. It is most likely a Google **Cloud / Vertex AI** key (those need OAuth). Create a key at **aistudio.google.com/apikey** instead.';
+    if(/API key not valid|API_KEY_INVALID/i.test(m))
+      return 'The key string is wrong or was revoked. Re-copy it from aistudio.google.com/apikey.';
+    if(/has not been used|is disabled|SERVICE_DISABLED/i.test(m))
+      return 'The **Generative Language API** is not enabled for this key\'s project. Enable it, or use a plain AI Studio key.';
+    if(/referer|referrer|API_KEY_HTTP_REFERRER_BLOCKED/i.test(m))
+      return 'The key is restricted to other websites. Add this site\'s domain to the key\'s HTTP referrer list.';
+    if(status === 429) return 'Free-tier rate limit hit — wait a moment and try again.';
+    return '';
+  }
+
+  async function testGeminiKey(k){
+    try {
+      const r = await fetch(GEMINI_BASE.replace(/models\/$/, 'models'), { headers: { 'x-goog-api-key': k } });
+      const d = await r.json().catch(()=>({}));
+      if(r.ok) return { ok:true, msg:'Key is valid and the Generative Language API is reachable.' };
+      const raw = d?.error?.message || ('HTTP ' + r.status);
+      return { ok:false, msg: raw, hint: explainGeminiError(r.status, raw) };
+    } catch(e){
+      return { ok:false, msg: e.message || String(e), hint:'Network/CORS problem reaching Google.' };
+    }
+  }
+
 
   const MONTH_NAMES = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec','january','february','march','april','june','july','august','september','october','november','december'];
   const history = [];
@@ -9854,10 +9897,20 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     const apiKey = getApiKey();
     if(!apiKey){
       typing.remove();
-      addMsg('bot', md('**No Gemini API key set.**\n\nGet a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey), then:\n- Click the ⚙️ button in this chat header to paste your key (stored locally in your browser), or\n- Replace the `GEMINI_API_KEY` placeholder in the HTML source with your key.'), 'err');
+      addMsg('bot', md('**No Gemini API key set.**\n\nGet a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey), then:\n- Click the ⚙️ button in this chat header to paste your key (stored locally in your browser), or\n- Replace the `GEMINI_API_KEY` placeholder on line 9651 of the HTML source with your key (that is the only place in the file).'), 'err');
       history.pop();
+      state.busy = false; $('rce-chat-send').disabled = false;
       return;
     }
+    if(!looksLikeStudioKey(apiKey)){
+      typing.remove();
+      addMsg('bot', md('**That API key does not look valid.**\n\nGet a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and paste it via the ⚙️ button.\n\n*(Currently using: ' + keySource() + ')*'), 'err');
+      history.pop();
+      state.busy = false; $('rce-chat-send').disabled = false;
+      return;
+    }
+
+
     try {
       const context = buildContext(question);
       const SYSTEM_PROMPT = `You are the RRR Intelligence Assistant for a Lenovo service dashboard.
@@ -9891,24 +9944,36 @@ Never mention "context", "JSON", "payload" or internal plumbing to the user.`;
         parts: [{ text: `CONTEXT (JSON):\n${JSON.stringify(context).slice(0, 120000)}\n\nQUESTION:\n${question}` }]
       });
 
-      const res = await fetch(GEMINI_ENDPOINT + '?key=' + encodeURIComponent(apiKey), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: contents
-        })
+      const body = JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: contents
       });
-      const data = await res.json();
+      const callModel = (model) => fetch(GEMINI_BASE + model + ':generateContent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        body: body
+      });
+
+      let res = null, data = {};
+      for(const m of GEMINI_MODELS){
+        res = await callModel(m);
+        data = await res.json().catch(()=>({}));
+        if(res.ok) break;
+        // 404 = model retired/unavailable, 429 = quota on that model → try the next one
+        if(res.status !== 404 && res.status !== 429) break;
+      }
+
       typing.remove();
       if(!res.ok){
         const errMsg = data?.error?.message || ('HTTP ' + res.status);
-        addMsg('bot', esc(errMsg), 'err');
+        const hint = explainGeminiError(res.status, errMsg);
+        addMsg('bot', md('**Gemini rejected the request.**\n\n> ' + errMsg + (hint ? '\n\n' + hint : '') + '\n\n*Using ' + keySource() + '. Click ⚙️ to change or test it.*'), 'err');
       } else {
         const text = (data?.candidates?.[0]?.content?.parts?.map(p=>p.text).filter(Boolean).join('')) || '(no answer)';
         addMsg('bot', md(text));
         history.push({ role: 'assistant', content: text });
       }
+
     } catch(e){
       typing.remove();
       addMsg('bot', esc(e.message||String(e)), 'err');
@@ -9955,18 +10020,31 @@ Never mention "context", "JSON", "payload" or internal plumbing to the user.`;
   document.addEventListener('DOMContentLoaded', function(){
     $('rce-chat-fab').addEventListener('click', openDrawer);
     $('rce-chat-close').addEventListener('click', closeDrawer);
-    $('rce-chat-key').addEventListener('click', function(){
-      const cur = localStorage.getItem('rrr_gemini_key') || '';
-      const v = window.prompt('Paste your free Gemini API key (from aistudio.google.com/apikey).\nLeave empty to remove a stored key and use the embedded default.', cur);
-      if(v === null) return; // user cancelled
-      if(v.trim()){
-        localStorage.setItem('rrr_gemini_key', v.trim());
-        addMsg('bot', md('✅ Gemini API key saved in your browser.'));
-      } else {
+    $('rce-chat-key').addEventListener('click', async function(){
+      const cur = storedKey();
+      const info = 'Currently using: ' + keySource() + '.\n\n'
+        + 'Paste your free Gemini API key from aistudio.google.com/apikey (it starts with AIza…).\n'
+        + 'Leave empty to clear the stored key and fall back to the key embedded in the HTML file.';
+      const v = window.prompt(info, cur);
+      if(v === null) return; // cancelled
+      const k = cleanKey(v);
+      if(!k){
         localStorage.removeItem('rrr_gemini_key');
-        addMsg('bot', md('⚠️ Stored key removed. Using the embedded default (if set).'));
+        addMsg('bot', md('⚠️ Stored key cleared. Now using: **' + keySource() + '**.'));
+        return;
       }
+      localStorage.setItem('rrr_gemini_key', k);
+      if(!looksLikeStudioKey(k)){
+        addMsg('bot', md('⚠️ Saved, but this does not look like an AI Studio key (they start with `AIza…`). A Google Cloud / Vertex AI key will not work here.'), 'err');
+        return;
+      }
+      const testing = addMsg('bot', md('🔍 Testing your key…'));
+      const r = await testGeminiKey(k);
+      testing.remove();
+      if(r.ok) addMsg('bot', md('✅ **Key saved and verified.** ' + r.msg));
+      else addMsg('bot', md('❌ **Key saved but the test failed.**\n\n> ' + r.msg + (r.hint ? '\n\n' + r.hint : '')), 'err');
     });
+
     $('rce-chat-clear').addEventListener('click', function(){
       history.length = 0;
       $('rce-chat-msgs').innerHTML = '';
