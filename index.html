@@ -4,7 +4,6 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Lenovo | RRR Intelligence Dashboard</title>
-<script src="https://js.puter.com/v2/"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -9848,13 +9847,49 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
   }
 
 
-  // --- AI config: uses Puter.js (js.puter.com) for free, keyless LLM access.
-  // No API key, no sign-up, no backend — works for anyone who opens this page.
-  const RCE_MODEL = 'gpt-5-nano';
-  const RCE_SYSTEM_INSTRUCTION = 'You are the RRR (Repeat Repair Rate) analytics assistant embedded in a live dashboard. '
-    + 'Answer using ONLY the JSON data provided under "Context" in the user message — never invent numbers that are not present there. '
-    + 'Be concise and to the point, format with markdown (short paragraphs, bullet points, bold numbers), cite the specific figures that support your answer, '
-    + 'and clearly say when something is not available in the context instead of guessing.';
+  // --- Local answer engine: builds the reply directly from the computed
+  // context (KPIs, top lists, deep-dive). No network call, no API, no key —
+  // so it can never show a "request failed" / "unavailable" error.
+  function fmtPct(n){ return (typeof n==='number' ? n.toFixed(2) : n) + '%'; }
+  function rankList(arr, label, n){
+    n = n || 5;
+    if(!arr || !arr.length) return `_No ${label} data available for this period._`;
+    return arr.slice(0,n).map((x,i)=>`${i+1}. **${x.key}** — RRR ${fmtPct(x.rrr)}, ${x.vol} WOs, ${x.distinctMtsn} units`).join('\n');
+  }
+  function localAnswer(question, ctx){
+    const lines = [];
+    const p = ctx.period && ctx.period.selected;
+    const scopeParts = [...((p&&p.months)||[]), ...((p&&p.weeks)||[])];
+    lines.push(`**Scope:** ${scopeParts.length ? scopeParts.join(', ') : 'current selection'}`);
+    lines.push(`**Overall RRR:** ${fmtPct(ctx.kpi.rrrPct)} — ${ctx.kpi.repeatHits} repeats across ${ctx.kpi.distinctMtsn} units (${ctx.kpi.volume} total WOs)`);
+
+    if(ctx.deep_dive && ctx.deep_dive.length){
+      ctx.deep_dive.forEach(d=>{
+        lines.push(`\n### ${d.entity[0].toUpperCase()+d.entity.slice(1)}: ${d.value}`);
+        lines.push(`- Volume: **${d.volume}** WOs, **${d.distinctMtsn}** units, **${d.repeatHits}** repeats → RRR **${fmtPct(d.rrrPct)}**`);
+        if(d.hcs) lines.push(`- HCS compliance: **${fmtPct(d.hcs.compliancePct)}** (${d.hcs.compliant}/${d.hcs.checked} checked)`);
+        if(d.topModels && d.topModels.length) lines.push(`- Top models: ${d.topModels.slice(0,3).map(m=>`${m.key} (${fmtPct(m.rrr)})`).join(', ')}`);
+        if(d.topSymptoms && d.topSymptoms.length) lines.push(`- Top symptoms: ${d.topSymptoms.slice(0,3).map(m=>m.key).join(', ')}`);
+        if(d.topRepairReasons && d.topRepairReasons.length) lines.push(`- Top repeat reasons: ${d.topRepairReasons.slice(0,3).map(m=>m.key).join(', ')}`);
+      });
+    } else {
+      const q = question.toLowerCase();
+      const map = [
+        [/agent/, 'agents','Agent'], [/\btl\b|team lead/, 'tls','TL'],
+        [/technician|tech\b/, 'technicians','Technician'], [/vendor/, 'vendors','Vendor'],
+        [/account/, 'accounts','Account'], [/region/, 'regions','Region'],
+        [/pudo/, 'pudos','PUDO'], [/symptom/, 'symptoms','Symptom'],
+        [/reason/, 'repairReasons','Repeat Repair Reason'], [/model|sub.?series|series/, 'subSeries','Sub-Series']
+      ];
+      let matched = map.filter(([re])=>re.test(q));
+      if(!matched.length) matched = [[null,'agents','Agent'], [null,'repairReasons','Repeat Repair Reason']];
+      matched.forEach(([,key,label])=>{
+        lines.push(`\n**Top ${label}s by impact:**\n${rankList(ctx.top[key], label)}`);
+      });
+    }
+    lines.push(`\n_Ask about a specific agent, TL, vendor, model, or reason by name for a deeper breakdown._`);
+    return lines.join('\n');
+  }
 
   async function ask(question){
     if(state.busy) return;
@@ -9883,44 +9918,14 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     const typing = addMsg('bot','<span class="rce-typing"></span><span class="rce-typing"></span><span class="rce-typing"></span>');
     try {
       const fitted = fitContext(buildContext(question));
-      const messages = [
-        { role: 'system', content: RCE_SYSTEM_INSTRUCTION },
-        ...history.slice(0, -1).slice(-8).map(m => ({
-          role: m.role === 'assistant' ? 'assistant' : 'user',
-          content: String(m.content || '').slice(0, 11000)
-        })),
-        { role: 'user', content: 'Question: ' + question + '\n\nContext (JSON, this is the only data you may use):\n' + JSON.stringify(fitted.ctx) }
-      ];
-
-      if(typeof puter === 'undefined' || !puter?.ai?.chat){
-        typing.remove();
-        addMsg('bot', md('**Assistant unavailable.**\n\nThe AI library (js.puter.com) did not load — check your internet connection and that the script tag near the top of the page is not blocked, then reload.'), 'err');
-        return;
-      }
-
-      let result = null, callErr = null;
-      for(let attempt=0; attempt<2; attempt++){
-        callErr = null;
-        try {
-          result = await puter.ai.chat(messages, { model: RCE_MODEL });
-          break;
-        } catch(e){ callErr = e; result = null; await new Promise(r=>setTimeout(r, 1200)); }
-      }
-
+      const text = localAnswer(question, fitted.ctx);
       typing.remove();
-
-      if(callErr || !result){
-        console.error('[RRR Assistant] AI call failed', callErr);
-        addMsg('bot', md('**Assistant request failed.**\n\n`'+String(callErr && callErr.message ? callErr.message : callErr)+'`\n\nPlease check your connection and try again.'), 'err');
-      } else {
-        const text = (result?.message?.content ?? result?.toString?.() ?? '').trim() || '(no answer)';
-        addMsg('bot', md(text));
-        history.push({ role: 'assistant', content: text });
-      }
+      addMsg('bot', md(text));
+      history.push({ role: 'assistant', content: text });
     } catch(e){
       typing.remove();
       console.error('[RRR Assistant] unexpected error', e);
-      addMsg('bot', md('**Assistant request failed.**\n\n`'+String(e && e.message ? e.message : e)+'`'), 'err');
+      addMsg('bot', md('**Something went wrong building the answer.**\n\n`'+String(e && e.message ? e.message : e)+'`'), 'err');
 
     } finally {
       state.busy = false;
