@@ -9807,6 +9807,46 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     };
   }
 
+  // Keep the payload well under any hosting body limit by progressively trimming
+  // the heaviest parts of the context.
+  const CTX_BUDGET = 300000;
+  function fitContext(context){
+    let ctx = context;
+    let size = JSON.stringify(ctx).length;
+    if(size <= CTX_BUDGET) return {ctx, trimmed:false, size};
+
+    // 1) trim deep_dive sample work orders + trends
+    if(ctx.deep_dive && typeof ctx.deep_dive === 'object'){
+      Object.keys(ctx.deep_dive).forEach(k=>{
+        const d = ctx.deep_dive[k];
+        if(d && typeof d === 'object'){
+          if(Array.isArray(d.sampleRepeatWOs)) d.sampleRepeatWOs = d.sampleRepeatWOs.slice(0,5);
+          if(Array.isArray(d.monthTrend)) d.monthTrend = d.monthTrend.slice(-12);
+          if(Array.isArray(d.weekTrend)) d.weekTrend = d.weekTrend.slice(-12);
+        }
+      });
+      size = JSON.stringify(ctx).length;
+    }
+    // 2) drop deep_dive entries entirely, keeping the first few
+    if(size > CTX_BUDGET && ctx.deep_dive){
+      const keys = Object.keys(ctx.deep_dive).slice(0,3);
+      const kept = {};
+      keys.forEach(k=>{ kept[k] = ctx.deep_dive[k]; });
+      ctx.deep_dive = kept;
+      size = JSON.stringify(ctx).length;
+    }
+    // 3) shorten top lists
+    if(size > CTX_BUDGET && ctx.top){
+      Object.keys(ctx.top).forEach(k=>{
+        if(Array.isArray(ctx.top[k])) ctx.top[k] = ctx.top[k].slice(0,5);
+      });
+      size = JSON.stringify(ctx).length;
+    }
+    ctx.data_note = 'Some supporting detail was trimmed for size. Answer from what is present and say when a detail is unavailable.';
+    return {ctx, trimmed:true, size:JSON.stringify(ctx).length};
+  }
+
+
   async function ask(question){
     if(state.busy) return;
     const rows = (typeof rawData!=='undefined' && rawData) ? rawData : (window.rawData||[]);
@@ -9833,31 +9873,54 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     $('rce-chat-send').disabled = true;
     const typing = addMsg('bot','<span class="rce-typing"></span><span class="rce-typing"></span><span class="rce-typing"></span>');
     try {
-      const context = buildContext(question);
-      const res = await fetch('/api/chat', {
+      const fitted = fitContext(buildContext(question));
+      const payload = JSON.stringify({
+        question,
+        history: history.slice(0, -1).slice(-8).map(m=>({role:m.role, content:String(m.content||'').slice(0,11000)})),
+        context: fitted.ctx
+      });
+
+      const send = () => fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question,
-          history: history.slice(0, -1).slice(-8),
-          context
-        })
+        body: payload
       });
-      const data = await res.json().catch(()=>({}));
 
-      typing.remove();
-      if(!res.ok){
-        const errMsg = data?.error || 'The assistant is temporarily unavailable. Please try again.';
-        addMsg('bot', md('**Assistant request failed.**\n\n' + errMsg), 'err');
-      } else {
-        const text = data?.text || '(no answer)';
-        addMsg('bot', md(text));
-        history.push({ role: 'assistant', content: text });
+      let res = null, raw = '', netErr = null;
+      for(let attempt=0; attempt<2; attempt++){
+        netErr = null;
+        try {
+          res = await send();
+          raw = await res.text();
+        } catch(e){ netErr = e; res = null; raw = ''; }
+        const retryable = netErr || (res && [429,500,502,503,504].includes(res.status));
+        if(!retryable || attempt === 1) break;
+        await new Promise(r=>setTimeout(r, 1200));
       }
 
+      typing.remove();
+
+      if(netErr || !res){
+        console.error('[RRR Assistant] network failure', netErr, 'payload bytes:', payload.length);
+        addMsg('bot', md('**Assistant request failed.**\n\nThe request could not reach the server (network error). Payload size: `'+payload.length+'` bytes. Please check your connection and try again.'), 'err');
+      } else {
+        let data = {};
+        try { data = raw ? JSON.parse(raw) : {}; } catch(_) { data = {}; }
+        if(!res.ok){
+          console.error('[RRR Assistant] HTTP', res.status, res.statusText, raw.slice(0,2000), 'payload bytes:', payload.length);
+          const detail = data?.error || (raw ? raw.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim().slice(0,300) : 'No response body.');
+          addMsg('bot', md('**Assistant request failed.**\n\n`HTTP '+res.status+(res.statusText?' '+res.statusText:'')+'` — '+detail+'\n\n_Payload sent: '+payload.length+' bytes'+(fitted.trimmed?' (context trimmed)':'')+'. Full details are in the browser console._'), 'err');
+        } else {
+          const text = data?.text || '(no answer)';
+          addMsg('bot', md(text));
+          history.push({ role: 'assistant', content: text });
+        }
+      }
     } catch(e){
       typing.remove();
-      addMsg('bot', md('**Assistant request failed.**\n\nPlease check your connection and try again.'), 'err');
+      console.error('[RRR Assistant] unexpected error', e);
+      addMsg('bot', md('**Assistant request failed.**\n\n`'+String(e && e.message ? e.message : e)+'`'), 'err');
+
     } finally {
       state.busy = false;
       $('rce-chat-send').disabled = false;
