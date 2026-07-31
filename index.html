@@ -4788,7 +4788,7 @@ function _sumTable(title, rows, colLabel){
 
 function buildSummary(){
   const host = document.getElementById('summaryBody'); if(!host) return;
-  const src = (typeof filteredData!=='undefined' && filteredData.length) ? filteredData : [];
+  const src = (typeof filteredData!=='undefined' && filteredData.length) ? filteredData : (typeof rawData!=='undefined' ? rawData : []);
   if(!src.length){
     host.innerHTML = `<div style="padding:32px;text-align:center;color:var(--t3);font-size:12px">No data in current filter. Upload a file or adjust filters.</div>`;
     return;
@@ -5462,7 +5462,6 @@ function buildRegionForecast(rows){
     if(series.length < 3){
       try{
         const moSeries = (typeof fcAggregateSeries==='function') ? fcAggregateSeries(regRows, r=>fcParseMonthName(r.MONTH)) : [];
-        if(moSeries.length>=3) series = moSeries.map(m=>({...m, totalWO: Math.max(0, Math.round(m.totalWO/4.3)), rrrWO: Math.max(0, Math.round(m.rrrWO/4.3)), pct:m.pct}));
       }catch(e){}
     }
     if(series.length < 3) return `<tr><td class="reg">${rn}</td><td colspan="6" style="color:var(--t3);font-size:11px;text-align:center">Insufficient history (need ≥ 3 weeks / 3 months)</td></tr>`;
@@ -5609,7 +5608,7 @@ function exportExecPDF(){
     const volGate = Math.max(5, stats.totalWO*0.05);
     const topReg = regs.filter(r=>r.total>=volGate).sort((a,b)=>b.pct-a.pct)[0];
     const subs = execMonthlyByKey(filteredData, r=>r.SUB);
-    const subStats = []; subs.forEach((arr,k)=>{ const t=arr.reduce((s,m)=>s+m.total,0), h=arr.reduce((s,m)=>s+m.hits,0); if(t>0) subStats.push({name:k,total:t,pct:t>0?h/t*100:0}); });
+    const subStats = subs.forEach((arr,k)=>{ const t=arr.reduce((s,m)=>s+m.total,0), h=arr.reduce((s,m)=>s+m.hits,0); if(t>0) subStats.push({name:k,total:t,pct:t>0?h/t*100:0}); });
     const topSub = subStats.filter(s=>s.total>=volGate).sort((a,b)=>b.pct-a.pct)[0];
     doc.autoTable({ startY:32, head:[['Executive summary','Value']], body:[
       ['National RRR %', stats.pct.toFixed(2)+'%'],
@@ -5702,7 +5701,7 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
   const esc = (s) => (typeof escapeHtml==='function') ? escapeHtml(s) : String(s==null?'':s);
   const pct = x => (x*100).toFixed(1)+'%';
   const pp  = x => (x>=0?'+':'') + (x*100).toFixed(2)+'pp';
-  const src = () => (typeof filteredData!=='undefined' && filteredData.length) ? filteredData : [];
+  const src = () => (typeof filteredData!=='undefined' && filteredData.length) ? filteredData : (typeof rawData!=='undefined' ? rawData : []);
   const norm = (typeof normalizeRegion==='function') ? normalizeRegion : (x=>String(x||'').toUpperCase());
 
   /* Aggregate rows by keyFn → {key, vol, hits, rrr} */
@@ -5760,7 +5759,7 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
   /* ── DRIVER DECOMPOSITION (rate effect + mix effect per dimension) ── */
   function decompose(curRows, prevRows, keyFn){
     const totCur = statsOf(curRows), totPrev = statsOf(prevRows);
-    if(!totCur.vol || !totPrev.vol) return [];
+    if(!totCur.vol || !totPrev.vol) return
     const a = aggBy(curRows, keyFn), b = aggBy(prevRows, keyFn);
     const bmap = new Map(b.map(o=>[o.key,o])); const amap = new Map(a.map(o=>[o.key,o]));
     const keys = new Set([...amap.keys(), ...bmap.keys()]);
@@ -8602,7 +8601,7 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     setGran(g){ if(state.gran===g) return; state.gran=g; state.periods=uniqSorted(g); state.reasonExpanded.clear(); render(); },
     togglePeriod(p){ const i=state.periods.indexOf(p); if(i>=0) state.periods.splice(i,1); else state.periods.push(p); render(); },
     periodsAll(){ state.periods = uniqSorted(state.gran); render(); },
-    periodsNone(){ state.periods = []; render(); },
+    periodsNone(){ state.periods = render(); },
     toggleReason(side, reason){ const k=side+'|'+reason; if(state.reasonExpanded.has(k)) state.reasonExpanded.delete(k); else state.reasonExpanded.add(k); render(); },
     exportCSV(){
       if(!state.vendorA || !state.vendorB){ alert('Pick both vendors first.'); return; }
@@ -9535,9 +9534,9 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     toggleVendor(v){ const i = state.vendors.indexOf(v); if(i>=0) state.vendors.splice(i,1); else state.vendors.push(v); render(); },
     togglePeriod(p){ const i = state.periods.indexOf(p); if(i>=0) state.periods.splice(i,1); else state.periods.push(p); render(); },
     setVendorsAll(){ state.vendors = uniqSorted('VENDOR'); render(); },
-    setVendorsNone(){ state.vendors = []; render(); },
+    setVendorsNone(){ state.vendors = render(); },
     setPeriodsAll(){ state.periods = uniqSorted(state.gran); render(); },
-    setPeriodsNone(){ state.periods = []; render(); },
+    setPeriodsNone(){ state.periods = render(); },
     setSearch(q){ state.vSearch = q||''; render(); },
     setGran(g){ if(state.gran===g) return; state.gran=g; state.periods=[]; render(); },
     setShowAll(v){ state.showAll = !!v; render(); },
@@ -9582,6 +9581,415 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
 })();
 </script>
 
+
+<!-- ============================================================
+     RRR CHAT ASSISTANT (floating panel, local-data grounded)
+     ============================================================ -->
+<style>
+  #rce-chat-fab{position:fixed;right:20px;bottom:20px;z-index:99998;background:linear-gradient(135deg,#7ce0ff,#a86bff);color:#0b1220;border:none;border-radius:999px;padding:12px 18px;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.35);display:flex;align-items:center;gap:8px}
+  #rce-chat-fab:hover{transform:translateY(-1px)}
+  #rce-chat-drawer{position:fixed;right:-460px;top:0;bottom:0;width:440px;max-width:96vw;background:var(--bg,#0e1421);color:var(--t1,#e6ecff);border-left:1px solid var(--border,#243049);z-index:99999;display:flex;flex-direction:column;transition:right .28s ease;box-shadow:-8px 0 32px rgba(0,0,0,.45)}
+  #rce-chat-drawer.on{right:0}
+  .rce-chat-hd{padding:12px 14px;border-bottom:1px solid var(--border,#243049);display:flex;justify-content:space-between;align-items:center;gap:8px;background:linear-gradient(180deg,rgba(124,224,255,.08),transparent)}
+  .rce-chat-hd h3{margin:0;font-size:14px;font-weight:700}
+  .rce-chat-hd .sub{font-size:11px;color:var(--t3,#8a94b0)}
+  .rce-chat-hd button{background:transparent;color:var(--t2,#bcc6de);border:1px solid var(--border,#243049);border-radius:6px;font-size:11px;padding:4px 8px;cursor:pointer}
+  #rce-chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+  .rce-msg{padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.5;max-width:100%;word-wrap:break-word}
+  .rce-msg.user{background:rgba(124,224,255,.12);border:1px solid rgba(124,224,255,.28);align-self:flex-end;max-width:88%}
+  .rce-msg.bot{background:rgba(168,107,255,.06);border:1px solid rgba(168,107,255,.22)}
+  .rce-msg.bot h1,.rce-msg.bot h2,.rce-msg.bot h3,.rce-msg.bot strong{color:#7ce0ff}
+  .rce-msg.bot h3{font-size:13px;margin:8px 0 4px}
+  .rce-msg.bot p{margin:4px 0}
+  .rce-msg.bot ul{margin:4px 0;padding-left:18px}
+  .rce-msg.bot li{margin:2px 0}
+  .rce-msg.bot code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:3px;font-size:12px}
+  .rce-msg.err{background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.4);color:#ffb2b2}
+  .rce-suggest{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-top:1px dashed var(--border,#243049)}
+  .rce-suggest button{background:transparent;color:var(--t2,#bcc6de);border:1px solid var(--border,#243049);border-radius:99px;font-size:11px;padding:4px 10px;cursor:pointer}
+  .rce-suggest button:hover{border-color:#7ce0ff;color:#7ce0ff}
+  #rce-chat-form{padding:10px 12px;border-top:1px solid var(--border,#243049);display:flex;gap:8px;align-items:flex-end}
+  #rce-chat-input{flex:1;background:var(--bg,#0e1421);color:var(--t1,#e6ecff);border:1px solid var(--border,#243049);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;resize:none;max-height:120px;min-height:38px}
+  #rce-chat-input:focus{outline:none;border-color:#7ce0ff}
+  #rce-chat-send{background:linear-gradient(135deg,#7ce0ff,#a86bff);color:#0b1220;border:none;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:13px}
+  #rce-chat-send:disabled{opacity:.5;cursor:wait}
+  .rce-typing{display:inline-block;width:8px;height:8px;border-radius:99px;background:#7ce0ff;margin:0 2px;animation:rce-blink 1s infinite}
+  .rce-typing:nth-child(2){animation-delay:.2s}.rce-typing:nth-child(3){animation-delay:.4s}
+  @keyframes rce-blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+</style>
+<button id="rce-chat-fab" title="Ask the RRR assistant">💬 Ask RRR</button>
+<div id="rce-chat-drawer" role="dialog" aria-label="RRR chat assistant">
+  <div class="rce-chat-hd">
+    <div>
+      <h3>🤖 RRR Assistant</h3>
+      <div class="sub" id="rce-chat-scope">Ask about any agent, TL, model, vendor, symptom…</div>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button type="button" id="rce-chat-key" title="Set your own Gemini API key" style="font-size:14px;padding:4px 7px">⚙️</button>
+      <button type="button" id="rce-chat-clear">Clear</button>
+      <button type="button" id="rce-chat-close">✕</button>
+    </div>
+  </div>
+  <div id="rce-chat-msgs"></div>
+  <div class="rce-suggest" id="rce-chat-suggest"></div>
+  <form id="rce-chat-form" onsubmit="return false;">
+    <textarea id="rce-chat-input" rows="1" placeholder="e.g. Summarize agent Ravi for Wk27"></textarea>
+    <button id="rce-chat-send" type="submit">Send</button>
+  </form>
+</div>
+<script>
+(function(){
+  /* ============================================================
+     GEMINI API KEY
+     Replace the placeholder below with your free key from:
+       https://aistudio.google.com/apikey
+     (In Google AI Studio you can restrict this key to your
+      github.io referrer so it can't be used elsewhere.)
+     Visitors can also paste their own key via the ⚙️ button —
+     it is stored in localStorage and overrides the default.
+  ============================================================ */
+  const GEMINI_API_KEY = 'AQ.Ab8RN6JejnMgyRJUbLO_k2f1EMibwEg47yEN_xLqnEQ2UMLNjg';
+  const GEMINI_MODEL = 'gemini-2.0-flash';
+  const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent';
+
+  function getApiKey(){
+    const stored = localStorage.getItem('rrr_gemini_key');
+    return (stored && stored.trim()) ? stored.trim() : (GEMINI_API_KEY && GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY' ? GEMINI_API_KEY : '');
+  }
+
+  const MONTH_NAMES = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec','january','february','march','april','june','july','august','september','october','november','december'];
+  const history = [];
+  const state = { open:false, busy:false };
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s==null?'':s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+  // very small markdown renderer (headings, bold, italic, lists, inline code, line breaks)
+  function md(src){
+    let s = esc(src);
+    s = s.replace(/^###\s+(.+)$/gm,'<h3>$1</h3>');
+    s = s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+    s = s.replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>');
+    s = s.replace(/`([^`]+)`/g,'<code>$1</code>');
+    // bullet lists
+    s = s.replace(/(^|\n)((?:[-•]\s.+(?:\n|$))+)/g, function(_,pre,block){
+      const items = block.trim().split(/\n/).map(l=>l.replace(/^[-•]\s+/,'')).map(l=>`<li>${l}</li>`).join('');
+      return pre+'<ul>'+items+'</ul>';
+    });
+    s = s.replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br>');
+    return '<p>'+s+'</p>';
+  }
+
+  function addMsg(role, html, cls){
+    const box = $('rce-chat-msgs');
+    const div = document.createElement('div');
+    div.className = 'rce-msg '+role+(cls?' '+cls:'');
+    div.innerHTML = html;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    return div;
+  }
+
+  function detectPeriodInQuestion(q){
+    const s = q.toLowerCase();
+    if(/\bwk\s*\d+|\bweek\s*\d+|\bw\s*\d{1,2}\b/.test(s)) return true;
+    if(MONTH_NAMES.some(m=>s.includes(m))) return true;
+    if(/\bthis (week|month)\b|\blast (week|month)\b|\bprevious (week|month)\b|\bytd\b|\bmtd\b|\bqtd\b/.test(s)) return true;
+    if(/\b20\d{2}[-/]\d{1,2}\b|\b\d{1,2}[-/]20\d{2}\b/.test(s)) return true;
+    return false;
+  }
+
+  function activePeriods(){
+    // Read chip selections that already exist in the dashboard (Month & Week multi-selects).
+    const m = (window.msState && window.msState.Month) ? [...window.msState.Month] : [];
+    const w = (window.msState && window.msState.Week)  ? [...window.msState.Week]  : [];
+    return { months:m, weeks:w };
+  }
+
+  function availablePeriods(){
+    const rows = (typeof rawData!=='undefined' && rawData) ? rawData : (window.rawData||[]);
+    const months = [...new Set(rows.map(r=>r.MONTH).filter(Boolean))].sort();
+    const weeks  = [...new Set(rows.map(r=>r.WEEK).filter(Boolean))].sort();
+    return { months, weeks };
+  }
+
+  // Aggregate rows into {vol, hits, mtsn, rrr, impact}
+  function agg(rows, keyFn){
+    const map = new Map();
+    for(const r of rows){
+      const k = keyFn(r); if(k==null||k==='') continue;
+      let a = map.get(k);
+      if(!a){ a={key:k, vol:0, hits:0, mtsn:new Set()}; map.set(k,a); }
+      a.vol++;
+      if(String(r.FLAG)==='1') a.hits++;
+      if(r.MTSN) a.mtsn.add(r.MTSN);
+    }
+    return [...map.values()].map(a=>{
+      const distinct = a.mtsn.size || 1;
+      const rrr = a.hits/distinct*100;
+      return { key:a.key, vol:a.vol, hits:a.hits, distinctMtsn:a.mtsn.size, rrr:+rrr.toFixed(2), impact:+(a.vol*rrr).toFixed(1) };
+    }).sort((x,y)=>y.impact-x.impact);
+  }
+  const topN = (arr,n)=>arr.slice(0,n);
+
+  function slice(rows, periods){
+    if(!periods) return rows;
+    const {months, weeks} = periods;
+    if((!months||!months.length) && (!weeks||!weeks.length)) return rows;
+    return rows.filter(r =>
+      (!months.length || months.includes(r.MONTH)) &&
+      (!weeks.length  || weeks.includes(r.WEEK))
+    );
+  }
+
+  function deepDive(rows, question){
+    const q = question.toLowerCase();
+    // pick candidate entity names from data that appear literally in the question
+    const rows100 = rows.slice(0, 60000);
+    const dims = {
+      NAME:'agent', TL:'tl', SUB:'sub_series', SYMPTOM:'symptom',
+      VENDOR:'vendor', ACCOUNT:'account', REGION:'region', CITY:'city',
+      PUDO:'pudo', TECH_ID:'tech_id', TECH_NAME:'tech_name', FS_PARTNER:'fs_partner',
+      NEXT_REASON:'reason'
+    };
+    const found = [];
+    for(const [col,label] of Object.entries(dims)){
+      const uniq = new Set();
+      for(const r of rows100){ const v=r[col]; if(v) uniq.add(String(v)); if(uniq.size>4000) break; }
+      for(const v of uniq){
+        const vl = v.toLowerCase();
+        if(vl.length<3) continue;
+        if(q.includes(vl)) found.push({col,label,value:v});
+      }
+    }
+    if(!found.length) return null;
+    // deduplicate — first hit per col
+    const seen = new Set(), picks = [];
+    for(const f of found){ if(seen.has(f.col)) continue; seen.add(f.col); picks.push(f); if(picks.length>=3) break; }
+    return picks.map(f=>{
+      const sub = rows.filter(r => String(r[f.col]||'').toLowerCase() === f.value.toLowerCase());
+      const distinctMtsn = new Set(sub.map(r=>r.MTSN).filter(Boolean)).size;
+      const hits = sub.filter(r=>String(r.FLAG)==='1').length;
+      const rrr = distinctMtsn? +(hits/distinctMtsn*100).toFixed(2) : 0;
+      const hcsRows = sub.filter(r=>r.HCS!=null && r.HCS!=='');
+      const hcsCompliant = hcsRows.filter(r=>/comp/i.test(String(r.HCS))).length;
+      return {
+        entity: f.label, value: f.value,
+        volume: sub.length, distinctMtsn, repeatHits: hits, rrrPct: rrr,
+        hcs: hcsRows.length ? {
+          checked: hcsRows.length,
+          compliant: hcsCompliant,
+          nonCompliant: hcsRows.length-hcsCompliant,
+          compliancePct: +(hcsCompliant/hcsRows.length*100).toFixed(1)
+        } : null,
+        topModels: topN(agg(sub, r=>r.SUB||'Unknown'),5),
+        topSymptoms: topN(agg(sub, r=>r.SYMPTOM||'Unknown'),5),
+        topRepairReasons: topN(agg(sub.filter(r=>String(r.FLAG)==='1'), r=>r.NEXT_REASON||'Unknown'),5),
+        monthTrend: topN(agg(sub, r=>r.MONTH||'?').sort((a,b)=>String(a.key).localeCompare(String(b.key))),24),
+        weekTrend:  topN(agg(sub, r=>r.WEEK||'?').sort((a,b)=>String(a.key).localeCompare(String(b.key))),24),
+        sampleRepeatWOs: sub.filter(r=>String(r.FLAG)==='1').slice(0,10).map(r=>({wo:r.WO_NUM,mtsn:r.MTSN,month:r.MONTH,week:r.WEEK,model:r.SUB,symptom:r.SYMPTOM,reason:r.NEXT_REASON,vendor:r.VENDOR,pudo:r.PUDO}))
+      };
+    });
+  }
+
+  function buildContext(question){
+    const rows = (typeof rawData!=='undefined' && rawData) ? rawData : (window.rawData||[]);
+    const active = activePeriods();
+    const scoped = slice(rows, active);
+    const distinctMtsn = new Set(scoped.map(r=>r.MTSN).filter(Boolean)).size;
+    const hits = scoped.filter(r=>String(r.FLAG)==='1').length;
+    const kpi = {
+      volume: scoped.length,
+      distinctMtsn,
+      repeatHits: hits,
+      rrrPct: distinctMtsn ? +(hits/distinctMtsn*100).toFixed(2) : 0
+    };
+    return {
+      period: {
+        selected: active,
+        available: availablePeriods()
+      },
+      kpi,
+      top: {
+        agents:    topN(agg(scoped, r=>r.NAME||'Unknown'),10),
+        tls:       topN(agg(scoped, r=>r.TL||'Unknown'),10),
+        technicians: topN(agg(scoped, r=>{const id=r.TECH_ID||'';const nm=r.TECH_NAME||'';return (nm||id)?`${nm||'?'}${id?' ('+id+')':''}`:'';}),10),
+        subSeries: topN(agg(scoped, r=>r.SUB||'Unknown'),10),
+        symptoms:  topN(agg(scoped, r=>r.SYMPTOM||'Unknown'),10),
+        repairReasons: topN(agg(scoped.filter(r=>String(r.FLAG)==='1'), r=>r.NEXT_REASON||'Unknown'),10),
+        vendors:   topN(agg(scoped, r=>r.VENDOR||'Unknown'),10),
+        accounts:  topN(agg(scoped, r=>r.ACCOUNT||'Unknown'),10),
+        regions:   topN(agg(scoped, r=>r.REGION||'Unknown'),8),
+        pudos:     topN(agg(scoped, r=>r.PUDO||'Unknown'),10)
+      },
+      deep_dive: deepDive(scoped, question)
+    };
+  }
+
+  async function ask(question){
+    if(state.busy) return;
+    const rows = (typeof rawData!=='undefined' && rawData) ? rawData : (window.rawData||[]);
+    if(!rows.length){
+      addMsg('bot','<p>Please upload the RRR Excel first, then ask me anything.</p>','err');
+      return;
+    }
+    addMsg('user', esc(question));
+    history.push({role:'user', content:question});
+
+    // Ask-first rule: if no period selected AND no period in question, ask.
+    const {months, weeks} = activePeriods();
+    if(!months.length && !weeks.length && !detectPeriodInQuestion(question)){
+      const avail = availablePeriods();
+      const monthChips = avail.months.slice(-8).join(', ') || '—';
+      const weekChips  = avail.weeks.slice(-8).join(', ')  || '—';
+      const html = md(`Which period should I look at?\n\n- **Months available:** ${monthChips}\n- **Weeks available:** ${weekChips}\n\nReply with a month (e.g. *July*) or a week (e.g. *Wk27*), or select one in the dashboard header.`);
+      addMsg('bot', html);
+      history.push({role:'assistant', content:'Asked user for month/week.'});
+      return;
+    }
+
+    state.busy = true;
+    $('rce-chat-send').disabled = true;
+    const typing = addMsg('bot','<span class="rce-typing"></span><span class="rce-typing"></span><span class="rce-typing"></span>');
+    const apiKey = getApiKey();
+    if(!apiKey){
+      typing.remove();
+      addMsg('bot', md('**No Gemini API key set.**\n\nGet a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey), then:\n- Click the ⚙️ button in this chat header to paste your key (stored locally in your browser), or\n- Replace the `GEMINI_API_KEY` placeholder in the HTML source with your key.'), 'err');
+      history.pop();
+      return;
+    }
+    try {
+      const context = buildContext(question);
+      const SYSTEM_PROMPT = `You are the RRR Intelligence Assistant for a Lenovo service dashboard.
+You answer questions strictly using the JSON CONTEXT provided in the user turn.
+Do not invent numbers, names or entities that aren't present in the context.
+If the user asks about a specific person, vendor, account, model, symptom or FRU
+and the CONTEXT does not include it (see \`missing:true\` or an empty deep_dive), say so plainly.
+
+RRR terminology:
+- Volume = number of work orders (row count)
+- Distinct MTSN = unique serial numbers
+- Repeat Flags / RRR Hits = rows where the 30D flag = 1
+- RRR% = Repeat Flags / Distinct MTSN * 100
+- Impact = Volume * RRR%
+
+Response format (use markdown, keep it tight, use bullets and small tables):
+**Snapshot** — 2-3 lines with the period + headline numbers
+**What went right** — bullet list
+**What went worse** — bullet list, biggest impact first
+**Where to improve** — the specific entities/models/symptoms/reasons to focus on
+**How to improve** — concrete actions (coaching topic, FRU to prefer, HCS compliance, etc.)
+
+Never mention "context", "JSON", "payload" or internal plumbing to the user.`;
+
+      const contents = history.slice(-6).map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: String(m.content || '') }]
+      }));
+      contents.push({
+        role: 'user',
+        parts: [{ text: `CONTEXT (JSON):\n${JSON.stringify(context).slice(0, 120000)}\n\nQUESTION:\n${question}` }]
+      });
+
+      const res = await fetch(GEMINI_ENDPOINT + '?key=' + encodeURIComponent(apiKey), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: contents
+        })
+      });
+      const data = await res.json();
+      typing.remove();
+      if(!res.ok){
+        const errMsg = data?.error?.message || ('HTTP ' + res.status);
+        addMsg('bot', esc(errMsg), 'err');
+      } else {
+        const text = (data?.candidates?.[0]?.content?.parts?.map(p=>p.text).filter(Boolean).join('')) || '(no answer)';
+        addMsg('bot', md(text));
+        history.push({ role: 'assistant', content: text });
+      }
+    } catch(e){
+      typing.remove();
+      addMsg('bot', esc(e.message||String(e)), 'err');
+    } finally {
+      state.busy = false;
+      $('rce-chat-send').disabled = false;
+    }
+  }
+
+  function updateScope(){
+    const {months, weeks} = activePeriods();
+    let s;
+    if(months.length || weeks.length){
+      s = 'Scope: '+[months.length?months.join(', '):null, weeks.length?weeks.join(', '):null].filter(Boolean).join(' · ');
+    } else {
+      s = 'No period selected — I will ask for one.';
+    }
+    $('rce-chat-scope').textContent = s;
+  }
+
+  function renderSuggestions(){
+    const el = $('rce-chat-suggest');
+    const s = [
+      'Top 5 agents to coach this period',
+      'Which model + symptom hurt RRR most?',
+      'Best FRU fixes to promote',
+      'Why did RRR change vs the previous period?'
+    ];
+    el.innerHTML = s.map(t=>`<button type="button" data-q="${esc(t)}">${esc(t)}</button>`).join('');
+    el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ $('rce-chat-input').value = b.dataset.q; $('rce-chat-input').focus(); });
+  }
+
+  function openDrawer(){
+    state.open = true;
+    $('rce-chat-drawer').classList.add('on');
+    updateScope();
+    setTimeout(()=>$('rce-chat-input').focus(),150);
+    if(!$('rce-chat-msgs').children.length){
+      addMsg('bot', md('Hi! I read your currently uploaded RRR file (local only, never stored).\n\nAsk about any **agent, TL, technician, model, symptom, repair reason, vendor, account, region, PUDO or FRU**. I will always confirm the month or week first if you have not picked one.\n\n*Powered by Google Gemini Flash. Click ⚙️ to use your own free API key.*'));
+    }
+  }
+  function closeDrawer(){ state.open=false; $('rce-chat-drawer').classList.remove('on'); }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    $('rce-chat-fab').addEventListener('click', openDrawer);
+    $('rce-chat-close').addEventListener('click', closeDrawer);
+    $('rce-chat-key').addEventListener('click', function(){
+      const cur = localStorage.getItem('rrr_gemini_key') || '';
+      const v = window.prompt('Paste your free Gemini API key (from aistudio.google.com/apikey).\nLeave empty to remove a stored key and use the embedded default.', cur);
+      if(v === null) return; // user cancelled
+      if(v.trim()){
+        localStorage.setItem('rrr_gemini_key', v.trim());
+        addMsg('bot', md('✅ Gemini API key saved in your browser.'));
+      } else {
+        localStorage.removeItem('rrr_gemini_key');
+        addMsg('bot', md('⚠️ Stored key removed. Using the embedded default (if set).'));
+      }
+    });
+    $('rce-chat-clear').addEventListener('click', function(){
+      history.length = 0;
+      $('rce-chat-msgs').innerHTML = '';
+      openDrawer();
+    });
+    $('rce-chat-form').addEventListener('submit', function(e){
+      e.preventDefault();
+      const v = $('rce-chat-input').value.trim();
+      if(!v) return;
+      $('rce-chat-input').value = '';
+      ask(v);
+    });
+    $('rce-chat-input').addEventListener('keydown', function(e){
+      if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); $('rce-chat-form').dispatchEvent(new Event('submit')); }
+    });
+    renderSuggestions();
+    // refresh scope line whenever chips change
+    setInterval(()=>{ if(state.open) updateScope(); }, 1200);
+  });
+
+  window.RCEChat = { open:openDrawer, close:closeDrawer, ask };
+})();
+</script>
 
 </body>
 
