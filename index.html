@@ -6820,6 +6820,15 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
     return src || [];
   }
   function periodKey(r){ return state.granularity==='Week' ? (r.WEEK||'') : (r.MONTH||''); }
+  // Same normalisation as the "Repair Reasons" tab in the Agents panel:
+  // reasons live on the Next SO field of RRR-hit rows only, and blank /
+  // placeholder values collapse into one bucket (never "Unknown").
+  function reasonBucket(r){
+    if(r.FLAG!=='1') return '';
+    let raw=(r.NEXT_REASON==null?'':String(r.NEXT_REASON)).trim();
+    if(!raw || /^(not specified|unknown|na|n\/a|null|undefined)$/i.test(raw)) raw='(Blank / Not Captured)';
+    return raw;
+  }
   function dimVal(r,dim){
     if(dim==='HCS_BUCKET'){
       if(r.HCS==null || r.HCS==='') return 'Unknown';
@@ -6827,9 +6836,12 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
       if(!v || v==='0') return 'Non-HCS';
       return 'HCS';
     }
+    if(dim==='REASON'){ return reasonBucket(r); }
     if(dim==='REGION'){ return (r.REGION||'Unknown')+' › '+(r.CITY||'Unknown'); }
-    return r[dim]||'Unknown';
+    const v = r[dim];
+    return (v==null? '' : String(v).trim()) || 'Unknown';
   }
+
 
   function listPeriods(rows){
     const s = new Set();
@@ -6858,7 +6870,9 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
       }
       if(dim){
         const k = dimVal(r,dim);
+        if(!k) return; // e.g. non-hit rows carry no repeat repair reason
         let d = dimMap.get(k);
+
         if(!d){ d={mtsn:new Map(), rep:0}; dimMap.set(k,d); }
         if(isHit) d.rep++;
         if(r.MTSN) d.mtsn.set(r.MTSN,(d.mtsn.get(r.MTSN)||0)+(isHit?1:0));
@@ -7054,7 +7068,9 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
       const map = new Map();
       rowsSet.forEach(r=>{
         const k = dimVal(r,dim.drill);
+        if(!k) return;
         let o = map.get(k); if(!o){ o={mtsn:new Map(), rep:0}; map.set(k,o); }
+
         const isHit = r.FLAG==='1'; if(isHit) o.rep++;
         if(r.MTSN) o.mtsn.set(r.MTSN,(o.mtsn.get(r.MTSN)||0)+(isHit?1:0));
       });
@@ -7131,8 +7147,10 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
       if(!nm && !pu) return '';
       return pu ? `${nm||'Unknown Tech'} (${pu})` : nm;
     }
+    if(dim==='REASON'){ return reasonBucket(r); }
     if(dim==='REGION_S'){ return (r.REGION||'').toString().trim(); }
     if(dim==='PUDO'){ return (r.PUDO||'').toString().trim(); }
+
     const v = r[dim];
     return v==null? '' : String(v).trim();
   }
