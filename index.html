@@ -1350,7 +1350,7 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
             <div class="tc-meta">Pick two sets of weeks or months. See the overall Δ pp decomposed into volume vs rate effect, then attributed row-by-row across model, symptom, agent, account, vendor, region and more.</div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn" id="cmpCsvBtn" type="button" onclick="Compare && Compare.exportCSV()">⬇ Export CSV</button>
+            <button class="btn" id="cmpCsvBtn" type="button" onclick="Compare && Compare.exportCSV()">⬇ Export Excel</button>
             <button class="btn" id="cmpPdfBtn" type="button" onclick="Compare && Compare.exportPDF()">⬇ Export PDF</button>
           </div>
         </div>
@@ -6767,6 +6767,25 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
   #tab-compare .cmp-diff .pp.up{color:#ff6b7a;font-weight:700}
   #tab-compare .cmp-diff .pp.down{color:#00c896;font-weight:700}
   #tab-compare .cmp-diff .empty{color:var(--t3);font-size:11px;font-style:italic;padding:8px 0}
+
+  /* ── Verdict: why did RRR spike / reduce ── */
+  #tab-compare .cmp-verdict{background:var(--card);border:1px solid var(--border);border-radius:8px;margin:18px 0 6px;overflow:hidden}
+  #tab-compare .cmp-verdict.up{border-left:3px solid #ff6b7a}
+  #tab-compare .cmp-verdict.down{border-left:3px solid #00c896}
+  #tab-compare .cmp-verdict.flat{border-left:3px solid var(--border2)}
+  #tab-compare .cmp-verdict .vd-hd{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);font-size:12.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t1);background:var(--card2)}
+  #tab-compare .cmp-verdict .vd-ic{font-size:14px}
+  #tab-compare .cmp-verdict .vd-delta{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:0;text-transform:none}
+  #tab-compare .cmp-verdict.up .vd-delta{color:#ff6b7a}
+  #tab-compare .cmp-verdict.down .vd-delta{color:#00c896}
+  #tab-compare .cmp-verdict .vd-body{padding:6px 18px 16px}
+  #tab-compare .cmp-verdict .vd-block{padding:12px 0;border-top:1px solid var(--border)}
+  #tab-compare .cmp-verdict .vd-block:first-child{border-top:none}
+  #tab-compare .cmp-verdict h5{margin:0 0 6px;font-size:10px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--t3)}
+  #tab-compare .cmp-verdict p{margin:0;font-size:12.5px;line-height:1.7;color:var(--t1);max-width:120ch}
+  #tab-compare .cmp-verdict ul{margin:0;padding:0;list-style:none}
+  #tab-compare .cmp-verdict li{position:relative;padding:4px 0 4px 16px;font-size:12.5px;line-height:1.7;color:var(--t1);max-width:120ch}
+  #tab-compare .cmp-verdict li::before{content:'';position:absolute;left:2px;top:12px;width:5px;height:5px;border-radius:50%;background:var(--red)}
   @media (max-width:900px){
     #tab-compare .cmp-picker{grid-template-columns:1fr}
     #tab-compare .cmp-headline{grid-template-columns:repeat(2,1fr)}
@@ -7143,12 +7162,14 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
     });
     return out;
   }
-  function buildSummary(A0, B0, rows){
+  // Single source of truth for Improved / Worsened. Consumed by the on-screen
+  // block, the verdict, the PDF and the workbook so the three can never disagree.
+  function computeSummary(A0, B0, rows){
     const volA = A0.vol, volB = B0.vol;
-    const improved = []; // {dimLabel, key, contrib, ...}
+    const improved = [];
     const worsen   = [];
     // Noise filter: require some Volume × RRR% presence in at least one period,
-    // so a one-off WO can't hijack the bullet list.
+    // so a one-off WO can't hijack the list.
     const MIN_IMPACT = 0.5; // ≈ 1 flag baseline
     SUMMARY_DIMS.forEach(d=>{
       const rowsD = summaryContribs(rows, d.key, volA, volB)
@@ -7164,6 +7185,26 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
     // Global sort inside each column by |contrib| so the single biggest movers surface first.
     improved.sort((a,b)=> a.contrib - b.contrib); // most negative first
     worsen  .sort((a,b)=> b.contrib - a.contrib); // most positive first
+    return { improved, worsen };
+  }
+
+  // Rows shared by the PDF tables and the workbook sheets.
+  const SUMMARY_COLS = ['Dimension','Driver','Distinct MTSN A → B','Repeat flags A → B','RRR% A → B','Δ pp','Contribution to overall Δ (pp)'];
+  function summaryRowCells(r){
+    return [
+      r.dim,
+      String(r.key),
+      `${fmt(r.vA)} → ${fmt(r.vB)}`,
+      `${fmt(r.rA)} → ${fmt(r.rB)}`,
+      `${r.pA.toFixed(1)}% → ${r.pB.toFixed(1)}%`,
+      (r.dPP>=0?'+':'') + r.dPP.toFixed(2),
+      (r.contrib>=0?'+':'') + r.contrib.toFixed(2)
+    ];
+  }
+
+  function buildSummary(A0, B0, rows, sum){
+    const s = sum || computeSummary(A0, B0, rows);
+    const improved = s.improved, worsen = s.worsen;
     const bullet = (r)=>{
       const cls = r.contrib>0? 'up':'down';
       const sign = r.contrib>0? '+':'';
@@ -7183,6 +7224,96 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
       <b style="color:var(--red)">ℹ️ How this is built:</b> For every dimension (Agent, Technician <i>(with PUDO in brackets)</i>, Model, Symptom, Repair Reason, Vendor, Account, Region, PUDO) we compute each entity's <b>contribution to ΔRRR%</b> = (repeat flags<sub>B</sub> ÷ total Vol<sub>B</sub>) − (repeat flags<sub>A</sub> ÷ total Vol<sub>A</sub>). We keep only entities with meaningful <b>Impact (Vol × RRR%)</b> to strip out tiny-volume noise, then list top 3 improvers and top 3 regressors per dimension. Negative contribution → moved into the <b>Improved</b> column; positive → <b>Worsened</b>.
     </div>`;
   }
+
+  /* ─────────────────────────────────────────────────────────────
+     VERDICT — "Why did RRR spike / reduce?" in plain sentences.
+     Every number below is already computed elsewhere; nothing new
+     is estimated, so the screen, the PDF and the workbook agree.
+     ───────────────────────────────────────────────────────────── */
+  function buildVerdict(A0, B0, dec, sum){
+    const d = B0.pct - A0.pct;
+    const rose = d > 0.005, fell = d < -0.005;
+    const A = [...state.A].join(', ') || '—';
+    const B = [...state.B].join(', ') || '—';
+
+    // Mechanism: how much of the movement is deterioration vs workload shifting.
+    const absR = Math.abs(dec.rateEff), absV = Math.abs(dec.volEff);
+    const tot  = absR + absV;
+    const rateShare = tot>0 ? Math.round(absR/tot*100) : 0;
+    const volShare  = tot>0 ? 100 - rateShare : 0;
+
+    // Top causes / offsets, de-duplicated by driver name so the same entity
+    // doesn't appear twice from two dimensions.
+    const dedupe = (arr)=>{
+      const seen = new Set(); const out = [];
+      arr.forEach(r=>{ const k=String(r.key).toLowerCase(); if(seen.has(k)) return; seen.add(k); out.push(r); });
+      return out;
+    };
+    const causes  = dedupe(rose ? sum.worsen : (fell ? sum.improved : sum.worsen)).slice(0,3);
+    const offsets = dedupe(rose ? sum.improved : (fell ? sum.worsen : sum.improved)).slice(0,3);
+    const causeSum = causes.reduce((s,r)=> s + r.contrib, 0);
+    const without  = B0.pct - causeSum;
+
+    const moveWord = rose ? 'rose' : (fell ? 'fell' : 'was effectively flat');
+    const dirWord  = rose ? 'rise' : (fell ? 'reduction' : 'movement');
+
+    const lines = [];
+    lines.push({
+      t:'Headline',
+      s:`RRR% ${moveWord} from ${A0.pct.toFixed(2)}% to ${B0.pct.toFixed(2)}% (${pp(d)}) between ${A} and ${B}. Repeat flags went ${fmt(A0.rep)} → ${fmt(B0.rep)} on ${fmt(A0.vol)} → ${fmt(B0.vol)} distinct MTSN.`
+    });
+    lines.push({
+      t:'What actually moved',
+      s: tot===0
+        ? 'Neither repair quality nor workload mix moved enough to register.'
+        : (rateShare >= volShare
+            ? `About ${rateShare}% of the ${dirWord} is real change in repair quality — the same kind of work ${rose?'came back more often':'came back less often'}. The remaining ${volShare}% is workload mix (more or fewer machines flowing through already ${rose?'weak':'strong'} models, vendors and accounts). Quality is the lever here, not intake.`
+            : `About ${volShare}% of the ${dirWord} is workload mix — the volume shifted toward ${rose?'already-weak':'already-strong'} models, vendors and accounts — and only ${rateShare}% is a real change in repair quality. Intake and allocation are the lever here, not coaching alone.`)
+    });
+    if(causes.length){
+      lines.push({
+        t: rose ? 'What pushed RRR up' : (fell ? 'What pulled RRR down' : 'Biggest movers'),
+        s: causes.map(r=>`${r.dim} “${r.key}” explains ${Math.abs(r.contrib).toFixed(2)} pp of the ${Math.abs(d).toFixed(2)} pp ${dirWord} — RRR ${r.pA.toFixed(1)}% → ${r.pB.toFixed(1)}%, flags ${fmt(r.rA)} → ${fmt(r.rB)} on ${fmt(r.vA)} → ${fmt(r.vB)} MTSN.`)
+      });
+    }
+    if(offsets.length){
+      lines.push({
+        t: rose ? 'What partly cancelled it' : 'What worked against the gain',
+        s: offsets.map(r=>`${r.dim} “${r.key}” moved ${pp(r.contrib)} — RRR ${r.pA.toFixed(1)}% → ${r.pB.toFixed(1)}%, flags ${fmt(r.rA)} → ${fmt(r.rB)}.`)
+      });
+    }
+    if(causes.length){
+      const names = causes.map(r=>`${r.key}`).join(', ');
+      lines.push({
+        t:'Bottom line',
+        s: rose
+          ? `Take ${names} out of the picture and RRR% for ${B} would have been roughly ${without.toFixed(2)}% instead of ${B0.pct.toFixed(2)}% — close to the ${A0.pct.toFixed(2)}% baseline. Fix these three first; everything else is second order.`
+          : (fell
+            ? `${names} carried this ${Math.abs(d).toFixed(2)} pp improvement. Without them RRR% would have stayed near ${without.toFixed(2)}%. Lock in whatever changed for these three and replicate it.`
+            : `No single driver dominates. Watch ${names} — they are the closest thing to a trend.`)
+      });
+    } else {
+      lines.push({ t:'Bottom line', s:'No driver clears the noise floor (Impact ≥ 0.5 and ≥ 0.005 pp contribution). The movement is spread thin rather than caused by a specific agent, model, vendor or account.' });
+    }
+    return { lines, rose, fell, delta:d, rateShare, volShare, without };
+  }
+
+  function verdictHTML(v){
+    const tone = v.rose ? 'up' : (v.fell ? 'down' : 'flat');
+    const blocks = v.lines.map(l=>{
+      const bodyHTML = Array.isArray(l.s)
+        ? `<ul>${l.s.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`
+        : `<p>${esc(l.s)}</p>`;
+      return `<div class="vd-block"><h5>${esc(l.t)}</h5>${bodyHTML}</div>`;
+    }).join('');
+    const title = v.rose ? 'Why did RRR spike?' : (v.fell ? 'Why did RRR reduce?' : 'Why is RRR flat?');
+    return `<div class="cmp-verdict ${tone}">
+      <div class="vd-hd"><span class="vd-ic">${v.rose?'🔺':(v.fell?'🔻':'▪')}</span><span>${title}</span>
+        <span class="vd-delta">${pp(v.delta)}</span></div>
+      <div class="vd-body">${blocks}</div>
+    </div>`;
+  }
+
 
   function render(){
 
@@ -7220,10 +7351,12 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
     const headline = buildHeadline(A0,B0,dec);
     const narrative = buildNarrative(A0,B0,dec,dimResults);
     const dims = dimResults.map(dr=>buildDim(dr.dim, dr.A, dr.B, A0.vol, B0.vol, rows)).join('');
-    const summary = buildSummary(A0, B0, rows);
-    body.innerHTML = pickerHTML + summary + headline + narrative + dims;
+    const sum = computeSummary(A0, B0, rows);
+    const summary = buildSummary(A0, B0, rows, sum);
+    const verdict = buildVerdict(A0, B0, dec, sum);
+    body.innerHTML = pickerHTML + summary + headline + narrative + dims + verdictHTML(verdict);
 
-    state.lastResult = { A0, B0, dec, dimResults };
+    state.lastResult = { A0, B0, dec, dimResults, sum, verdict };
   }
 
   // event delegation on the tab
@@ -7271,45 +7404,182 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
 
   window.Compare = {
     onOpen(){ render(); },
+    // ── Workbook export: Summary / Improved / Worsened / Verdict / Detail ──
     exportCSV(){
       const res = state.lastResult; if(!res){ alert('Pick periods first.'); return; }
-      const lines = [];
-      lines.push('Section,Key1,Key2,VolA,VolB,RepA,RepB,PctA,PctB,DeltaPP,ContribPP');
-      lines.push(`Overall,,, ${res.A0.vol},${res.B0.vol},${res.A0.rep},${res.B0.rep},${res.A0.pct.toFixed(3)},${res.B0.pct.toFixed(3)},${(res.B0.pct-res.A0.pct).toFixed(3)},`);
-      lines.push(`Decomposition,VolumeEffect,,,,,,,,,${res.dec.volEff.toFixed(3)}`);
-      lines.push(`Decomposition,RateEffect,,,,,,,,,${res.dec.rateEff.toFixed(3)}`);
-      res.dimResults.forEach(dr=>{
-        dr.rows.forEach(r=>{
-          lines.push(`${dr.dim.label},"${String(r.key).replace(/"/g,'""')}",,${r.volA},${r.volB},${r.repA},${r.repB},${r.pctA.toFixed(3)},${r.pctB.toFixed(3)},${r.dPP.toFixed(3)},${r.contrib.toFixed(3)}`);
-        });
+      if(!window.XLSX){ alert('Excel library not loaded.'); return; }
+      const A = [...state.A].join(', '), B = [...state.B].join(', ');
+      const d = res.B0.pct - res.A0.pct;
+      const wb = XLSX.utils.book_new();
+
+      const overview = [
+        ['RRR COMPARISON REPORT'],
+        ['Granularity', state.granularity],
+        ['Period A', A],
+        ['Period B', B],
+        ['Generated', new Date().toLocaleString()],
+        [],
+        ['Metric','Period A','Period B','Change'],
+        ['Distinct MTSN (volume)', res.A0.vol, res.B0.vol, res.B0.vol - res.A0.vol],
+        ['Repeat flags (RRR hits)', res.A0.rep, res.B0.rep, res.B0.rep - res.A0.rep],
+        ['RRR%', +res.A0.pct.toFixed(2), +res.B0.pct.toFixed(2), (d>=0?'+':'')+d.toFixed(2)+' pp'],
+        [],
+        ['Movement split','Flags','Meaning'],
+        ['Volume (mix) effect', +res.dec.volEff.toFixed(1), 'Change caused purely by more/fewer machines flowing through'],
+        ['Rate (quality) effect', +res.dec.rateEff.toFixed(1), 'Change caused by the same work coming back more/less often'],
+        [],
+        ['Note','RRR% = Repeat flags ÷ Distinct MTSN. Contribution (pp) = each driver’s share of the overall RRR% change.']
+      ];
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(overview), 'Summary');
+
+      const verdictAoA = [['WHY DID RRR ' + (res.verdict.rose?'SPIKE':(res.verdict.fell?'REDUCE':'STAY FLAT')) + '?'],[]];
+      res.verdict.lines.forEach(l=>{
+        verdictAoA.push([l.t]);
+        (Array.isArray(l.s)? l.s : [l.s]).forEach(s=> verdictAoA.push(['', s]));
+        verdictAoA.push([]);
       });
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'}));
-      a.download=`RRR_Compare_${state.granularity}_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+      const wsV = XLSX.utils.aoa_to_sheet(verdictAoA); wsV['!cols']=[{wch:26},{wch:130}];
+      XLSX.utils.book_append_sheet(wb, wsV, 'Why');
+
+      const sheetFor = (rowsArr, name)=>{
+        const aoa = [SUMMARY_COLS].concat(rowsArr.map(summaryRowCells));
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        ws['!cols']=[{wch:14},{wch:34},{wch:20},{wch:20},{wch:20},{wch:10},{wch:28}];
+        XLSX.utils.book_append_sheet(wb, ws, name);
+      };
+      sheetFor(res.sum.improved, 'Improved');
+      sheetFor(res.sum.worsen,  'Worsened');
+
+      const det = [['Dimension','Driver','Distinct MTSN A','Distinct MTSN B','Repeat flags A','Repeat flags B','RRR% A','RRR% B','Δ pp','Contribution pp']];
+      res.dimResults.forEach(dr=> dr.rows.forEach(r=> det.push([
+        dr.dim.label, String(r.key), r.volA, r.volB, r.repA, r.repB,
+        +r.pctA.toFixed(2), +r.pctB.toFixed(2), +r.dPP.toFixed(2), +r.contrib.toFixed(2)
+      ])));
+      const wsD = XLSX.utils.aoa_to_sheet(det);
+      wsD['!cols']=[{wch:14},{wch:34},{wch:15},{wch:15},{wch:14},{wch:14},{wch:9},{wch:9},{wch:9},{wch:15}];
+      XLSX.utils.book_append_sheet(wb, wsD, 'All detail');
+
+      XLSX.writeFile(wb, `RRR_Compare_${state.granularity}_${new Date().toISOString().slice(0,10)}.xlsx`);
     },
+
+    // ── Clean, paginated PDF: headline → verdict → improved → worsened → detail ──
     exportPDF(){
       try{
         if(!window.jspdf){ alert('PDF library not loaded.'); return; }
         const res = state.lastResult; if(!res){ alert('Pick periods first.'); return; }
-        const { jsPDF } = window.jspdf; const doc = new jsPDF();
-        doc.setFontSize(14); doc.setTextColor(226,0,26); doc.text('RRR Comparison Report',14,18);
-        doc.setFontSize(9); doc.setTextColor(80);
-        doc.text(`Granularity: ${state.granularity}    A: ${[...state.A].join(', ')}    B: ${[...state.B].join(', ')}`,14,26);
-        doc.text(`Overall RRR% : ${res.A0.pct.toFixed(2)}%  →  ${res.B0.pct.toFixed(2)}%   (Δ ${(res.B0.pct-res.A0.pct).toFixed(2)} pp)`,14,34);
-        doc.text(`Volume effect: ${res.dec.volEff.toFixed(1)} flags   Rate effect: ${res.dec.rateEff.toFixed(1)} flags`,14,40);
-        let y = 50;
-        res.dimResults.forEach(dr=>{
-          if(y>270){ doc.addPage(); y=20; }
-          doc.setTextColor(226,0,26); doc.setFontSize(11); doc.text(dr.dim.label, 14, y); y+=5;
-          doc.setTextColor(30); doc.setFontSize(8);
-          dr.rows.slice(0,8).forEach(r=>{
-            if(y>280){ doc.addPage(); y=20; }
-            doc.text(`${String(r.key).slice(0,40)}   Δ ${r.dPP.toFixed(2)}pp   contrib ${r.contrib.toFixed(2)}pp`, 16, y); y+=4.5;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+        const W = doc.internal.pageSize.getWidth();
+        const RED = [226,0,26], GREEN=[0,150,110], DARK=[30,30,34], GREY=[110,110,118];
+        const A = [...state.A].join(', '), B = [...state.B].join(', ');
+        const d = res.B0.pct - res.A0.pct;
+        const hasAT = typeof doc.autoTable === 'function';
+
+        doc.setFillColor(...RED); doc.rect(0,0,W,18,'F');
+        doc.setTextColor(255); doc.setFontSize(14); doc.setFont(undefined,'bold');
+        doc.text('RRR Comparison Report', 14, 12);
+        doc.setFontSize(9); doc.setFont(undefined,'normal');
+        doc.text(`${state.granularity}  ·  ${A}   →   ${B}`, W-14, 12, {align:'right'});
+
+        let y = 27;
+        doc.setTextColor(...GREY); doc.setFontSize(8);
+        doc.text(`Generated ${new Date().toLocaleString()}   ·   RRR% = Repeat flags ÷ Distinct MTSN`, 14, y); y += 7;
+
+        if(hasAT){
+          doc.autoTable({
+            startY: y,
+            head: [['Metric','Period A','Period B','Change']],
+            body: [
+              ['Distinct MTSN (volume)', fmt(res.A0.vol), fmt(res.B0.vol), (res.B0.vol-res.A0.vol>=0?'+':'')+fmt(res.B0.vol-res.A0.vol)],
+              ['Repeat flags (RRR hits)', fmt(res.A0.rep), fmt(res.B0.rep), (res.B0.rep-res.A0.rep>=0?'+':'')+fmt(res.B0.rep-res.A0.rep)],
+              ['RRR%', res.A0.pct.toFixed(2)+'%', res.B0.pct.toFixed(2)+'%', pp(d)],
+              ['Volume (mix) effect', '', '', fmt(res.dec.volEff,1)+' flags'],
+              ['Rate (quality) effect', '', '', fmt(res.dec.rateEff,1)+' flags']
+            ],
+            theme:'grid', styles:{fontSize:8, cellPadding:2.2},
+            headStyles:{fillColor:DARK, textColor:255, fontSize:8},
+            columnStyles:{0:{cellWidth:70,fontStyle:'bold'},1:{halign:'right'},2:{halign:'right'},3:{halign:'right'}},
+            margin:{left:14,right:14}
           });
-          y+=3;
+          y = doc.lastAutoTable.finalY + 9;
+        }
+
+        // Verdict — plain-language reason for the spike / reduction
+        doc.setTextColor(...RED); doc.setFontSize(11); doc.setFont(undefined,'bold');
+        doc.text(res.verdict.rose ? 'Why did RRR spike?' : (res.verdict.fell ? 'Why did RRR reduce?' : 'Why is RRR flat?'), 14, y); y += 6;
+        doc.setFont(undefined,'normal');
+        res.verdict.lines.forEach(l=>{
+          if(y > 180){ doc.addPage(); y = 20; }
+          doc.setFontSize(8.5); doc.setTextColor(...DARK); doc.setFont(undefined,'bold');
+          doc.text(l.t, 14, y); y += 4.6;
+          doc.setFont(undefined,'normal'); doc.setTextColor(60);
+          const items = Array.isArray(l.s) ? l.s : [l.s];
+          items.forEach(s=>{
+            const wrapped = doc.splitTextToSize((Array.isArray(l.s)?'•  ':'')+s, W-32);
+            wrapped.forEach(line=>{
+              if(y > 195){ doc.addPage(); y = 20; }
+              doc.text(line, 18, y); y += 4.2;
+            });
+          });
+          y += 3;
         });
+
+        const table = (title, rowsArr, color, empty)=>{
+          doc.addPage(); let ty = 20;
+          doc.setTextColor(...color); doc.setFontSize(12); doc.setFont(undefined,'bold');
+          doc.text(title, 14, ty); ty += 4;
+          doc.setTextColor(...GREY); doc.setFontSize(7.5); doc.setFont(undefined,'normal');
+          doc.text('Ranked by contribution to the overall RRR% change. Low-volume noise removed (Impact = Vol × RRR%).', 14, ty+3);
+          if(!rowsArr.length){ doc.setFontSize(9); doc.setTextColor(...GREY); doc.text(empty, 14, ty+14); return; }
+          if(hasAT){
+            doc.autoTable({
+              startY: ty+7,
+              head:[SUMMARY_COLS],
+              body: rowsArr.map(summaryRowCells),
+              theme:'striped', styles:{fontSize:7.6, cellPadding:2, overflow:'linebreak'},
+              headStyles:{fillColor:color, textColor:255, fontSize:7.6},
+              alternateRowStyles:{fillColor:[248,248,250]},
+              columnStyles:{0:{cellWidth:26},1:{cellWidth:58,fontStyle:'bold'},5:{halign:'right'},6:{halign:'right',fontStyle:'bold'}},
+              margin:{left:14,right:14}
+            });
+          }
+        };
+        table('Improved  —  drivers that pulled RRR% down', res.sum.improved, GREEN, 'No dimension shows a material improvement between the selected periods.');
+        table('Worsened  —  drivers that pushed RRR% up',  res.sum.worsen,  RED,   'No dimension shows a material regression between the selected periods.');
+
+        if(hasAT){
+          doc.addPage();
+          doc.setTextColor(...DARK); doc.setFontSize(12); doc.setFont(undefined,'bold');
+          doc.text('Full detail by dimension', 14, 20);
+          let dy = 26;
+          res.dimResults.forEach(dr=>{
+            if(!dr.rows.length) return;
+            doc.autoTable({
+              startY: dy,
+              head:[[dr.dim.label,'Vol A','Vol B','Flags A','Flags B','RRR% A','RRR% B','Δ pp','Contrib pp']],
+              body: dr.rows.slice(0,12).map(r=>[
+                String(r.key), fmt(r.volA), fmt(r.volB), fmt(r.repA), fmt(r.repB),
+                r.pctA.toFixed(1)+'%', r.pctB.toFixed(1)+'%',
+                (r.dPP>=0?'+':'')+r.dPP.toFixed(2), (r.contrib>=0?'+':'')+r.contrib.toFixed(2)
+              ]),
+              theme:'grid', styles:{fontSize:7.2, cellPadding:1.8},
+              headStyles:{fillColor:DARK, textColor:255, fontSize:7.4},
+              columnStyles:{0:{cellWidth:60,fontStyle:'bold'},1:{halign:'right'},2:{halign:'right'},3:{halign:'right'},4:{halign:'right'},5:{halign:'right'},6:{halign:'right'},7:{halign:'right'},8:{halign:'right'}},
+              margin:{left:14,right:14}
+            });
+            dy = doc.lastAutoTable.finalY + 6;
+            if(dy > 175){ doc.addPage(); dy = 20; }
+          });
+        }
+
+        const pages = doc.internal.getNumberOfPages();
+        for(let i=1;i<=pages;i++){
+          doc.setPage(i); doc.setFontSize(7); doc.setTextColor(150);
+          doc.text(`RRR Comparison  ·  ${A} → ${B}`, 14, doc.internal.pageSize.getHeight()-6);
+          doc.text(`Page ${i} / ${pages}`, W-14, doc.internal.pageSize.getHeight()-6, {align:'right'});
+        }
         doc.save(`RRR_Compare_${new Date().toISOString().slice(0,10)}.pdf`);
-      }catch(e){ console.error(e); alert('Failed to export PDF.'); }
+      }catch(e){ console.error(e); alert('Failed to export PDF: '+e.message); }
     }
   };
 })();
@@ -9595,10 +9865,6 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
   .rce-chat-hd .sub{font-size:11px;color:var(--t3,#8a94b0)}
   .rce-chat-hd button{background:transparent;color:var(--t2,#bcc6de);border:1px solid var(--border,#243049);border-radius:6px;font-size:11px;padding:4px 8px;cursor:pointer}
   #rce-chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
-  .rce-table{width:100%;border-collapse:collapse;margin:8px 0;font-size:12px}
-  .rce-table th,.rce-table td{border:1px solid var(--border,#243049);padding:5px 7px;text-align:left;vertical-align:top}
-  .rce-table th{background:rgba(124,224,255,.10);color:var(--t1,#e6ecff);font-weight:700}
-  .rce-table td{color:var(--t2,#bcc6de)}
   .rce-msg{padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.5;max-width:100%;word-wrap:break-word}
   .rce-msg.user{background:rgba(124,224,255,.12);border:1px solid rgba(124,224,255,.28);align-self:flex-end;max-width:88%}
   .rce-msg.bot{background:rgba(168,107,255,.06);border:1px solid rgba(168,107,255,.22)}
@@ -9620,18 +9886,40 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
   .rce-typing{display:inline-block;width:8px;height:8px;border-radius:99px;background:#7ce0ff;margin:0 2px;animation:rce-blink 1s infinite}
   .rce-typing:nth-child(2){animation-delay:.2s}.rce-typing:nth-child(3){animation-delay:.4s}
   @keyframes rce-blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+  .rce-chip{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.02em;padding:2px 8px;border-radius:99px;border:1px solid}
+  .rce-chip.ok{color:#6ff0b6;border-color:rgba(111,240,182,.45);background:rgba(111,240,182,.08)}
+  .rce-chip.warn{color:#ffd479;border-color:rgba(255,212,121,.45);background:rgba(255,212,121,.08)}
+  .rce-chip.bad{color:#ff9b9b;border-color:rgba(255,120,120,.45);background:rgba(255,120,120,.08)}
+  #rce-cfg-panel{padding:12px 14px;border-bottom:1px solid var(--border,#243049);background:rgba(124,224,255,.04)}
+  #rce-cfg-panel label{display:block;font-size:11px;color:var(--t2,#bcc6de);margin-bottom:8px}
+  #rce-cfg-panel input{width:100%;margin-top:3px;background:var(--bg,#0e1421);color:var(--t1,#e6ecff);border:1px solid var(--border,#243049);border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit}
+  #rce-cfg-panel button{background:transparent;color:var(--t2,#bcc6de);border:1px solid var(--border,#243049);border-radius:6px;font-size:11px;padding:5px 12px;cursor:pointer}
+  #rce-cfg-panel button:hover{border-color:#7ce0ff;color:#7ce0ff}
+  #rce-cfg-panel .hint{font-size:10px;color:var(--t2,#8d97b0);margin-top:8px;line-height:1.5}
 </style>
+
 <button id="rce-chat-fab" title="Ask the RRR assistant">💬 Ask RRR</button>
 <div id="rce-chat-drawer" role="dialog" aria-label="RRR chat assistant">
   <div class="rce-chat-hd">
     <div>
       <h3>🤖 RRR Assistant</h3>
       <div class="sub" id="rce-chat-scope">Ask about any agent, TL, model, vendor, symptom…</div>
+      <div class="sub" style="margin-top:4px"><span id="rce-ollama-chip" class="rce-chip warn">Checking Ollama…</span></div>
     </div>
     <div style="display:flex;gap:6px">
+      <button type="button" id="rce-chat-cfg" title="Ollama settings">⚙</button>
       <button type="button" id="rce-chat-clear">Clear</button>
       <button type="button" id="rce-chat-close">✕</button>
     </div>
+  </div>
+  <div id="rce-cfg-panel" style="display:none">
+    <label>Ollama URL<input type="text" id="rce-cfg-url" placeholder="http://localhost:11434"></label>
+    <label>Model<input type="text" id="rce-cfg-model" placeholder="gemma4:12b"></label>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button type="button" id="rce-cfg-save">Save &amp; test</button>
+      <button type="button" id="rce-cfg-cancel">Cancel</button>
+    </div>
+    <div class="hint">Local only. Start Ollama with <code>OLLAMA_ORIGINS=*</code> so the browser can reach it.</div>
   </div>
   <div id="rce-chat-msgs"></div>
   <div class="rce-suggest" id="rce-chat-suggest"></div>
@@ -9640,6 +9928,7 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     <button id="rce-chat-send" type="submit">Send</button>
   </form>
 </div>
+
 <script>
 (function(){
   const MONTH_NAMES = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec','january','february','march','april','june','july','august','september','october','november','december'];
@@ -9660,18 +9949,6 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     s = s.replace(/(^|\n)((?:[-•]\s.+(?:\n|$))+)/g, function(_,pre,block){
       const items = block.trim().split(/\n/).map(l=>l.replace(/^[-•]\s+/,'')).map(l=>`<li>${l}</li>`).join('');
       return pre+'<ul>'+items+'</ul>';
-    });
-    // pipe tables
-    s = s.replace(/(^|\n)((?:\|.*\|\s*(?:\n|$))+)/g, function(_, pre, block){
-      const rows = block.trim().split('\n').filter(Boolean);
-      if(rows.length<2 || !/^\|?[\s:|-]+\|?$/.test(rows[1].trim())) return pre+block;
-      const parseRow = r => r.trim().replace(/^\||\|$/g,'').split('|').map(c=>c.trim());
-      const header = parseRow(rows[0]);
-      const body = rows.slice(2).map(parseRow);
-      let t = '<table class="rce-table"><thead><tr>'+header.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>';
-      body.forEach(r=>{ t += '<tr>'+r.map(c=>`<td>${c}</td>`).join('')+'</tr>'; });
-      t += '</tbody></table>';
-      return pre+t;
     });
     s = s.replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br>');
     return '<p>'+s+'</p>';
@@ -9694,48 +9971,6 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     if(/\bthis (week|month)\b|\blast (week|month)\b|\bprevious (week|month)\b|\bytd\b|\bmtd\b|\bqtd\b/.test(s)) return true;
     if(/\b20\d{2}[-/]\d{1,2}\b|\b\d{1,2}[-/]20\d{2}\b/.test(s)) return true;
     return false;
-  }
-
-  // Reads an actual month/week out of the question text (e.g. "July", "Wk27",
-  // "this month") and matches it against the real values present in the data,
-  // so a question like "how did we do in July?" scopes to July even if the
-  // dashboard's own header filter is set to something else or nothing.
-  function extractPeriodFromQuestion(question){
-    const q = question.toLowerCase();
-    const avail = availablePeriods();
-    let months = [];
-    const monthAbbr = MONTH_NAMES.find(m=>q.includes(m));
-    if(monthAbbr){
-      const abbr3 = monthAbbr.slice(0,3);
-      const yearMatch = q.match(/\b20\d{2}\b/);
-      months = avail.months.filter(m=>{
-        const ml = String(m).toLowerCase();
-        if(!ml.includes(abbr3)) return false;
-        if(yearMatch){
-          const y4 = yearMatch[0], y2 = y4.slice(2);
-          return ml.includes(y4) || ml.includes(y2);
-        }
-        return true;
-      });
-    }
-    if(!months.length){
-      if(/\bthis month\b/.test(q)) months = avail.months.slice(-1);
-      else if(/\blast month\b|\bprevious month\b/.test(q)) months = avail.months.slice(-2,-1);
-    }
-    let weeks = [];
-    const weekMatch = q.match(/\b(?:wk|week|w)\s*-?\s*(\d{1,2})\b/);
-    if(weekMatch){
-      const num = parseInt(weekMatch[1],10);
-      weeks = avail.weeks.filter(w=>{
-        const digits = String(w).match(/\d+/);
-        return digits && parseInt(digits[0],10)===num;
-      });
-    }
-    if(!weeks.length){
-      if(/\bthis week\b/.test(q)) weeks = avail.weeks.slice(-1);
-      else if(/\blast week\b|\bprevious week\b/.test(q)) weeks = avail.weeks.slice(-2,-1);
-    }
-    return { months, weeks };
   }
 
   function activePeriods(){
@@ -9781,15 +10016,168 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     );
   }
 
+  // ---------- Ollama (local) config ----------
+  const OLLAMA_DEFAULTS = { url:'http://localhost:11434', model:'gemma4:12b' };
+  function getCfg(){
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem('rrr_ollama_cfg')||'{}') || {}; } catch(_) { saved = {}; }
+    return {
+      url: String(saved.url || OLLAMA_DEFAULTS.url).replace(/\/+$/,''),
+      model: String(saved.model || OLLAMA_DEFAULTS.model)
+    };
+  }
+  function setCfg(url, model){
+    localStorage.setItem('rrr_ollama_cfg', JSON.stringify({
+      url: String(url||'').trim().replace(/\/+$/,'') || OLLAMA_DEFAULTS.url,
+      model: String(model||'').trim() || OLLAMA_DEFAULTS.model
+    }));
+  }
+  function setChip(cls, text, title){
+    const el = $('rce-ollama-chip'); if(!el) return;
+    el.className = 'rce-chip '+cls;
+    el.textContent = text;
+    el.title = title || '';
+  }
+  async function checkOllama(){
+    const cfg = getCfg();
+    setChip('warn','Checking Ollama…');
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(()=>ctrl.abort(), 4000);
+      const res = await fetch(cfg.url+'/api/tags', { signal: ctrl.signal });
+      clearTimeout(t);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const data = await res.json();
+      const models = (data.models||[]).map(m=>m.name);
+      const has = models.some(m => m === cfg.model || m.split(':')[0] === cfg.model.split(':')[0]);
+      if(has) setChip('ok','● Ollama · '+cfg.model, cfg.url);
+      else setChip('warn','Ollama up · "'+cfg.model+'" not pulled', 'Available: '+(models.join(', ')||'none'));
+      return true;
+    } catch(e){
+      setChip('bad','Ollama not reachable', cfg.url+' — start Ollama with OLLAMA_ORIGINS=*');
+      return false;
+    }
+  }
+
+  // ---------- analytics helpers ----------
+  function kpiOf(rows){
+    const distinctMtsn = new Set(rows.map(r=>r.MTSN).filter(Boolean)).size;
+    const hits = rows.filter(r=>String(r.FLAG)==='1').length;
+    return {
+      volume: rows.length,
+      distinctMtsn,
+      repeatHits: hits,
+      rrrPct: distinctMtsn ? +(hits/distinctMtsn*100).toFixed(2) : 0
+    };
+  }
+  const techKey = r => { const id=r.TECH_ID||''; const nm=r.TECH_NAME||''; return (nm||id) ? `${nm||'?'}${id?' ('+id+')':''}` : ''; };
+
+  const DIMS = {
+    agent:        r=>r.NAME,
+    tl:           r=>r.TL,
+    technician:   techKey,
+    sub_series:   r=>r.SUB,
+    symptom:      r=>r.SYMPTOM,
+    repair_reason:r=>r.NEXT_REASON,
+    vendor:       r=>r.VENDOR,
+    account:      r=>r.ACCOUNT,
+    region:       r=>r.REGION,
+    pudo:         r=>r.PUDO,
+    city:         r=>r.CITY,
+    first_fru:    r=>r.FIRST_FRU,
+    next_fru:     r=>r.NEXT_FRU
+  };
+
+  // current vs previous, per dimension, with deltas
+  function dimCompare(cur, prev, keyFn, n){
+    const c = agg(cur, keyFn), p = agg(prev, keyFn);
+    const pm = new Map(p.map(x=>[x.key,x]));
+    return topN(c, n).map(x=>{
+      const b = pm.get(x.key);
+      return {
+        key:x.key, vol:x.vol, mtsn:x.distinctMtsn, hits:x.hits, rrr:x.rrr, impact:x.impact,
+        prev: b ? { vol:b.vol, mtsn:b.distinctMtsn, hits:b.hits, rrr:b.rrr } : null,
+        dRrr: b ? +(x.rrr-b.rrr).toFixed(2) : null,
+        dVol: b ? x.vol-b.vol : null,
+        dHits: b ? x.hits-b.hits : null,
+        status: !b ? 'new' : (x.rrr>b.rrr ? 'worse' : (x.rrr<b.rrr ? 'better' : 'flat'))
+      };
+    });
+  }
+
+  // Rate vs mix decomposition of the RRR% movement across a dimension.
+  function rateMix(cur, prev, keyFn){
+    const c = agg(cur, keyFn), p = agg(prev, keyFn);
+    const cTot = c.reduce((s,x)=>s+x.distinctMtsn,0) || 1;
+    const pTot = p.reduce((s,x)=>s+x.distinctMtsn,0) || 1;
+    const cm = new Map(c.map(x=>[x.key,x])), pm = new Map(p.map(x=>[x.key,x]));
+    const keys = new Set([...cm.keys(), ...pm.keys()]);
+    let rate=0, mix=0; const drivers=[];
+    keys.forEach(k=>{
+      const a = cm.get(k), b = pm.get(k);
+      const cs = a ? a.distinctMtsn/cTot : 0, ps = b ? b.distinctMtsn/pTot : 0;
+      const cr = a ? a.rrr : 0, pr = b ? b.rrr : 0;
+      const rEff = ps*(cr-pr), mEff = (cs-ps)*pr;
+      rate += rEff; mix += mEff;
+      if(Math.abs(rEff)+Math.abs(mEff) > 0.001) drivers.push({ key:k, rateEffect:+rEff.toFixed(3), mixEffect:+mEff.toFixed(3), total:+(rEff+mEff).toFixed(3) });
+    });
+    drivers.sort((x,y)=>Math.abs(y.total)-Math.abs(x.total));
+    return { rateEffect:+rate.toFixed(2), mixEffect:+mix.toFixed(2), topDrivers: drivers.slice(0,8) };
+  }
+
+  function crossTab(rows, keyFn, n){
+    return topN(agg(rows, keyFn), n).map(x=>({ key:x.key, vol:x.vol, mtsn:x.distinctMtsn, hits:x.hits, rrr:x.rrr, impact:x.impact }));
+  }
+
+  function hcsSplit(rows){
+    const h = rows.filter(r=>r.HCS!=null && r.HCS!=='');
+    if(!h.length) return null;
+    const comp = h.filter(r=>/comp/i.test(String(r.HCS)) && !/non/i.test(String(r.HCS)));
+    const non  = h.filter(r=>!comp.includes(r));
+    const k = rs => { const m=new Set(rs.map(r=>r.MTSN).filter(Boolean)).size; const hi=rs.filter(r=>String(r.FLAG)==='1').length; return { vol:rs.length, mtsn:m, hits:hi, rrr: m? +(hi/m*100).toFixed(2):0 }; };
+    return { compliant:k(comp), nonCompliant:k(non) };
+  }
+
+  // FRU journey: which next-WO FRU closed repeats for the biggest model+symptom pairs
+  function fruJourney(rows, n){
+    const rep = rows.filter(r=>String(r.FLAG)==='1');
+    const pairs = topN(agg(rep, r=>`${r.SUB||'?'} | ${r.SYMPTOM||'?'}`), n);
+    return pairs.map(p=>{
+      const [sub,sym] = String(p.key).split(' | ');
+      const sub2 = rep.filter(r=>String(r.SUB||'?')===sub && String(r.SYMPTOM||'?')===sym);
+      const cnt = (arr,f)=>{ const m=new Map(); arr.forEach(r=>{const v=f(r); if(v) m.set(v,(m.get(v)||0)+1);}); return [...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,4).map(([fru,c])=>({fru,count:c})); };
+      return { model:sub, symptom:sym, repeatVol:p.vol, rrr:p.rrr, firstFru:cnt(sub2,r=>r.FIRST_FRU), resolvingFru:cnt(sub2,r=>r.NEXT_FRU) };
+    });
+  }
+
+  // previous comparable period for the active selection
+  function previousPeriods(active){
+    const avail = availablePeriods();
+    if(active.weeks && active.weeks.length){
+      const sel = [...active.weeks].sort();
+      const idx = avail.weeks.indexOf(sel[0]);
+      const span = active.weeks.length;
+      const prev = idx>0 ? avail.weeks.slice(Math.max(0, idx-span), idx) : [];
+      return prev.length ? { months: active.months||[], weeks: prev } : null;
+    }
+    if(active.months && active.months.length){
+      const sel = [...active.months].sort();
+      const idx = avail.months.indexOf(sel[0]);
+      const span = active.months.length;
+      const prev = idx>0 ? avail.months.slice(Math.max(0, idx-span), idx) : [];
+      return prev.length ? { months: prev, weeks: [] } : null;
+    }
+    return null;
+  }
+
   function deepDive(rows, question){
     const q = question.toLowerCase();
-    // pick candidate entity names from data that appear literally in the question
     const rows100 = rows.slice(0, 60000);
     const dims = {
       NAME:'agent', TL:'tl', SUB:'sub_series', SYMPTOM:'symptom',
       VENDOR:'vendor', ACCOUNT:'account', REGION:'region', CITY:'city',
       PUDO:'pudo', TECH_ID:'tech_id', TECH_NAME:'tech_name', FS_PARTNER:'fs_partner',
-      NEXT_REASON:'reason'
+      NEXT_REASON:'reason', FIRST_FRU:'first_fru', NEXT_FRU:'next_fru'
     };
     const found = [];
     for(const [col,label] of Object.entries(dims)){
@@ -9802,84 +10190,91 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
       }
     }
     if(!found.length) return null;
-    // deduplicate — first hit per col
     const seen = new Set(), picks = [];
     for(const f of found){ if(seen.has(f.col)) continue; seen.add(f.col); picks.push(f); if(picks.length>=3) break; }
     return picks.map(f=>{
       const sub = rows.filter(r => String(r[f.col]||'').toLowerCase() === f.value.toLowerCase());
-      const distinctMtsn = new Set(sub.map(r=>r.MTSN).filter(Boolean)).size;
-      const hits = sub.filter(r=>String(r.FLAG)==='1').length;
-      const rrr = distinctMtsn? +(hits/distinctMtsn*100).toFixed(2) : 0;
-      const hcsRows = sub.filter(r=>r.HCS!=null && r.HCS!=='');
-      const hcsCompliant = hcsRows.filter(r=>/comp/i.test(String(r.HCS))).length;
+      const k = kpiOf(sub);
       return {
         entity: f.label, value: f.value,
-        volume: sub.length, distinctMtsn, repeatHits: hits, rrrPct: rrr,
-        hcs: hcsRows.length ? {
-          checked: hcsRows.length,
-          compliant: hcsCompliant,
-          nonCompliant: hcsRows.length-hcsCompliant,
-          compliancePct: +(hcsCompliant/hcsRows.length*100).toFixed(1)
-        } : null,
-        topModels: topN(agg(sub, r=>r.SUB||'Unknown'),5),
-        topSymptoms: topN(agg(sub, r=>r.SYMPTOM||'Unknown'),5),
-        topRepairReasons: topN(agg(sub.filter(r=>String(r.FLAG)==='1'), r=>r.NEXT_REASON||'Unknown'),5),
+        volume: k.volume, distinctMtsn: k.distinctMtsn, repeatHits: k.repeatHits, rrrPct: k.rrrPct,
+        hcs: hcsSplit(sub),
+        topModels: crossTab(sub, r=>r.SUB||'Unknown', 5),
+        topSymptoms: crossTab(sub, r=>r.SYMPTOM||'Unknown', 5),
+        topRepairReasons: crossTab(sub.filter(r=>String(r.FLAG)==='1'), r=>r.NEXT_REASON||'Unknown', 5),
+        topModelSymptom: crossTab(sub.filter(r=>String(r.FLAG)==='1'), r=>`${r.SUB||'?'} | ${r.SYMPTOM||'?'}`, 5),
+        topVendors: crossTab(sub, r=>r.VENDOR||'Unknown', 4),
+        topAccounts: crossTab(sub, r=>r.ACCOUNT||'Unknown', 4),
         monthTrend: topN(agg(sub, r=>r.MONTH||'?').sort((a,b)=>String(a.key).localeCompare(String(b.key))),24),
         weekTrend:  topN(agg(sub, r=>r.WEEK||'?').sort((a,b)=>String(a.key).localeCompare(String(b.key))),24),
-        sampleRepeatWOs: sub.filter(r=>String(r.FLAG)==='1').slice(0,10).map(r=>({wo:r.WO_NUM,mtsn:r.MTSN,month:r.MONTH,week:r.WEEK,model:r.SUB,symptom:r.SYMPTOM,reason:r.NEXT_REASON,vendor:r.VENDOR,pudo:r.PUDO}))
+        sampleRepeatWOs: sub.filter(r=>String(r.FLAG)==='1').slice(0,10).map(r=>({wo:r.WO_NUM,mtsn:r.MTSN,month:r.MONTH,week:r.WEEK,model:r.SUB,symptom:r.SYMPTOM,reason:r.NEXT_REASON,vendor:r.VENDOR,pudo:r.PUDO,tech:techKey(r),firstFru:r.FIRST_FRU,nextFru:r.NEXT_FRU}))
       };
     });
   }
 
   function buildContext(question){
     const rows = (typeof rawData!=='undefined' && rawData) ? rawData : (window.rawData||[]);
-    const qPeriod = extractPeriodFromQuestion(question);
-    const headerPeriod = activePeriods();
-    const qHasPeriod = qPeriod.months.length>0 || qPeriod.weeks.length>0;
-    const headerHasPeriod = headerPeriod.months.length>0 || headerPeriod.weeks.length>0;
-    const active = qHasPeriod ? qPeriod : (headerHasPeriod ? headerPeriod : {months:[],weeks:[]});
-    const periodSource = qHasPeriod ? 'question' : (headerHasPeriod ? 'dashboard filter' : 'overall (all data)');
+    const active = activePeriods();
     const scoped = slice(rows, active);
-    const distinctMtsn = new Set(scoped.map(r=>r.MTSN).filter(Boolean)).size;
-    const hits = scoped.filter(r=>String(r.FLAG)==='1').length;
-    const kpi = {
-      volume: scoped.length,
-      distinctMtsn,
-      repeatHits: hits,
-      rrrPct: distinctMtsn ? +(hits/distinctMtsn*100).toFixed(2) : 0
-    };
+    const prevSel = previousPeriods(active);
+    const prevRows = prevSel ? slice(rows, prevSel) : [];
+    const kpi = kpiOf(scoped);
+    const prevKpi = prevRows.length ? kpiOf(prevRows) : null;
+
+    const dimensions = {};
+    Object.entries(DIMS).forEach(([label, fn])=>{
+      const src = (label==='repair_reason') ? scoped.filter(r=>String(r.FLAG)==='1') : scoped;
+      const psrc = (label==='repair_reason') ? prevRows.filter(r=>String(r.FLAG)==='1') : prevRows;
+      dimensions[label] = dimCompare(src, psrc, fn, 10);
+    });
+
     return {
+      metric_definitions: {
+        volume:'work order count',
+        distinctMtsn:'unique serial numbers',
+        hits:'rows with the 30D repeat flag = 1',
+        rrr:'hits / distinctMtsn * 100',
+        impact:'volume * rrr% (used to rank; kills low-volume noise)',
+        rateEffect:'RRR% movement caused by the same mix repairing worse/better',
+        mixEffect:'RRR% movement caused only by workload shifting between groups'
+      },
       period: {
         selected: active,
-        source: periodSource,
+        comparedAgainst: prevSel,
         available: availablePeriods()
       },
       kpi,
-      top: {
-        agents:    topN(agg(scoped, r=>r.NAME||'Unknown'),10),
-        tls:       topN(agg(scoped, r=>r.TL||'Unknown'),10),
-        technicians: topN(agg(scoped, r=>{const id=r.TECH_ID||'';const nm=r.TECH_NAME||'';return (nm||id)?`${nm||'?'}${id?' ('+id+')':''}`:'';}),10),
-        subSeries: topN(agg(scoped, r=>r.SUB||'Unknown'),10),
-        symptoms:  topN(agg(scoped, r=>r.SYMPTOM||'Unknown'),10),
-        repairReasons: topN(agg(scoped.filter(r=>String(r.FLAG)==='1'), r=>r.NEXT_REASON||'Unknown'),10),
-        vendors:   topN(agg(scoped, r=>r.VENDOR||'Unknown'),10),
-        accounts:  topN(agg(scoped, r=>r.ACCOUNT||'Unknown'),10),
-        regions:   topN(agg(scoped, r=>r.REGION||'Unknown'),8),
-        pudos:     topN(agg(scoped, r=>r.PUDO||'Unknown'),10)
+      previousKpi: prevKpi,
+      movement: prevKpi ? {
+        dRrrPct: +(kpi.rrrPct - prevKpi.rrrPct).toFixed(2),
+        dVolume: kpi.volume - prevKpi.volume,
+        dHits: kpi.repeatHits - prevKpi.repeatHits,
+        bySubSeries: rateMix(scoped, prevRows, r=>r.SUB),
+        bySymptom:   rateMix(scoped, prevRows, r=>r.SYMPTOM),
+        byVendor:    rateMix(scoped, prevRows, r=>r.VENDOR),
+        byAgent:     rateMix(scoped, prevRows, r=>r.NAME)
+      } : null,
+      dimensions,
+      crossTabs: {
+        model_x_symptom:      crossTab(scoped, r=>`${r.SUB||'?'} | ${r.SYMPTOM||'?'}`, 10),
+        vendor_x_region:      crossTab(scoped, r=>`${r.VENDOR||'?'} | ${r.REGION||'?'}`, 10),
+        account_x_symptom:    crossTab(scoped, r=>`${r.ACCOUNT||'?'} | ${r.SYMPTOM||'?'}`, 8),
+        technician_x_reason:  crossTab(scoped.filter(r=>String(r.FLAG)==='1'), r=>`${techKey(r)||'?'} | ${r.NEXT_REASON||'?'}`, 8),
+        vendor_x_reason:      crossTab(scoped.filter(r=>String(r.FLAG)==='1'), r=>`${r.VENDOR||'?'} | ${r.NEXT_REASON||'?'}`, 8)
       },
+      hcs: hcsSplit(scoped),
+      fruJourney: fruJourney(scoped, 8),
       deep_dive: deepDive(scoped, question)
     };
   }
 
-  // Keep the payload well under any hosting body limit by progressively trimming
-  // the heaviest parts of the context.
-  const CTX_BUDGET = 300000;
+  // Local models have a small context window — keep the brief tight.
+  const CTX_BUDGET = 45000;
   function fitContext(context){
     let ctx = context;
     let size = JSON.stringify(ctx).length;
     if(size <= CTX_BUDGET) return {ctx, trimmed:false, size};
 
-    // 1) trim deep_dive sample work orders + trends
     if(ctx.deep_dive && typeof ctx.deep_dive === 'object'){
       Object.keys(ctx.deep_dive).forEach(k=>{
         const d = ctx.deep_dive[k];
@@ -9891,95 +10286,47 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
       });
       size = JSON.stringify(ctx).length;
     }
-    // 2) drop deep_dive entries entirely, keeping the first few
+    if(size > CTX_BUDGET && ctx.crossTabs){
+      Object.keys(ctx.crossTabs).forEach(k=>{ if(Array.isArray(ctx.crossTabs[k])) ctx.crossTabs[k] = ctx.crossTabs[k].slice(0,5); });
+      size = JSON.stringify(ctx).length;
+    }
+    if(size > CTX_BUDGET && ctx.dimensions){
+      Object.keys(ctx.dimensions).forEach(k=>{ if(Array.isArray(ctx.dimensions[k])) ctx.dimensions[k] = ctx.dimensions[k].slice(0,5); });
+      size = JSON.stringify(ctx).length;
+    }
+    if(size > CTX_BUDGET && Array.isArray(ctx.fruJourney)){
+      ctx.fruJourney = ctx.fruJourney.slice(0,4);
+      size = JSON.stringify(ctx).length;
+    }
     if(size > CTX_BUDGET && ctx.deep_dive){
-      const keys = Object.keys(ctx.deep_dive).slice(0,3);
+      const keys = Object.keys(ctx.deep_dive).slice(0,2);
       const kept = {};
       keys.forEach(k=>{ kept[k] = ctx.deep_dive[k]; });
       ctx.deep_dive = kept;
-      size = JSON.stringify(ctx).length;
-    }
-    // 3) shorten top lists
-    if(size > CTX_BUDGET && ctx.top){
-      Object.keys(ctx.top).forEach(k=>{
-        if(Array.isArray(ctx.top[k])) ctx.top[k] = ctx.top[k].slice(0,5);
-      });
       size = JSON.stringify(ctx).length;
     }
     ctx.data_note = 'Some supporting detail was trimmed for size. Answer from what is present and say when a detail is unavailable.';
     return {ctx, trimmed:true, size:JSON.stringify(ctx).length};
   }
 
-
-  // --- Local answer engine: builds the reply directly from the computed
-  // context (KPIs, top lists, deep-dive). No network call, no API, no key —
-  // so it can never show a "request failed" / "unavailable" error.
-  function fmtPct(n){ return (typeof n==='number' ? n.toFixed(2) : n) + '%'; }
-  function rankList(arr, label, n){
-    n = n || 5;
-    if(!arr || !arr.length) return `_No ${label} data available for this period._`;
-    return arr.slice(0,n).map((x,i)=>`${i+1}. **${x.key}** — RRR ${fmtPct(x.rrr)}, ${x.vol} WOs, ${x.distinctMtsn} units`).join('\n');
-  }
-  function fullInsightsTable(ctx){
-    const cats = [
-      ['agents','Agent'], ['tls','TL'], ['technicians','Technician'],
-      ['vendors','Vendor'], ['accounts','Account'], ['regions','Region'],
-      ['pudos','PUDO'], ['subSeries','Sub-Series'], ['symptoms','Symptom'],
-      ['repairReasons','Repeat Repair Reason']
-    ];
-    const rows = cats.map(([key,label])=>{
-      const arr = (ctx.top[key]||[]).filter(x=>x.vol>=5);
-      if(!arr.length) return `| ${label} | _insufficient volume_ | _insufficient volume_ | — |`;
-      const best = [...arr].sort((a,b)=>a.rrr-b.rrr)[0];
-      const worst = [...arr].sort((a,b)=>b.rrr-a.rrr)[0];
-      const insight = best.key===worst.key
-        ? 'Only one entity has enough volume to judge.'
-        : `${worst.key} is the risk area to fix; ${best.key} is the benchmark to replicate.`;
-      return `| ${label} | **${best.key}** — ${fmtPct(best.rrr)} (${best.vol} WOs) | **${worst.key}** — ${fmtPct(worst.rrr)} (${worst.vol} WOs) | ${insight} |`;
-    });
-    return `| Category | ✅ What went right (lowest RRR) | ⚠️ What went worse (highest RRR) | Insight |\n|---|---|---|---|\n`+rows.join('\n');
-  }
-
-  function localAnswer(question, ctx){
-    const lines = [];
-    const p = ctx.period && ctx.period.selected;
-    const scopeParts = [...((p&&p.months)||[]), ...((p&&p.weeks)||[])];
-    const scopeLabel = scopeParts.length ? scopeParts.join(', ') : 'All periods (overall)';
-    lines.push(`**Scope:** ${scopeLabel} _(${ctx.period.source})_`);
-    lines.push(`**Overall RRR:** ${fmtPct(ctx.kpi.rrrPct)} — ${ctx.kpi.repeatHits} repeats across ${ctx.kpi.distinctMtsn} units (${ctx.kpi.volume} total WOs)`);
-
-    if(ctx.deep_dive && ctx.deep_dive.length){
-      ctx.deep_dive.forEach(d=>{
-        lines.push(`\n### ${d.entity[0].toUpperCase()+d.entity.slice(1)}: ${d.value}`);
-        lines.push(`- Volume: **${d.volume}** WOs, **${d.distinctMtsn}** units, **${d.repeatHits}** repeats → RRR **${fmtPct(d.rrrPct)}**`);
-        if(d.hcs) lines.push(`- HCS compliance: **${fmtPct(d.hcs.compliancePct)}** (${d.hcs.compliant}/${d.hcs.checked} checked)`);
-        if(d.topModels && d.topModels.length) lines.push(`- Top models: ${d.topModels.slice(0,3).map(m=>`${m.key} (${fmtPct(m.rrr)})`).join(', ')}`);
-        if(d.topSymptoms && d.topSymptoms.length) lines.push(`- Top symptoms: ${d.topSymptoms.slice(0,3).map(m=>m.key).join(', ')}`);
-        if(d.topRepairReasons && d.topRepairReasons.length) lines.push(`- Top repeat reasons: ${d.topRepairReasons.slice(0,3).map(m=>m.key).join(', ')}`);
-      });
-    } else {
-      const q = question.toLowerCase();
-      const map = [
-        [/agent/, 'agents','Agent'], [/\btl\b|team lead/, 'tls','TL'],
-        [/technician|tech\b/, 'technicians','Technician'], [/vendor/, 'vendors','Vendor'],
-        [/account/, 'accounts','Account'], [/region/, 'regions','Region'],
-        [/pudo/, 'pudos','PUDO'], [/symptom/, 'symptoms','Symptom'],
-        [/reason/, 'repairReasons','Repeat Repair Reason'], [/model|sub.?series|series/, 'subSeries','Sub-Series']
-      ];
-      const matched = map.filter(([re])=>re.test(q));
-      const wantsFull = /overall|full|complete|total|summary|deep.?dive|health|insight|how (are|is) we|performance/.test(q) || !matched.length;
-      if(wantsFull){
-        lines.push(`\n**Full cross-panel breakdown:**\n`);
-        lines.push(fullInsightsTable(ctx));
-      } else {
-        matched.forEach(([,key,label])=>{
-          lines.push(`\n**Top ${label}s by impact:**\n${rankList(ctx.top[key], label)}`);
-        });
-      }
-    }
-    lines.push(`\n_Ask about a specific agent, TL, vendor, model, or reason by name — or a month/week (e.g. "July" or "Wk27") — for a scoped breakdown._`);
-    return lines.join('\n');
-  }
+  const SYSTEM_PROMPT = [
+    'You are the RRR Intelligence Assistant for a Lenovo service dashboard.',
+    'You answer ONLY from the JSON BRIEF in the user turn. Never invent a number, name, model, part or entity that is not in the brief. If something is missing, say so plainly.',
+    '',
+    'Definitions: Volume = work orders. Distinct MTSN = unique serials. Repeat Flags / RRR Hits = rows with the 30D flag = 1.',
+    'RRR% = Hits / Distinct MTSN * 100. Impact = Volume * RRR% (always rank by impact, never by RRR% alone — that promotes low-volume noise).',
+    'rateEffect = movement because the same mix repaired worse. mixEffect = movement because workload shifted between groups.',
+    '',
+    'ALWAYS answer in this exact structure, in markdown, tight and numeric:',
+    '**Snapshot** — period, volume, distinct MTSN, repeat hits, RRR% and the delta vs the compared period.',
+    '**What went right** — improvements ranked by impact, each with the number and the delta.',
+    '**What went worse** — worsened drivers ranked by impact, each with the number and the delta.',
+    '**Root cause (WHY)** — one plain sentence per top driver: who/what, how much of the RRR movement it explains, and whether it is rate or mix.',
+    '**Leverage** — quantified pointers, e.g. "fix <model>/<symptom> and RRR% falls from A% to B%". Compute these from the brief.',
+    '**How to improve** — concrete actions tied to the named entities (coach agent X on reason Y, prefer FRU Z for model+symptom, enforce HCS at vendor V, escalate account A).',
+    '',
+    'Rules: every claim carries its number. Name real entities from the brief (agent, TL, technician + PUDO, model, symptom, repeat reason, vendor, account, region, FRU). Quote work-order numbers when the brief has them so the user can verify. Never mention "brief", "JSON", "context" or internal plumbing.'
+  ].join('\n');
 
   async function ask(question){
     if(state.busy) return;
@@ -9991,27 +10338,82 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     addMsg('user', esc(question));
     history.push({role:'user', content:question});
 
-    // No gating: if the question names a month/week, that scopes the answer;
-    // otherwise fall back to the dashboard's header filter, or all data.
+    // Ask-first rule: if no period selected AND no period in question, ask.
+    const {months, weeks} = activePeriods();
+    if(!months.length && !weeks.length && !detectPeriodInQuestion(question)){
+      const avail = availablePeriods();
+      const monthChips = avail.months.slice(-8).join(', ') || '—';
+      const weekChips  = avail.weeks.slice(-8).join(', ')  || '—';
+      const html = md(`Which period should I look at?\n\n- **Months available:** ${monthChips}\n- **Weeks available:** ${weekChips}\n\nReply with a month (e.g. *July*) or a week (e.g. *Wk27*), or select one in the dashboard header.`);
+      addMsg('bot', html);
+      history.push({role:'assistant', content:'Asked user for month/week.'});
+      return;
+    }
+
     state.busy = true;
     $('rce-chat-send').disabled = true;
     const typing = addMsg('bot','<span class="rce-typing"></span><span class="rce-typing"></span><span class="rce-typing"></span>');
+    const cfg = getCfg();
     try {
       const fitted = fitContext(buildContext(question));
-      const text = localAnswer(question, fitted.ctx);
+      const payload = JSON.stringify({
+        model: cfg.model,
+        stream: false,
+        options: { temperature: 0.2, num_ctx: 16384 },
+        messages: [
+          { role:'system', content: SYSTEM_PROMPT },
+          ...history.slice(0, -1).slice(-6).map(m=>({ role:m.role, content:String(m.content||'').slice(0,6000) })),
+          { role:'user', content: 'BRIEF (JSON):\n'+JSON.stringify(fitted.ctx)+'\n\nQUESTION:\n'+question }
+        ]
+      });
+
+      let res = null, raw = '', netErr = null;
+      for(let attempt=0; attempt<2; attempt++){
+        netErr = null;
+        try {
+          res = await fetch(cfg.url+'/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload
+          });
+          raw = await res.text();
+        } catch(e){ netErr = e; res = null; raw = ''; }
+        const retryable = netErr || (res && [500,502,503,504].includes(res.status));
+        if(!retryable || attempt === 1) break;
+        await new Promise(r=>setTimeout(r, 1200));
+      }
+
       typing.remove();
-      addMsg('bot', md(text));
-      history.push({ role: 'assistant', content: text });
+
+      if(netErr || !res){
+        console.error('[RRR Assistant] Ollama unreachable', netErr, 'payload bytes:', payload.length);
+        setChip('bad','Ollama not reachable', cfg.url);
+        addMsg('bot', md('**Cannot reach Ollama at `'+cfg.url+'`.**\n\nChecklist:\n- Ollama is running on this machine (`ollama serve`)\n- It was started with `OLLAMA_ORIGINS=*` so the browser is allowed to call it\n- The model `'+cfg.model+'` is pulled (`ollama pull '+cfg.model+'`)\n\nThis assistant is local-only, so it works only on a machine running Ollama. Use ⚙ to change the URL or model.'), 'err');
+      } else {
+        let data = {};
+        try { data = raw ? JSON.parse(raw) : {}; } catch(_) { data = {}; }
+        if(!res.ok){
+          console.error('[RRR Assistant] Ollama HTTP', res.status, raw.slice(0,2000));
+          const detail = data?.error || raw.slice(0,300) || 'No response body.';
+          addMsg('bot', md('**Ollama rejected the request.**\n\n`HTTP '+res.status+'` — '+detail+(/model/i.test(String(detail))?'\n\nTry `ollama pull '+cfg.model+'`, or set a model you already have via ⚙.':'')), 'err');
+        } else {
+          const text = (data && data.message && data.message.content) ? data.message.content : '(no answer)';
+          setChip('ok','● Ollama · '+cfg.model, cfg.url);
+          addMsg('bot', md(text));
+          history.push({ role: 'assistant', content: text });
+        }
+      }
     } catch(e){
       typing.remove();
       console.error('[RRR Assistant] unexpected error', e);
-      addMsg('bot', md('**Something went wrong building the answer.**\n\n`'+String(e && e.message ? e.message : e)+'`'), 'err');
+      addMsg('bot', md('**Assistant request failed.**\n\n`'+String(e && e.message ? e.message : e)+'`'), 'err');
 
     } finally {
       state.busy = false;
       $('rce-chat-send').disabled = false;
     }
   }
+
 
   function updateScope(){
     const {months, weeks} = activePeriods();
@@ -10040,16 +10442,38 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     state.open = true;
     $('rce-chat-drawer').classList.add('on');
     updateScope();
+    checkOllama();
     setTimeout(()=>$('rce-chat-input').focus(),150);
     if(!$('rce-chat-msgs').children.length){
-      addMsg('bot', md('Hi! I read your currently uploaded RRR file to answer this request; the file is not stored by the dashboard.\n\nAsk about any **agent, TL, technician, model, symptom, repair reason, vendor, account, region, PUDO or FRU**. I will always confirm the month or week first if you have not picked one.'));
+      const cfg = getCfg();
+      addMsg('bot', md('Hi! I run **fully locally** on your Ollama (`'+cfg.model+'`) — your RRR file never leaves this machine.\n\nAsk about any **agent, TL, technician, model, symptom, repair reason, vendor, account, region, PUDO or FRU**. Every answer gives snapshot → what improved → what worsened → root cause → leverage → actions. I will confirm the month or week first if you have not picked one.'));
     }
   }
   function closeDrawer(){ state.open=false; $('rce-chat-drawer').classList.remove('on'); }
 
+  function toggleCfg(show){
+    const p = $('rce-cfg-panel');
+    const open = show !== undefined ? show : p.style.display === 'none';
+    if(open){
+      const cfg = getCfg();
+      $('rce-cfg-url').value = cfg.url;
+      $('rce-cfg-model').value = cfg.model;
+    }
+    p.style.display = open ? 'block' : 'none';
+  }
+
   document.addEventListener('DOMContentLoaded', function(){
     $('rce-chat-fab').addEventListener('click', openDrawer);
     $('rce-chat-close').addEventListener('click', closeDrawer);
+    $('rce-chat-cfg').addEventListener('click', ()=>toggleCfg());
+    $('rce-cfg-cancel').addEventListener('click', ()=>toggleCfg(false));
+    $('rce-cfg-save').addEventListener('click', function(){
+      setCfg($('rce-cfg-url').value, $('rce-cfg-model').value);
+      toggleCfg(false);
+      checkOllama();
+    });
+    $('rce-ollama-chip').addEventListener('click', checkOllama);
+    $('rce-ollama-chip').style.cursor = 'pointer';
     $('rce-chat-clear').addEventListener('click', function(){
       history.length = 0;
       $('rce-chat-msgs').innerHTML = '';
@@ -10068,7 +10492,9 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     renderSuggestions();
     // refresh scope line whenever chips change
     setInterval(()=>{ if(state.open) updateScope(); }, 1200);
+    setInterval(()=>{ if(state.open && !state.busy) checkOllama(); }, 30000);
   });
+
 
   window.RCEChat = { open:openDrawer, close:closeDrawer, ask };
 })();
