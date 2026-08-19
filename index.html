@@ -6856,8 +6856,13 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
     return arr;
   }
 
+  // Repair Reason is a share-of-repeat-hits dimension (exactly like the
+  // "Repeat Repair Reasons" tab in the Agents panel: RRR% = reason count ÷
+  // total RRR hits). Every other dimension is hits ÷ distinct MTSN.
+  function isShareDim(dim){ return dim==='REASON'; }
+
   function aggregate(rows, periodSet, dim){
-    // return { vol, rep, byDim: Map(key -> {vol, rep}) }
+    // return { vol, rep, byDim: Map(key -> {vol, rep, denom}) }
     const mtsnGlobal = new Map(); // MTSN -> hits
     const dimMap = new Map();     // key -> { mtsn:Map(mtsn->hits) }
     let repTotal = 0;
@@ -6880,7 +6885,8 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
     });
     const vol = mtsnGlobal.size;
     const byDim = new Map();
-    dimMap.forEach((v,k)=>{ byDim.set(k,{vol:v.mtsn.size, rep:v.rep}); });
+    const share = isShareDim(dim);
+    dimMap.forEach((v,k)=>{ byDim.set(k,{vol:v.mtsn.size, rep:v.rep, denom: share? repTotal : v.mtsn.size, share}); });
     return { vol, rep: repTotal, pct: vol>0? (repTotal/vol*100):0, byDim };
   }
 
@@ -6989,16 +6995,18 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
     const keys = new Set([...aByDim.keys(), ...bByDim.keys()]);
     const rows = [];
     keys.forEach(k=>{
-      const A = aByDim.get(k) || {vol:0,rep:0};
-      const B = bByDim.get(k) || {vol:0,rep:0};
-      const pctA = A.vol>0? (A.rep/A.vol*100):0;
-      const pctB = B.vol>0? (B.rep/B.vol*100):0;
+      const A = aByDim.get(k) || {vol:0,rep:0,denom:0};
+      const B = bByDim.get(k) || {vol:0,rep:0,denom:0};
+      const share = !!(A.share || B.share);
+      const dA = A.denom!=null? A.denom : A.vol, dB = B.denom!=null? B.denom : B.vol;
+      const pctA = dA>0? (A.rep/dA*100):0;
+      const pctB = dB>0? (B.rep/dB*100):0;
       const contrib = ((volB>0? B.rep/volB:0) - (volA>0? A.rep/volA:0)) * 100;
-      rows.push({key:k, volA:A.vol, volB:B.vol, repA:A.rep, repB:B.rep, pctA, pctB, dPP:pctB-pctA, contrib});
+      rows.push({key:k, volA:A.vol, volB:B.vol, repA:A.rep, repB:B.rep, pctA, pctB, dPP:pctB-pctA, contrib, share});
     });
     // Rank by Impact = Volume × RRR% (repeat-flag count) — biggest of the two periods.
-    // This surfaces high-volume + high-RRR entities first and pushes tiny-volume noise down.
-    rows.forEach(r=>{ r.impact = Math.max(r.volA * r.pctA, r.volB * r.pctB) / 100; });
+    // For share dimensions (Repair Reason) the repeat-flag count *is* the impact.
+    rows.forEach(r=>{ r.impact = r.share ? Math.max(r.repA, r.repB) : Math.max(r.volA * r.pctA, r.volB * r.pctB) / 100; });
     rows.sort((a,b)=> b.impact - a.impact || Math.abs(b.contrib) - Math.abs(a.contrib));
     return rows;
   }
@@ -7007,15 +7015,20 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
     // build small line of RRR% per period (Wk or Month) sorted, for rows matching dim=key
     const periods = listPeriods(rows);
     if(periods.length<2) return '';
+    const share = isShareDim(dim);
     const sub = rows.filter(r=>dimVal(r,dim)===key);
-    const map = new Map(); periods.forEach(p=>map.set(p,{v:0,r:0}));
+    const map = new Map(); periods.forEach(p=>map.set(p,{v:0,r:0,tot:0}));
+    if(share){
+      // denominator = all repeat hits in that period (matches the Agents tab)
+      rows.forEach(r=>{ const p=periodKey(r); const o=map.get(p); if(o && r.FLAG==='1') o.tot++; });
+    }
     sub.forEach(r=>{
       const p = periodKey(r); if(!map.has(p)) return;
       const isHit = r.FLAG==='1'; const o = map.get(p);
       if(isHit) o.r++;
       if(r.MTSN){ if(!o._m) o._m=new Set(); o._m.add(r.MTSN); }
     });
-    const pts = periods.map(p=>{ const o=map.get(p); const v=o._m?o._m.size:0; return v>0? (o.r/v*100):0; });
+    const pts = periods.map(p=>{ const o=map.get(p); const v=share? o.tot : (o._m?o._m.size:0); return v>0? (o.r/v*100):0; });
     const w=80,h=22,pad=2;
     const mx=Math.max(...pts,1), mn=Math.min(...pts,0);
     const span = (mx-mn)||1;
@@ -7034,14 +7047,17 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
     if(worsen.length) previewParts.push(`<span class="up">↑ ${worsen.map(r=>`${esc(r.key)} (${pp(r.contrib)})`).join(', ')}</span>`);
     if(improve.length) previewParts.push(`<span class="down">↓ ${improve.map(r=>`${esc(r.key)} (${pp(r.contrib)})`).join(', ')}</span>`);
     const sumContrib = rowsAll.reduce((s,r)=>s+r.contrib,0);
+    const share = isShareDim(dim.key);
     const trHTML = top.map((r,i)=>{
       const cls = r.contrib>0.001?'up':(r.contrib<-0.001?'down':'');
       return `<tr class="head-row" data-dim="${dim.key}" data-key="${esc(r.key)}"><td class="n">${i+1}. ${esc(r.key)} ${trendSpark(allRows, r.key, dim.key)}</td>
-        <td>${fmt(r.volA)}</td><td>${fmt(r.volB)}</td>
+        <td>${fmt(share? r.repA : r.volA)}</td><td>${fmt(share? r.repB : r.volB)}</td>
         <td>${r.pctA.toFixed(2)}%</td><td>${r.pctB.toFixed(2)}%</td>
         <td>${pp(r.dPP)}</td>
         <td class="contrib ${cls}">${pp(r.contrib)}</td></tr>`;
     }).join('');
+    const colA = share? 'Hits A' : 'Vol A', colB = share? 'Hits B' : 'Vol B';
+    const note = share? ' <span style="color:var(--t3);font-weight:400">· RRR% = reason count ÷ total RRR hits (same as Agents ▸ Repair Reasons)</span>' : '';
     return `
       <details class="cmp-dim" data-dim="${dim.key}">
         <summary>
@@ -7050,7 +7066,7 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
         </summary>
         <table>
           <thead><tr>
-            <th class="n">Entity</th><th>Vol A</th><th>Vol B</th><th>RRR% A</th><th>RRR% B</th><th>Δ pp</th><th>Contrib to Δ (pp)</th>
+            <th class="n">Entity${note}</th><th>${colA}</th><th>${colB}</th><th>RRR% A</th><th>RRR% B</th><th>Δ pp</th><th>Contrib to Δ (pp)</th>
           </tr></thead>
           <tbody>${trHTML}</tbody>
           <tfoot><tr class="cmp-tf"><td class="n" colspan="6">Σ top-${top.length} contribution</td>
@@ -7062,6 +7078,7 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
   function buildDrill(dim, key, aRows, bRows){
     // cross-tab: for entity `key`, split by dim.drill within A vs B
     const secondary = DIMS.find(d=>d.key===dim.drill) || dim;
+    const share = isShareDim(dim.key);   // Repair Reason parent → share of that reason's hits
     const inA = aRows.filter(r=>dimVal(r,dim.key)===key);
     const inB = bRows.filter(r=>dimVal(r,dim.key)===key);
     const agg = (rowsSet)=>{
@@ -7076,25 +7093,53 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
       });
       return map;
     };
+    // Full-period totals per sub-entity, so a model's true RRR% (hits ÷ distinct
+    // MTSN across ALL its rows) is identical to the rest of the dashboard.
+    const fullAgg = (rowsSet)=>{
+      const map = new Map();
+      rowsSet.forEach(r=>{
+        const k = dimVal(r,dim.drill); if(!k) return;
+        let o = map.get(k); if(!o){ o={mtsn:new Map(), rep:0}; map.set(k,o); }
+        const isHit = r.FLAG==='1'; if(isHit) o.rep++;
+        if(r.MTSN) o.mtsn.set(r.MTSN,(o.mtsn.get(r.MTSN)||0)+(isHit?1:0));
+      });
+      return map;
+    };
     const mA = agg(inA), mB = agg(inB);
+    const fA = share? fullAgg(aRows) : mA, fB = share? fullAgg(bRows) : mB;
+    const totA = share? inA.filter(r=>r.FLAG==='1').length : 0;
+    const totB = share? inB.filter(r=>r.FLAG==='1').length : 0;
     const keys = new Set([...mA.keys(),...mB.keys()]);
     const rowsOut = [...keys].map(k=>{
       const A=mA.get(k)||{mtsn:new Map(),rep:0}, B=mB.get(k)||{mtsn:new Map(),rep:0};
+      const FA=fA.get(k)||{mtsn:new Map(),rep:0}, FB=fB.get(k)||{mtsn:new Map(),rep:0};
       const vA=A.mtsn.size, vB=B.mtsn.size;
-      const pA=vA>0?A.rep/vA*100:0, pB=vB>0?B.rep/vB*100:0;
+      let pA, pB, cA, cB;
+      if(share){
+        // % of this reason's hits, plus the sub-entity's own RRR% for context
+        pA = totA>0? A.rep/totA*100:0; pB = totB>0? B.rep/totB*100:0;
+        cA = FA.mtsn.size>0? FA.rep/FA.mtsn.size*100:0;
+        cB = FB.mtsn.size>0? FB.rep/FB.mtsn.size*100:0;
+      } else {
+        pA = vA>0?A.rep/vA*100:0; pB = vB>0?B.rep/vB*100:0;
+      }
       // Impact = Vol × RRR% (max of the two periods) → real repeat volume, not tiny outliers
-      const impact = Math.max(vA*pA, vB*pB) / 100;
-      return {k, vA, vB, pA, pB, dPP:pB-pA, impact};
+      const impact = share? Math.max(A.rep, B.rep) : Math.max(vA*pA, vB*pB) / 100;
+      return {k, vA, vB, rA:A.rep, rB:B.rep, pA, pB, cA, cB, dPP:pB-pA, impact};
     }).sort((a,b)=> b.impact - a.impact || Math.abs(b.dPP) - Math.abs(a.dPP)).slice(0,10);
     if(!rowsOut.length) return `<em style="color:var(--t3)">No sub-detail for ${esc(key)}.</em>`;
     const body = rowsOut.map((r,i)=>`<tr><td class="n">${i+1}. ${esc(r.k)}</td>
-      <td>${fmt(r.vA)}</td><td>${fmt(r.vB)}</td>
+      <td>${fmt(share? r.rA : r.vA)}</td><td>${fmt(share? r.rB : r.vB)}</td>
       <td>${r.pA.toFixed(2)}%</td><td>${r.pB.toFixed(2)}%</td>
+      ${share? `<td>${r.cA.toFixed(2)}%</td><td>${r.cB.toFixed(2)}%</td>` : ''}
       <td class="contrib ${r.dPP>0.001?'up':(r.dPP<-0.001?'down':'')}">${pp(r.dPP)}</td>
-      <td title="Vol × RRR% (worst period)">${fmt(r.impact)}</td></tr>`).join('');
+      <td title="${share?'Repeat hits (worst period)':'Vol × RRR% (worst period)'}">${fmt(r.impact)}</td></tr>`).join('');
+    const hA = share? 'Hits A' : 'Vol A', hB = share? 'Hits B' : 'Vol B';
+    const shareHead = share? '<th>Own RRR% A</th><th>Own RRR% B</th>' : '';
+    const shareLbl = share? `· % = share of ${esc(key)} hits (A ${fmt(totA)} · B ${fmt(totB)}), Own RRR% = hits ÷ distinct MTSN` : '· ranked by Impact (Vol × RRR%)';
     return `<div class="drill-inner">
-      <div><div style="font-size:10.5px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${esc(key)} · split by ${secondary.label} <span style="color:var(--t3);text-transform:none;letter-spacing:.3px;margin-left:6px">· ranked by Impact (Vol × RRR%)</span></div>
-        <table><thead><tr><th class="n">Row</th><th>Vol A</th><th>Vol B</th><th>RRR% A</th><th>RRR% B</th><th>Δ pp</th><th>Impact</th></tr></thead>
+      <div><div style="font-size:10.5px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${esc(key)} · split by ${secondary.label} <span style="color:var(--t3);text-transform:none;letter-spacing:.3px;margin-left:6px">${shareLbl}</span></div>
+        <table><thead><tr><th class="n">Row</th><th>${hA}</th><th>${hB}</th><th>${share?'% of hits A':'RRR% A'}</th><th>${share?'% of hits B':'RRR% B'}</th>${shareHead}<th>Δ pp</th><th>${share?'Hits':'Impact'}</th></tr></thead>
         <tbody>${body}</tbody></table></div>
       <div><div style="font-size:10.5px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Period trend</div>
         ${trendSpark(getRows(), key, dim.key).replace('width="80"','width="220"').replace('height="22"','height="60"').replace('viewBox="0 0 80 22"','viewBox="0 0 80 22" preserveAspectRatio="none"')}
@@ -7156,15 +7201,19 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
   }
   function summaryContribs(rows, dimKey, volA, volB){
     // Aggregate by extended dim, then compute per-key contribution to ΔRRR%.
+    const share = isShareDim(dimKey);
     const mA=new Map(), mB=new Map();
+    let hitsA=0, hitsB=0;
     rows.forEach(r=>{
-      const k = sumDimVal(r,dimKey); if(!k) return;
       const inA = state.A.has(periodKey(r));
       const inB = state.B.has(periodKey(r));
       if(!inA && !inB) return;
+      const hit = r.FLAG==='1';
+      if(hit){ if(inA) hitsA++; else hitsB++; }
+      const k = sumDimVal(r,dimKey); if(!k) return;
       const map = inA? mA : mB;
       let o = map.get(k); if(!o){ o={mtsn:new Map(), rep:0}; map.set(k,o); }
-      const hit = r.FLAG==='1'; if(hit) o.rep++;
+      if(hit) o.rep++;
       if(r.MTSN) o.mtsn.set(r.MTSN,(o.mtsn.get(r.MTSN)||0)+(hit?1:0));
     });
     const keys = new Set([...mA.keys(),...mB.keys()]);
@@ -7173,10 +7222,12 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
       const A = mA.get(k), B = mB.get(k);
       const vA = A? A.mtsn.size:0, vB = B? B.mtsn.size:0;
       const rA = A? A.rep:0, rB = B? B.rep:0;
-      const pA = vA>0? rA/vA*100:0, pB = vB>0? rB/vB*100:0;
+      // Repair Reason uses the Agents-panel definition: count ÷ total RRR hits.
+      const dA = share? hitsA : vA, dB = share? hitsB : vB;
+      const pA = dA>0? rA/dA*100:0, pB = dB>0? rB/dB*100:0;
       const contrib = ((volB>0? rB/volB:0) - (volA>0? rA/volA:0)) * 100;
-      const impact = Math.max(vA*pA, vB*pB) / 100;
-      out.push({key:k, vA, vB, rA, rB, pA, pB, dPP:pB-pA, contrib, impact});
+      const impact = share? Math.max(rA, rB) : Math.max(vA*pA, vB*pB) / 100;
+      out.push({key:k, vA, vB, rA, rB, pA, pB, dPP:pB-pA, contrib, impact, share});
     });
     return out;
   }
