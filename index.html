@@ -473,6 +473,7 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
       <div class="chip" id="chip-wonum">Service Order ID / WO Number</div>
       <div class="chip" id="chip-mtsn">Machine Serial Number</div>
       <div class="chip" id="chip-sub">Sub Series</div>
+      <div class="chip" id="chip-series">Series</div>
       <div class="chip" id="chip-month">RRR Month</div>
       <div class="chip" id="chip-week">RRR Week</div>
       <div class="chip" id="chip-flag">RRR MTSN 30D Flag NOC</div>
@@ -524,6 +525,14 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
     <select id="fAccount"><option value="">All Accounts</option></select></div>
   <div class="fg"><label>Sub Series</label>
     <select id="fSub"><option value="">All Sub-Series</option></select></div>
+  <div class="fg">
+    <label>Series</label>
+    <div class="ms-wrap" id="msWrapSeries">
+      <button class="ms-btn" id="msBtnSeries" type="button" onclick="toggleMsDropdown('Series')">All Series</button>
+      <div class="ms-dropdown" id="msDropSeries"></div>
+    </div>
+    <select id="fSeries" multiple style="display:none"></select>
+  </div>
   <div class="fg">
     <label>Service Warranty Type</label>
     <div class="ms-wrap" id="msWrapWarranty">
@@ -1488,7 +1497,7 @@ themeToggle.addEventListener('click', () => {
    COLUMN DEFINITIONS
 ══════════════════════════════ */
 const COLS = {
-  WO_NUM:'WO Number', MTSN:'Machine Serial Number', SUB:'Sub Series',
+  WO_NUM:'WO Number', MTSN:'Machine Serial Number', SUB:'Sub Series', SERIES:'Series',
   MONTH:'RRR Month', WEEK:'RRR Week', VENDOR:'Primary Vendor Name',
   REASON:'Repeat Repair Reason1', NEXT_REASON:'Next SO Repeat Repair Reason', SYMPTOM:'Symptom1', FLAG:'RRR MTSN 30D NOC x Labor',
   TL:'Release by TL', NAME:'Release by Name', ACCOUNT:'Account Name',
@@ -1502,7 +1511,7 @@ const COLS = {
   TECH_ID:'Final Tech ID', TECH_NAME:'Name', FS_PARTNER:'FS_Partner', PUDO:'PUDO'
 }
 const CHIP_IDS = {
-  WO_NUM:'chip-wonum', MTSN:'chip-mtsn', SUB:'chip-sub', MONTH:'chip-month',
+  WO_NUM:'chip-wonum', MTSN:'chip-mtsn', SUB:'chip-sub', SERIES:'chip-series', MONTH:'chip-month',
   WEEK:'chip-week', VENDOR:'chip-vendor', REASON:'chip-reason', NEXT_REASON:'chip-nextreason', SYMPTOM:'chip-symptom',
   FLAG:'chip-flag', TL:'chip-tl', NAME:'chip-name', ACCOUNT:'chip-account',
   SVC_TYPE:'chip-svctype', WARRANTY:'chip-warranty', LOB:'chip-lob',
@@ -1520,7 +1529,7 @@ let venMapData=[], accMapData=[], venMapRaw=null, accMapRaw=null
 let venMapTopSort='impact', accMapTopSort='impact'
 
 /* ── MULTI-SELECT STATE ── */
-const msState = { Month: new Set(), Week: new Set(), Warranty: new Set(), ProdGrp: new Set(), LOB: new Set() }
+const msState = { Month: new Set(), Week: new Set(), Warranty: new Set(), ProdGrp: new Set(), LOB: new Set(), Series: new Set() }
 
 /* ── COL ALIASES ── */
 const COL_ALIASES = {
@@ -1534,6 +1543,7 @@ const COL_ALIASES = {
   WO_STATUS:['WO Status','Work Order Status','SO Status','Order Status'],
   FLAG:['RRR MTSN 30D Flag NOC', 'RRR MTSN 30D NOC x Labor', 'RRR_MTSN_30D_NOC_x_Labor', 'RRR MTSN 30D'],
   NEXT_REASON:['Next SO Repeat Repair Reason', 'Next WO Repeat Repair Reason', 'Next Repeat Repair Reason'],
+
   PROB_CAT1:['Problem Category 1', 'Problem Category', 'First WO Symptom'],
   NEXT_SYM:['Next WO Symptom', 'Next SO Symptom', 'Second WO Symptom'],
   FIRST_COMM:['First WO Commodity Name', 'First WO Commodity', 'First SO Commodity Name'],
@@ -1623,6 +1633,7 @@ function detectCols(headers){
     chips.push(`<span class="cb-chip ${idx>=0?'cb-ok':'cb-miss'}">${idx>=0?'✓':'✗'} ${wanted}${idx<0?' ← NOT FOUND':''}</span>`)
   }
   // Fallback: exact "Name" column for technician name when no better alias matched
+  { const i = headers.findIndex(h=>String(h).trim().toLowerCase()==='series'); IDX.SERIES = i; const c=document.getElementById('chip-series'); if(c) c.classList.toggle('found', i>=0); }
   if(IDX.TECH_NAME<0){ const i = headers.findIndex(h=>h.trim().toLowerCase()==='name'); if(i>=0) IDX.TECH_NAME = i; }
   document.getElementById('colBannerChips').innerHTML = chips.join('')
   document.getElementById('colBanner').classList.add('show')
@@ -1669,11 +1680,11 @@ function toggleMsAll(key){
 }
 function updateMsBtn(key){
   const btn = document.getElementById('msBtn'+key); if(!btn) return
-  const count = msState[key].size; const labels = {Month:'All Months', Week:'All Weeks', Warranty:'All Warranty Types', ProdGrp:'All Product Groups', LOB:'All LOBs'}
+  const count = msState[key].size; const labels = {Month:'All Months', Week:'All Weeks', Warranty:'All Warranty Types', ProdGrp:'All Product Groups', LOB:'All LOBs', Series:'All Series'}
   if(count===0) btn.textContent = labels[key] || 'All'; else if(count===1) btn.textContent =[...msState[key]][0]; else btn.textContent = `${count} selected`
 }
 function syncHiddenSelect(key){
-  const idMap = {Month:'fMonth', Week:'fWeek', Warranty:'fWarranty', ProdGrp:'fProdGrp', LOB:'fLOB'}; const sel = document.getElementById(idMap[key] || 'f'+key); if(!sel) return
+  const idMap = {Month:'fMonth', Week:'fWeek', Warranty:'fWarranty', ProdGrp:'fProdGrp', LOB:'fLOB', Series:'fSeries'}; const sel = document.getElementById(idMap[key] || 'f'+key); if(!sel) return
   for(let o of sel.options) o.selected = msState[key].has(o.value)
 }
 function toggleMsDropdown(key){
@@ -1685,9 +1696,9 @@ document.addEventListener('click', e=>{ if(!e.target.closest('.ms-wrap')) docume
 /* ── FILTERS ── */
 function populateFilters(){
   fillSel('fTL','All TLs',uniq('TL')); fillSel('fAgent','All Agents',uniq('NAME')); fillSel('fVendor','All Vendors',uniq('VENDOR')); fillSel('fAccount','All Accounts',uniq('ACCOUNT')); fillSel('fSub','All Sub-Series',uniq('SUB'))
-  const months=uniq('MONTH'), weeks=uniq('WEEK'), warrs=uniq('WARRANTY'), prodGrps=uniq('PROD_GRP'), lobs=uniq('LOB')
-  fillSel('fMonth','All Months',months,true); fillSel('fWeek','All Weeks',weeks,true); fillSel('fWarranty','All Warranty Types',warrs,true); fillSel('fProdGrp','All Product Groups',prodGrps,true); fillSel('fLOB','All LOBs',lobs,true)
-  buildMsDropdown('Month',months,'Months'); buildMsDropdown('Week',weeks,'Weeks'); buildMsDropdown('Warranty',warrs,'Warranty Types'); buildMsDropdown('ProdGrp',prodGrps,'Product Groups'); buildMsDropdown('LOB',lobs,'LOBs')
+  const months=uniq('MONTH'), weeks=uniq('WEEK'), warrs=uniq('WARRANTY'), prodGrps=uniq('PROD_GRP'), lobs=uniq('LOB'), series=uniq('SERIES')
+  fillSel('fMonth','All Months',months,true); fillSel('fWeek','All Weeks',weeks,true); fillSel('fWarranty','All Warranty Types',warrs,true); fillSel('fProdGrp','All Product Groups',prodGrps,true); fillSel('fLOB','All LOBs',lobs,true); fillSel('fSeries','All Series',series,true)
+  buildMsDropdown('Month',months,'Months'); buildMsDropdown('Week',weeks,'Weeks'); buildMsDropdown('Warranty',warrs,'Warranty Types'); buildMsDropdown('ProdGrp',prodGrps,'Product Groups'); buildMsDropdown('LOB',lobs,'LOBs'); buildMsDropdown('Series',series,'Series')
   document.getElementById('filterBar').classList.add('show')
   ;['fTL','fAgent','fVendor','fAccount','fSub'].forEach(id=>document.getElementById(id).onchange=applyFilters)
   updateReportScope();
@@ -1695,18 +1706,18 @@ function populateFilters(){
 function getMultiSelectValues(key){ const s = msState[key]; return s && s.size > 0 ? [...s] : null }
 function applyFilters(){
   const tl=v('fTL'), ag=v('fAgent'), vd=v('fVendor'), ac=v('fAccount'), sb=v('fSub')
-  const months=getMultiSelectValues('Month'), weeks=getMultiSelectValues('Week'), warrs=getMultiSelectValues('Warranty'), prodGrps=getMultiSelectValues('ProdGrp'), lobs=getMultiSelectValues('LOB')
+  const months=getMultiSelectValues('Month'), weeks=getMultiSelectValues('Week'), warrs=getMultiSelectValues('Warranty'), prodGrps=getMultiSelectValues('ProdGrp'), lobs=getMultiSelectValues('LOB'), seriesSel=getMultiSelectValues('Series')
   filteredData = rawData.filter(r=>{
     if(tl && r.TL!==tl) return false; if(ag && r.NAME!==ag) return false; if(months && !months.includes(r.MONTH)) return false; if(weeks && !weeks.includes(r.WEEK)) return false
     if(vd && r.VENDOR!==vd) return false; if(ac && r.ACCOUNT!==ac) return false; if(sb && r.SUB!==sb) return false; if(warrs && !warrs.includes(r.WARRANTY)) return false
-    if(prodGrps && !prodGrps.includes(r.PROD_GRP)) return false; if(lobs && !lobs.includes(r.LOB)) return false; return true
+    if(prodGrps && !prodGrps.includes(r.PROD_GRP)) return false; if(lobs && !lobs.includes(r.LOB)) return false; if(seriesSel && !seriesSel.includes(r.SERIES)) return false; return true
   })
   if(tl){ const ag4tl=[...new Set(rawData.filter(r=>r.TL===tl).map(r=>r.NAME).filter(Boolean))].sort(); fillSel('fAgent','All Agents',ag4tl); document.getElementById('fAgent').onchange=applyFilters }
   analyzeDebounced()
 }
 function resetFilters(){
   ;['fTL','fAgent','fVendor','fAccount','fSub'].forEach(id=>document.getElementById(id).value='')
-  msState.Month.clear(); msState.Week.clear(); msState.Warranty.clear(); msState.ProdGrp.clear(); msState.LOB.clear()
+  msState.Month.clear(); msState.Week.clear(); msState.Warranty.clear(); msState.ProdGrp.clear(); msState.LOB.clear(); msState.Series.clear()
   agActiveMslMonth=null; tlActiveMslMonth=null; populateFilters(); filteredData=[...rawData]; analyzeDebounced()
 }
 function v(id){ return document.getElementById(id).value }
@@ -1843,7 +1854,21 @@ function buildTL(rows){
   document.getElementById('tlMeta').textContent=`${tlData.length} team leaders · Sorted by Impact (Volume × RRR%)`; drawTL()
 }
 
+/* ── CANONICAL REPEAT REPAIR REASON (single source of truth) ──
+   Repair reasons ALWAYS come from "Next SO Repeat Repair Reason" on RRR-hit
+   rows (Repeat Flag = 1). Blank / placeholder values collapse into one bucket.
+   There is never an "Unknown" repair reason. Used by every tab/section. */
+function rrrReasonLabel(v){
+  let raw=(v==null?'':String(v)).trim()
+  if(!raw || /^(not specified|unknown|na|n\/a|null|undefined|-|—)$/i.test(raw)) return '(Blank / Not Captured)'
+  return raw
+}
+function rrrReason(r){
+  if(!r || String(r.FLAG)!=='1') return ''
+  return rrrReasonLabel(r.NEXT_REASON)
+}
 function buildMod(rows){ modelData=grp(rows,r=>r.SUB); document.getElementById('modMeta').textContent=`${modelData.length} sub-series · ${modelData.filter(m=>m.pct>=15).length} high-risk`; drawMod() }
+
 function buildVen(rows){ vendorData=grp(rows,r=>r.VENDOR); drawVen() }
 function buildRes(rows){
   // Repeat Repair Reasons — uses "Next SO Repeat Repair Reason" on RRR-hit rows (Repeat Flag = 1).
@@ -1853,8 +1878,7 @@ function buildRes(rows){
   rows.forEach(r=>{
     if(r.FLAG!=='1') return
     totalHits++
-    let raw=(r.NEXT_REASON==null?'':String(r.NEXT_REASON)).trim()
-    if(!raw || /^(not specified|unknown|na|n\/a|null|undefined)$/i.test(raw)) raw='(Blank / Not Captured)'
+    const raw=rrrReasonLabel(r.NEXT_REASON)
     if(!m[raw]) m[raw]={name:raw, count:0, records:[]}
     m[raw].count++; m[raw].records.push(r)
   })
@@ -2319,7 +2343,7 @@ function buildActionPlanData(rows) {
   const map = {};
   rows.forEach(r => {
     if (r.FLAG !== '1') return;
-    const reason = (r.REASON || '').toUpperCase();
+    const reason = (rrrReason(r) || '').toUpperCase();
     if (reason.includes('DOA')) return;
 
     const s1 = r.PROB_CAT1 || r.SYMPTOM || '';
@@ -2369,7 +2393,7 @@ function getScopedActionPlanData(rows) {
   const map = {};
   rows.forEach(r => {
     if (r.FLAG !== '1') return;
-    const reason = (r.REASON || '').toUpperCase();
+    const reason = (rrrReason(r) || '').toUpperCase();
     if (reason.includes('DOA')) return;
     const s1 = r.PROB_CAT1 || r.SYMPTOM || '';
     const s2 = r.NEXT_SYM || '';
@@ -2490,7 +2514,7 @@ function buildFruJourneyData(rows){
     if (r.FIRST_FRU && r.FIRST_COMM) bumpName(r.FIRST_FRU.trim(), (r.FIRST_COMM||'').trim());
     if (r.NEXT_FRU  && r.NEXT_COMM)  bumpName(r.NEXT_FRU.trim(),  (r.NEXT_COMM||'').trim());
     if (r.FLAG !== '1') return;
-    const reason = (r.REASON || '').toUpperCase();
+    const reason = (rrrReason(r) || '').toUpperCase();
     if (reason.includes('DOA')) return;
     const s1 = r.PROB_CAT1 || r.SYMPTOM || '';
     const s2 = r.NEXT_SYM || '';
@@ -2699,7 +2723,7 @@ function toggleAgExpand(triggerRow, keyEnc) {
     if (r.MTSN) mtsnSet.add(r.MTSN);
     const isHit = (r.FLAG === '1');
     if (isHit) {
-      const nReason = r.NEXT_REASON || 'Unknown';
+      const nReason = rrrReasonLabel(r.NEXT_REASON);
       if (!nextReasonMap[nReason]) nextReasonMap[nReason] = 0;
       nextReasonMap[nReason]++;
     }
@@ -2802,7 +2826,7 @@ function toggleTLExpand(triggerRow, keyEnc) {
     if (r.MTSN) mtsnSet.add(r.MTSN);
     const isHit = (r.FLAG === '1');
     if (isHit) {
-      const nReason = r.NEXT_REASON || 'Unknown';
+      const nReason = rrrReasonLabel(r.NEXT_REASON);
       if (!nextReasonMap[nReason]) nextReasonMap[nReason] = 0;
       nextReasonMap[nReason]++;
     }
@@ -3720,9 +3744,9 @@ function buildHCSAnalyzer(){
     if(isHCS70(r.HCS)) {
       const sc = normaliseScenario(r.SCENARIO)
       if(sc === 'Compliance') {
-        a.comp70++; if(r.FLAG === '1') { a.comp70_rrrHits++; if(r.REASON) a.comp70_reasons[r.REASON] = (a.comp70_reasons[r.REASON] || 0) + 1; }
+        a.comp70++; if(r.FLAG === '1') { a.comp70_rrrHits++; const _rz = rrrReason(r); if(_rz) a.comp70_reasons[_rz] = (a.comp70_reasons[_rz] || 0) + 1; }
       } else if(sc === 'Non-Compliance') {
-        a.nonComp70++; if(r.FLAG === '1') { a.nonComp70_rrrHits++; if(r.REASON) a.nonComp70_reasons[r.REASON] = (a.nonComp70_reasons[r.REASON] || 0) + 1; }
+        a.nonComp70++; if(r.FLAG === '1') { a.nonComp70_rrrHits++; const _rz = rrrReason(r); if(_rz) a.nonComp70_reasons[_rz] = (a.nonComp70_reasons[_rz] || 0) + 1; }
       }
     }
   })
@@ -4274,7 +4298,7 @@ function saveFilterPreset(){
   const p={
     fTL:v('fTL'), fAgent:v('fAgent'), fVendor:v('fVendor'), fAccount:v('fAccount'), fSub:v('fSub'),
     Month:[...msState.Month], Week:[...msState.Week], Warranty:[...msState.Warranty],
-    ProdGrp:[...msState.ProdGrp], LOB:[...msState.LOB]
+    ProdGrp:[...msState.ProdGrp], LOB:[...msState.LOB], Series:[...msState.Series]
   };
   try{ localStorage.setItem(PRESET_KEY, JSON.stringify(p)); flashMsg('💾 Filter view saved'); }
   catch(e){ alert('Could not save preset'); }
@@ -4336,7 +4360,7 @@ function chainShow(mtsn){
   // sort by WEEK then WO_NUM
   rows.sort((a,b)=>String(a.WEEK||'').localeCompare(String(b.WEEK||'')) || String(a.WO_NUM||'').localeCompare(String(b.WO_NUM||'')));
   const hits=rows.filter(r=>r.FLAG==='1').length;
-  const reasons=[...new Set(rows.map(r=>r.REASON).filter(Boolean))];
+  const reasons=[...new Set(rows.filter(r=>r.FLAG==='1').map(r=>rrrReason(r)).filter(Boolean))];
   const months=[...new Set(rows.map(r=>r.MONTH).filter(Boolean))];
   document.getElementById('chainSummary').innerHTML=`
     <div class="chain-chip">Serial<b>${mtsn}</b></div>
@@ -4351,7 +4375,7 @@ function chainShow(mtsn){
       <td>${i+1}</td>
       <td style="font-family:'IBM Plex Mono',monospace">${r.WO_NUM||'-'}</td>
       <td>${r.SYMPTOM||'-'}</td>
-      <td>${r.REASON||'-'}</td>
+      <td>${rrrReason(r)||(r.FLAG==='1'?'(Blank / Not Captured)':'-')}</td>
       <td>${r.VENDOR||'-'}</td>
       <td>${r.NAME||'-'}</td>
       <td>${r.MONTH||'-'}</td>
@@ -4373,7 +4397,7 @@ function buildRecurrence(){
   const sameMap={}, diffMap={};
   withNextReason.forEach(r=>{
     if(norm(r.REASON)===norm(r.NEXT_REASON)){ same++; const k=r.REASON||'Unknown'; sameMap[k]=(sameMap[k]||0)+1; }
-    else { diff++; const k=`${r.REASON||'?'} → ${r.NEXT_REASON||'?'}`; diffMap[k]=(diffMap[k]||0)+1; }
+    else { diff++; const k=`${r.REASON||'?'} → ${rrrReason(r)||'(Blank / Not Captured)'}`; diffMap[k]=(diffMap[k]||0)+1; }
   });
   const tot=same+diff;
   const samePct=tot?same/tot*100:0, diffPct=tot?diff/tot*100:0;
@@ -4426,9 +4450,7 @@ function _simKey(r){
   if(simState.dim==='REASON'){
     // Match "Repair Reasons" tab in Agents panel exactly: NEXT_REASON on
     // repeat-flag rows, blank/unknown collapsed to a single bucket.
-    let raw=(r.NEXT_REASON==null?'':String(r.NEXT_REASON)).trim();
-    if(!raw || /^(not specified|unknown|na|n\/a|null|undefined)$/i.test(raw)) raw='(Blank / Not Captured)';
-    return raw;
+    return rrrReasonLabel(r.NEXT_REASON);
   }
   return r[simState.dim]||'Unknown';
 }
@@ -4511,6 +4533,11 @@ function corrInitSelects(){
   });
   a.value='REASON'; b.value='SUB';
 }
+/* Canonical value accessor: Repair Reason always = Next SO reason (repeat hits only) */
+function corrVal(r,dim){
+  if(dim==='REASON') return r.FLAG==='1' ? (rrrReason(r)||'(Blank / Not Captured)') : '';
+  return String(r[dim]||'').trim();
+}
 function corrLabel(k){ return (CORR_DIMS.find(d=>d.k===k)||{label:k}).label; }
 function liftClass(l){ if(l>=2) return 'l3'; if(l>=1.5) return 'l2'; if(l>=1.1) return 'l1'; return 'l0'; }
 function liftHeatColor(l){
@@ -4544,8 +4571,9 @@ function buildCorrelation(){
   // Build (A,B) combo aggregates
   const combo=new Map();
   filteredData.forEach(r=>{
-    const a=String(r[A]||'').trim()||'Unknown';
-    const b=A===B?'·':(String(r[B]||'').trim()||'Unknown');
+    const a=corrVal(r,A)||(A==='REASON'?'':'Unknown');
+    const b=A===B?'·':(corrVal(r,B)||(B==='REASON'?'':'Unknown'));
+    if(!a || !b) return;
     const k=a+'\u0001'+b;
     let o=combo.get(k);
     if(!o){ o={a,b,wo:0,hits:0,serials:new Set()}; combo.set(k,o); }
@@ -4684,8 +4712,8 @@ function corrDrill(aEnc,bEnc){
   const A=_corrCache.a, B=_corrCache.b;
   const a=decodeURIComponent(aEnc), b=decodeURIComponent(bEnc);
   const matches=filteredData.filter(r=>{
-    const va=String(r[A]||'').trim()||'Unknown';
-    const vb=A===B?'·':(String(r[B]||'').trim()||'Unknown');
+    const va=corrVal(r,A)||(A==='REASON'?'':'Unknown');
+    const vb=A===B?'·':(corrVal(r,B)||(B==='REASON'?'':'Unknown'));
     return va===a && vb===b;
   });
   document.getElementById('corrDrillTitle').textContent=`${corrLabel(A)}: ${a}${A!==B?'  ×  '+corrLabel(B)+': '+b:''}`;
@@ -4693,7 +4721,7 @@ function corrDrill(aEnc,bEnc){
   matches.forEach(r=>{
     if(!r.MTSN) return;
     if(!bySer.has(r.MTSN)) bySer.set(r.MTSN,{wo:0,hits:0,sub:r.SUB||'-',ven:r.VENDOR||'-',rs:new Set()});
-    const o=bySer.get(r.MTSN); o.wo++; if(r.FLAG==='1') o.hits++; if(r.REASON) o.rs.add(r.REASON);
+    const o=bySer.get(r.MTSN); o.wo++; if(r.FLAG==='1'){ o.hits++; const _rz=rrrReason(r); if(_rz) o.rs.add(_rz); }
   });
   const arr=[...bySer.entries()].map(([m,o])=>({m,...o})).sort((x,y)=>y.hits-x.hits||y.wo-x.wo).slice(0,60);
   const hits=matches.filter(r=>r.FLAG==='1').length;
@@ -4953,7 +4981,7 @@ function buildSummary(){
     }
     if(dim==='REGION_S') return (r.REGION||'').toString().trim();
     if(dim==='PUDO')     return (r.PUDO||'').toString().trim();
-    if(dim==='REASON')   return (r.NEXT_REASON||r.REASON||'').toString().trim();
+    if(dim==='REASON')   return rrrReason(r);
     const v = r[dim]; return v==null?'':String(v).trim();
   }
   function aggregate(rows, set){
@@ -5530,7 +5558,7 @@ function openScorecard(prefix, keyEnc){
     regionRank = (list.findIndex(e=>e.name===name)+1) || '—';
   }
   const reasonMap = new Map();
-  rows.forEach(r=>{ if(r.FLAG!=='1') return; const rea=(r.REASON||'').trim()||'Not Specified'; if(rea==='Not Specified'||rea==='Unknown') return; reasonMap.set(rea,(reasonMap.get(rea)||0)+1); });
+  rows.forEach(r=>{ const rea=rrrReason(r); if(!rea||rea==='(Blank / Not Captured)') return; reasonMap.set(rea,(reasonMap.get(rea)||0)+1); });
   const topReasons = [...reasonMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,3);
   const cityMap = new Map();
   rows.forEach(r=>{ const ct=(r.CITY||'').trim(); if(!ct) return; if(!cityMap.has(ct)) cityMap.set(ct,{mtsnMap:new Map(),hits:0}); const c=cityMap.get(ct); const hit=r.FLAG==='1'; if(hit) c.hits++; if(r.MTSN) c.mtsnMap.set(r.MTSN,(c.mtsnMap.get(r.MTSN)||0)+(hit?1:0)); });
@@ -5562,7 +5590,7 @@ function openScorecard(prefix, keyEnc){
         <b>Traffic light:</b> Green ≤ national · Amber ≤ 1.5× national · Red &gt; 1.5×.<br/>
         <b>National rank:</b> position among all ${isVendor?'vendors':'accounts'} with volume ≥ 5 MTSN, sorted by RRR% descending.<br/>
         <b>Region rank:</b> position within the primary region (this entity's highest-impact region) among peers with ≥ 5 MTSN there.<br/>
-        <b>Top 3 reasons</b> counts repeat flags by <code>Repeat Repair Reason1</code>, excluding "Not Specified" / "Unknown".<br/>
+        <b>Top 3 reasons</b> counts repeat flags by <code>Next SO Repeat Repair Reason</code>, excluding blank / not-captured values.<br/>
         <b>Top 3 cities</b> ranked by impact = Volume × RRR% (min 2 MTSN).<br/>
         <b>Top 5 serials</b> = MTSNs with the most repeat hits attributable to this ${isVendor?'vendor':'account'} within the current filter.
       </div>
@@ -5672,7 +5700,7 @@ function copyShareLink(btn){
     const gv = id => { const el = document.getElementById(id); return el ? el.value : ''; };
     ['fTL','fAgent','fVendor','fAccount','fSub'].forEach(id=>{ const v=gv(id); if(v) params.set(id, v); });
     if(typeof msState !== 'undefined'){
-      ['Month','Week','Warranty','ProdGrp','LOB'].forEach(k=>{ if(msState[k] && msState[k].size) params.set('f'+k, [...msState[k]].join('|')); });
+      ['Month','Week','Warranty','ProdGrp','LOB','Series'].forEach(k=>{ if(msState[k] && msState[k].size) params.set('f'+k, [...msState[k]].join('|')); });
     }
     const activeTab = document.querySelector('.tbtn.on'); if(activeTab){ const oc=activeTab.getAttribute('onclick')||''; const m=oc.match(/sw\('([^']+)'/); if(m) params.set('tab', m[1]); }
     const url = location.origin + location.pathname + (params.toString() ? ('?' + params.toString()) : '') + location.hash;
@@ -6825,9 +6853,7 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
   // placeholder values collapse into one bucket (never "Unknown").
   function reasonBucket(r){
     if(r.FLAG!=='1') return '';
-    let raw=(r.NEXT_REASON==null?'':String(r.NEXT_REASON)).trim();
-    if(!raw || /^(not specified|unknown|na|n\/a|null|undefined)$/i.test(raw)) raw='(Blank / Not Captured)';
-    return raw;
+    return rrrReasonLabel(r.NEXT_REASON);
   }
   function dimVal(r,dim){
     if(dim==='HCS_BUCKET'){
@@ -7078,7 +7104,7 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
   function buildDrill(dim, key, aRows, bRows){
     // cross-tab: for entity `key`, split by dim.drill within A vs B
     const secondary = DIMS.find(d=>d.key===dim.drill) || dim;
-    const share = isShareDim(dim.key);   // Repair Reason parent → share of that reason's hits
+    const share = false;   // drill-downs keep the original Vol × RRR% view
     const inA = aRows.filter(r=>dimVal(r,dim.key)===key);
     const inB = bRows.filter(r=>dimVal(r,dim.key)===key);
     const agg = (rowsSet)=>{
@@ -7258,18 +7284,22 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
   }
 
   // Rows shared by the PDF tables and the workbook sheets.
-  const SUMMARY_COLS = ['Dimension','Driver','Distinct MTSN A → B','Repeat flags A → B','RRR% A → B','Δ pp','Contribution to overall Δ (pp)'];
+  // Share dimensions (Repair Reason) carry the Agents-panel basis — count ÷ total
+  // RRR hits — so the exported cells mirror the screen exactly, never a re-derived number.
+  const SUMMARY_COLS = ['Dimension','Driver','Vol / Hits A → B','Repeat flags A → B','RRR% A → B','Δ pp','Contribution to overall Δ (pp)','RRR% basis'];
   function summaryRowCells(r){
     return [
       r.dim,
       String(r.key),
-      `${fmt(r.vA)} → ${fmt(r.vB)}`,
+      r.share ? `${fmt(r.rA)} → ${fmt(r.rB)}` : `${fmt(r.vA)} → ${fmt(r.vB)}`,
       `${fmt(r.rA)} → ${fmt(r.rB)}`,
-      `${r.pA.toFixed(1)}% → ${r.pB.toFixed(1)}%`,
+      `${r.pA.toFixed(2)}% → ${r.pB.toFixed(2)}%`,
       (r.dPP>=0?'+':'') + r.dPP.toFixed(2),
-      (r.contrib>=0?'+':'') + r.contrib.toFixed(2)
+      (r.contrib>=0?'+':'') + r.contrib.toFixed(2),
+      r.share ? 'count ÷ total RRR hits' : 'hits ÷ distinct MTSN'
     ];
   }
+
 
   function buildSummary(A0, B0, rows, sum){
     const s = sum || computeSummary(A0, B0, rows);
@@ -7513,20 +7543,25 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
       const sheetFor = (rowsArr, name)=>{
         const aoa = [SUMMARY_COLS].concat(rowsArr.map(summaryRowCells));
         const ws = XLSX.utils.aoa_to_sheet(aoa);
-        ws['!cols']=[{wch:14},{wch:34},{wch:20},{wch:20},{wch:20},{wch:10},{wch:28}];
+        ws['!cols']=[{wch:14},{wch:34},{wch:20},{wch:20},{wch:22},{wch:10},{wch:28},{wch:26}];
         XLSX.utils.book_append_sheet(wb, ws, name);
       };
       sheetFor(res.sum.improved, 'Improved');
       sheetFor(res.sum.worsen,  'Worsened');
 
-      const det = [['Dimension','Driver','Distinct MTSN A','Distinct MTSN B','Repeat flags A','Repeat flags B','RRR% A','RRR% B','Δ pp','Contribution pp']];
+      // Detail = exactly the rows rendered on screen per dimension (same contributions()
+      // output), including the share-dimension basis used by Agents ▸ Repair Reasons.
+      const det = [['Dimension','Driver','Vol / Hits A','Vol / Hits B','Repeat flags A','Repeat flags B','RRR% A','RRR% B','Δ pp','Contribution pp','RRR% basis']];
       res.dimResults.forEach(dr=> dr.rows.forEach(r=> det.push([
-        dr.dim.label, String(r.key), r.volA, r.volB, r.repA, r.repB,
-        +r.pctA.toFixed(2), +r.pctB.toFixed(2), +r.dPP.toFixed(2), +r.contrib.toFixed(2)
+        dr.dim.label, String(r.key),
+        r.share? r.repA : r.volA, r.share? r.repB : r.volB, r.repA, r.repB,
+        +r.pctA.toFixed(2), +r.pctB.toFixed(2), +r.dPP.toFixed(2), +r.contrib.toFixed(2),
+        r.share? 'count ÷ total RRR hits' : 'hits ÷ distinct MTSN'
       ])));
       const wsD = XLSX.utils.aoa_to_sheet(det);
-      wsD['!cols']=[{wch:14},{wch:34},{wch:15},{wch:15},{wch:14},{wch:14},{wch:9},{wch:9},{wch:9},{wch:15}];
+      wsD['!cols']=[{wch:14},{wch:34},{wch:15},{wch:15},{wch:14},{wch:14},{wch:9},{wch:9},{wch:9},{wch:15},{wch:26}];
       XLSX.utils.book_append_sheet(wb, wsD, 'All detail');
+
 
       XLSX.writeFile(wb, `RRR_Compare_${state.granularity}_${new Date().toISOString().slice(0,10)}.xlsx`);
     },
@@ -7608,7 +7643,7 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
               theme:'striped', styles:{fontSize:7.6, cellPadding:2, overflow:'linebreak'},
               headStyles:{fillColor:color, textColor:255, fontSize:7.6},
               alternateRowStyles:{fillColor:[248,248,250]},
-              columnStyles:{0:{cellWidth:26},1:{cellWidth:58,fontStyle:'bold'},5:{halign:'right'},6:{halign:'right',fontStyle:'bold'}},
+              columnStyles:{0:{cellWidth:24},1:{cellWidth:52,fontStyle:'bold'},5:{halign:'right'},6:{halign:'right',fontStyle:'bold'},7:{cellWidth:34,textColor:120}},
               margin:{left:14,right:14}
             });
           }
@@ -7623,12 +7658,15 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
           let dy = 26;
           res.dimResults.forEach(dr=>{
             if(!dr.rows.length) return;
+            // Repair Reason is a share dimension on screen (count ÷ total RRR hits),
+            // so the PDF prints the same hit counts and percentages, not re-derived ones.
+            const share = !!(dr.rows[0] && dr.rows[0].share);
             doc.autoTable({
               startY: dy,
-              head:[[dr.dim.label,'Vol A','Vol B','Flags A','Flags B','RRR% A','RRR% B','Δ pp','Contrib pp']],
+              head:[[dr.dim.label + (share? '  (RRR% = count ÷ total RRR hits)':''), share?'Hits A':'Vol A', share?'Hits B':'Vol B','Flags A','Flags B','RRR% A','RRR% B','Δ pp','Contrib pp']],
               body: dr.rows.slice(0,12).map(r=>[
-                String(r.key), fmt(r.volA), fmt(r.volB), fmt(r.repA), fmt(r.repB),
-                r.pctA.toFixed(1)+'%', r.pctB.toFixed(1)+'%',
+                String(r.key), fmt(share? r.repA : r.volA), fmt(share? r.repB : r.volB), fmt(r.repA), fmt(r.repB),
+                r.pctA.toFixed(2)+'%', r.pctB.toFixed(2)+'%',
                 (r.dPP>=0?'+':'')+r.dPP.toFixed(2), (r.contrib>=0?'+':'')+r.contrib.toFixed(2)
               ]),
               theme:'grid', styles:{fontSize:7.2, cellPadding:1.8},
@@ -7636,6 +7674,7 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const ov=documen
               columnStyles:{0:{cellWidth:60,fontStyle:'bold'},1:{halign:'right'},2:{halign:'right'},3:{halign:'right'},4:{halign:'right'},5:{halign:'right'},6:{halign:'right'},7:{halign:'right'},8:{halign:'right'}},
               margin:{left:14,right:14}
             });
+
             dy = doc.lastAutoTable.finalY + 6;
             if(dy > 175){ doc.addPage(); dy = 20; }
           });
@@ -7873,11 +7912,14 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
   }
   function volBg(v,max){ const t=max>0?v/max:0; return `rgba(226,0,26,${.1+t*.55})`; }
 
+  function isHit(r){ return r.FLAG==='1' || r.FLAG===1 || r.FLAG===true || String(r.FLAG||'').trim()==='1'; }
   function keyOf(r,k){
+    // Repair reason is ALWAYS the canonical "Next SO Repeat Repair Reason" on
+    // RRR-hit rows only — identical to the "For Agents" panel. Never "Unknown".
+    if(k==='reason') return isHit(r) ? rrrReasonLabel(r.NEXT_REASON) : '';
     const v = r[COL[k]];
     return (v==null||v==='') ? 'Unknown' : v;
   }
-  function isHit(r){ return r.FLAG==='1' || r.FLAG===1 || r.FLAG===true || String(r.FLAG||'').trim()==='1'; }
 
   function getBaseRows(){
     const hasFiltered = (typeof filteredData!=='undefined' && Array.isArray(filteredData));
@@ -7902,6 +7944,7 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     const g = new Map();
     records.forEach(r=>{
       const vals = keys.map(k=>keyOf(r,k));
+      if(vals.some(v=>v==='')) return; // non-hit rows carry no repair reason
       const gk = vals.join('§');
       let b = g.get(gk);
       if(!b){
@@ -7925,7 +7968,7 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     return a[0] || null;
   }
   function distinctCount(recs, key){
-    const s = new Set(); recs.forEach(r=>s.add(keyOf(r,key))); return s.size;
+    const s = new Set(); recs.forEach(r=>{ const v=keyOf(r,key); if(v!=='') s.add(v); }); return s.size;
   }
   function orderedMonths(recs){
     const s = new Set(); recs.forEach(r=>s.add(keyOf(r,'month')));
@@ -7945,7 +7988,7 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     const bak = state.filters[key]; state.filters[key] = new Set();
     const ctx = applyFilters(base); state.filters[key] = bak;
     const m = new Map();
-    ctx.forEach(r=>{ const v=keyOf(r,key); m.set(v,(m.get(v)||0)+1); });
+    ctx.forEach(r=>{ const v=keyOf(r,key); if(v==='') return; m.set(v,(m.get(v)||0)+1); });
     const arr = [...m.entries()].map(([k,n])=>({k,n}));
     if(key==='month'){
       arr.sort((a,b)=>{ const da=new Date(a.k+' 1'), db=new Date(b.k+' 1'); if(!isNaN(da)&&!isNaN(db)) return da-db; return String(a.k).localeCompare(String(b.k)); });
@@ -8434,6 +8477,7 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     const groups = new Map();
     recs.forEach(r=>{
       const sk = scope.key(r), reason = keyOf(r,'reason'), mo = keyOf(r,'month');
+      if(reason==='') return; // repair reasons exist only on RRR-hit rows
       if(!groups.has(sk)) groups.set(sk, { scope:sk, _mtsn:new Set(), hits:0, reasons:new Map(), months:new Map() });
       const g = groups.get(sk);
       if(r.MTSN) g._mtsn.add(r.MTSN); else g._mtsn.add('__'+g._mtsn.size);
@@ -8618,7 +8662,7 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
       const recs = state.lastRows;
       if(!recs || !recs.length){ alert('No data to export.'); return; }
       const cols = ['TL','Vendor','Account','Symptom','Model','Month','Reason','MTSN','FLAG'];
-      const rows = recs.map(r=>[r.TL||'',r.VENDOR||'',r.ACCOUNT||'',r.SYMPTOM||'',r.SUB||'',r.MONTH||'',r.REASON||'',r.MTSN||'',r.FLAG||'']);
+      const rows = recs.map(r=>[r.TL||'',r.VENDOR||'',r.ACCOUNT||'',r.SYMPTOM||'',r.SUB||'',r.MONTH||'',rrrReason(r)||'',r.MTSN||'',r.FLAG||'']);
       const csv = [cols.join(','),...rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(','))].join('\n');
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
@@ -8697,8 +8741,7 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
       if(hit) out.flags++;
       // reasons — only across RRR hits (same convention as elsewhere)
       if(hit){
-        const raw = (r.NEXT_REASON==null?'':String(r.NEXT_REASON)).trim();
-        const key = raw || '(Blank / Not Captured)';
+        const key = rrrReasonLabel(r.NEXT_REASON);
         if(!out.byReason[key]) out.byReason[key] = { count:0, workmanship: /workman/i.test(key), wos:[] };
         out.byReason[key].count++;
         out.byReason[key].wos.push(r);
@@ -9119,7 +9162,7 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
       .filter(x=>x.key)
       .sort((a,b)=>b.impact-a.impact).slice(0,5);
     const topPart = agg(sub, r=>r.FIRST_COMM).sort((a,b)=>b.impact-a.impact).slice(0,5);
-    const rMap = new Map(); sub.filter(isFlag).forEach(r=>{ const k=(r.NEXT_REASON||'—').trim()||'—'; rMap.set(k,(rMap.get(k)||0)+1); });
+    const rMap = new Map(); sub.filter(isFlag).forEach(r=>{ const k=rrrReason(r)||'(Blank / Not Captured)'; rMap.set(k,(rMap.get(k)||0)+1); });
     const topReason = Array.from(rMap.entries()).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
     const mini = (title, arr, valFn) => `<div style="flex:1;min-width:260px">
@@ -9488,7 +9531,7 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     // Reason breakdown from repeat-flag rows only
     const flagRows = t.rows.filter(isFlag);
     const reasons = new Map();
-    flagRows.forEach(r=>{ const k = (r.NEXT_REASON||'—').trim()||'—'; let o = reasons.get(k); if(!o){ o={key:k, count:0, rows:[]}; reasons.set(k,o); } o.count++; o.rows.push(r); });
+    flagRows.forEach(r=>{ const k = rrrReason(r)||'(Blank / Not Captured)'; let o = reasons.get(k); if(!o){ o={key:k, count:0, rows:[]}; reasons.set(k,o); } o.count++; o.rows.push(r); });
     const list = Array.from(reasons.values()).sort((a,b)=>b.count-a.count);
     const totalFlags = flagRows.length;
 
@@ -9567,7 +9610,7 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
       const map = new Map();
       for(const r of data){ const k=techKey(r); if(!k) continue;
         let o = map.get(k); if(!o){ o={id:r.TECH_ID||'',name:r.TECH_NAME||'',vendor:r.FS_PARTNER||'',pudo:r.PUDO||'',city:r.CITY||'',vol:0,flags:0,reasons:new Map()}; map.set(k,o); }
-        o.vol++; if(isFlag(r)){ o.flags++; const rz=(r.NEXT_REASON||'—').trim()||'—'; o.reasons.set(rz,(o.reasons.get(rz)||0)+1); }
+        o.vol++; if(isFlag(r)){ o.flags++; const rz=rrrReason(r)||'(Blank / Not Captured)'; o.reasons.set(rz,(o.reasons.get(rz)||0)+1); }
       }
       const lines = [['Tech ID','Name','Vendor','PUDO','City','Vol','Flags','RRR%','Impact','Top Reason','Top Reason Count'].join(',')];
       Array.from(map.values()).map(o=>{ o.rrr=pct(o.flags,o.vol); o.impact=o.vol*o.rrr;
@@ -9586,7 +9629,7 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
           if(!o.id && r.TECH_ID) o.id=r.TECH_ID; if(!o.name && r.TECH_NAME) o.name=r.TECH_NAME;
           if(!o.vendor && r.FS_PARTNER) o.vendor=r.FS_PARTNER; if(!o.pudo && r.PUDO) o.pudo=r.PUDO; if(!o.city && r.CITY) o.city=r.CITY;
         o.vol++;
-        if(isFlag(r)){ o.flags++; const rz=(r.NEXT_REASON||'—').trim()||'—'; o.reasons.set(rz,(o.reasons.get(rz)||0)+1);
+        if(isFlag(r)){ o.flags++; const rz=rrrReason(r)||'(Blank / Not Captured)'; o.reasons.set(rz,(o.reasons.get(rz)||0)+1);
           if(/workmanship/i.test(rz)) o.workRows.push(r);
         }
       }
@@ -9810,7 +9853,7 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
       if(k==='MTSN') return r.MTSN||'';
       if(k==='MONTH') return r.MONTH||'';
       if(k==='PUDO') return r.PUDO||'';
-      if(k==='REASON') return r.NEXT_REASON || r.REASON || '';
+      if(k==='REASON') return rrrReason(r);
       if(k==='VENDOR') return r.VENDOR||'';
       return '';
     };
@@ -9836,7 +9879,7 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
       <td style="padding:5px 8px">${esc(r.MONTH||'—')}</td>
       <td style="padding:5px 8px">${esc(r.WEEK||'—')}</td>
       <td style="padding:5px 8px;font-family:'IBM Plex Mono',monospace">${esc(r.PUDO||'—')}</td>
-      <td style="padding:5px 8px">${esc(r.NEXT_REASON || r.REASON || '—')}</td>
+      <td style="padding:5px 8px">${esc(rrrReason(r)||'—')}</td>
     </tr>`).join('');
     return `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -9899,7 +9942,7 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
         const hdr = ['WO Number','Serial (MTSN)','Vendor','Month','Week','PUDO Code','Repair Reason (Next SO)','Repair Reason (1st)','Symptom','Sub-Series','Account','Region','City','Agent','Flag'];
         const body = hits.map(r=>[
           r.WO_NUM||'', r.MTSN||'', r.VENDOR||'', r.MONTH||'', r.WEEK||'', r.PUDO||'',
-          r.NEXT_REASON||'', r.REASON||'', r.SYMPTOM||'', r.SUB||'', r.ACCOUNT||'',
+          rrrReason(r)||'', r.REASON||'', r.SYMPTOM||'', r.SUB||'', r.ACCOUNT||'',
           (typeof normalizeRegion==='function'?normalizeRegion(r.REGION):(r.REGION||'')),
           r.CITY||'', r.NAME||'', r.FLAG||''
         ]);
@@ -10147,7 +10190,7 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     technician:   techKey,
     sub_series:   r=>r.SUB,
     symptom:      r=>r.SYMPTOM,
-    repair_reason:r=>r.NEXT_REASON,
+    repair_reason:r=>rrrReason(r),
     vendor:       r=>r.VENDOR,
     account:      r=>r.ACCOUNT,
     region:       r=>r.REGION,
@@ -10270,13 +10313,13 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
         hcs: hcsSplit(sub),
         topModels: crossTab(sub, r=>r.SUB||'Unknown', 5),
         topSymptoms: crossTab(sub, r=>r.SYMPTOM||'Unknown', 5),
-        topRepairReasons: crossTab(sub.filter(r=>String(r.FLAG)==='1'), r=>r.NEXT_REASON||'Unknown', 5),
+        topRepairReasons: crossTab(sub.filter(r=>String(r.FLAG)==='1'), r=>rrrReason(r)||'(Blank / Not Captured)', 5),
         topModelSymptom: crossTab(sub.filter(r=>String(r.FLAG)==='1'), r=>`${r.SUB||'?'} | ${r.SYMPTOM||'?'}`, 5),
         topVendors: crossTab(sub, r=>r.VENDOR||'Unknown', 4),
         topAccounts: crossTab(sub, r=>r.ACCOUNT||'Unknown', 4),
         monthTrend: topN(agg(sub, r=>r.MONTH||'?').sort((a,b)=>String(a.key).localeCompare(String(b.key))),24),
         weekTrend:  topN(agg(sub, r=>r.WEEK||'?').sort((a,b)=>String(a.key).localeCompare(String(b.key))),24),
-        sampleRepeatWOs: sub.filter(r=>String(r.FLAG)==='1').slice(0,10).map(r=>({wo:r.WO_NUM,mtsn:r.MTSN,month:r.MONTH,week:r.WEEK,model:r.SUB,symptom:r.SYMPTOM,reason:r.NEXT_REASON,vendor:r.VENDOR,pudo:r.PUDO,tech:techKey(r),firstFru:r.FIRST_FRU,nextFru:r.NEXT_FRU}))
+        sampleRepeatWOs: sub.filter(r=>String(r.FLAG)==='1').slice(0,10).map(r=>({wo:r.WO_NUM,mtsn:r.MTSN,month:r.MONTH,week:r.WEEK,model:r.SUB,symptom:r.SYMPTOM,reason:rrrReason(r),vendor:r.VENDOR,pudo:r.PUDO,tech:techKey(r),firstFru:r.FIRST_FRU,nextFru:r.NEXT_FRU}))
       };
     });
   }
@@ -10328,8 +10371,8 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
         model_x_symptom:      crossTab(scoped, r=>`${r.SUB||'?'} | ${r.SYMPTOM||'?'}`, 10),
         vendor_x_region:      crossTab(scoped, r=>`${r.VENDOR||'?'} | ${r.REGION||'?'}`, 10),
         account_x_symptom:    crossTab(scoped, r=>`${r.ACCOUNT||'?'} | ${r.SYMPTOM||'?'}`, 8),
-        technician_x_reason:  crossTab(scoped.filter(r=>String(r.FLAG)==='1'), r=>`${techKey(r)||'?'} | ${r.NEXT_REASON||'?'}`, 8),
-        vendor_x_reason:      crossTab(scoped.filter(r=>String(r.FLAG)==='1'), r=>`${r.VENDOR||'?'} | ${r.NEXT_REASON||'?'}`, 8)
+        technician_x_reason:  crossTab(scoped.filter(r=>String(r.FLAG)==='1'), r=>`${techKey(r)||'?'} | ${rrrReason(r)||'(Blank / Not Captured)'}`, 8),
+        vendor_x_reason:      crossTab(scoped.filter(r=>String(r.FLAG)==='1'), r=>`${r.VENDOR||'?'} | ${rrrReason(r)||'(Blank / Not Captured)'}`, 8)
       },
       hcs: hcsSplit(scoped),
       fruJourney: fruJourney(scoped, 8),
