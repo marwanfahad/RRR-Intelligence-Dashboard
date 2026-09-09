@@ -473,7 +473,6 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
       <div class="chip" id="chip-wonum">Service Order ID / WO Number</div>
       <div class="chip" id="chip-mtsn">Machine Serial Number</div>
       <div class="chip" id="chip-sub">Sub Series</div>
-      <div class="chip" id="chip-series">Series</div>
       <div class="chip" id="chip-month">RRR Month</div>
       <div class="chip" id="chip-week">RRR Week</div>
       <div class="chip" id="chip-flag">RRR MTSN 30D Flag NOC</div>
@@ -525,14 +524,6 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
     <select id="fAccount"><option value="">All Accounts</option></select></div>
   <div class="fg"><label>Sub Series</label>
     <select id="fSub"><option value="">All Sub-Series</option></select></div>
-  <div class="fg">
-    <label>Series</label>
-    <div class="ms-wrap" id="msWrapSeries">
-      <button class="ms-btn" id="msBtnSeries" type="button" onclick="toggleMsDropdown('Series')">All Series</button>
-      <div class="ms-dropdown" id="msDropSeries"></div>
-    </div>
-    <select id="fSeries" multiple style="display:none"></select>
-  </div>
   <div class="fg">
     <label>Service Warranty Type</label>
     <div class="ms-wrap" id="msWrapWarranty">
@@ -707,6 +698,7 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
          <button class="tbtn" data-grp="leadership" onclick="sw('accountmap',this)" style="color:#ff9f4a">🗺️ Account Mapping</button>
           <button class="tbtn" data-grp="leadership" onclick="sw('actionplan',this)" style="color:#f5a623">🛠️ RRR Action Plan</button>
           <button class="tbtn" data-grp="leadership" onclick="sw('frujourney',this)" style="color:#a3f0c0">🧩 FRU Journey</button>
+          <button class="tbtn" data-grp="leadership" onclick="sw('ppd',this)" style="color:#8ce7ff">🎛️ PPD Controller</button>
           <button class="tbtn" data-grp="leadership" onclick="sw('simulator',this)" style="color:#f5a623">🎯 Reduction Simulator</button>
            <button class="tbtn" data-grp="leadership" onclick="sw('compare',this)" style="color:#7ce0ff">⚖️ Compare Periods</button>
            <button class="tbtn" data-grp="leadership" onclick="sw('insights',this)" style="color:#a3f0c0">🔎 Insights</button>
@@ -1349,6 +1341,24 @@ body.light-mode .exec-how{background:rgba(0,0,0,0.03)}
       </div>
     </div>
 
+    <!-- TAB: PPD CONTROLLER (Leadership) -->
+    <div class="tab" id="tab-ppd">
+      <div class="tc">
+        <div class="tc-hd">
+          <div>
+            <div class="tc-title">🎛️ PPD Controller — Part Dispatch vs RRR</div>
+            <div class="tc-meta">Pick model(s) and symptom(s). Every part combination that was actually dispatched is listed with its Distinct MTSN, RRR flags and RRR%, so you can dispatch the combination that repeats least.</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" type="button" onclick="PPD && PPD.exportXLSX()">⬇ Export Excel</button>
+          </div>
+        </div>
+        <div id="ppdBody" style="padding:14px">
+          <div style="padding:32px;text-align:center;color:var(--t3);font-size:12px">Upload a file to use the PPD Controller.</div>
+        </div>
+      </div>
+    </div>
+
 
     <!-- TAB: COMPARE PERIODS (Leadership) -->
     <div class="tab" id="tab-compare">
@@ -1497,7 +1507,7 @@ themeToggle.addEventListener('click', () => {
    COLUMN DEFINITIONS
 ══════════════════════════════ */
 const COLS = {
-  WO_NUM:'WO Number', MTSN:'Machine Serial Number', SUB:'Sub Series', SERIES:'Series',
+  WO_NUM:'WO Number', MTSN:'Machine Serial Number', SUB:'Sub Series',
   MONTH:'RRR Month', WEEK:'RRR Week', VENDOR:'Primary Vendor Name',
   REASON:'Repeat Repair Reason1', NEXT_REASON:'Next SO Repeat Repair Reason', SYMPTOM:'Symptom1', FLAG:'RRR MTSN 30D NOC x Labor',
   TL:'Release by TL', NAME:'Release by Name', ACCOUNT:'Account Name',
@@ -1511,7 +1521,7 @@ const COLS = {
   TECH_ID:'Final Tech ID', TECH_NAME:'Name', FS_PARTNER:'FS_Partner', PUDO:'PUDO'
 }
 const CHIP_IDS = {
-  WO_NUM:'chip-wonum', MTSN:'chip-mtsn', SUB:'chip-sub', SERIES:'chip-series', MONTH:'chip-month',
+  WO_NUM:'chip-wonum', MTSN:'chip-mtsn', SUB:'chip-sub', MONTH:'chip-month',
   WEEK:'chip-week', VENDOR:'chip-vendor', REASON:'chip-reason', NEXT_REASON:'chip-nextreason', SYMPTOM:'chip-symptom',
   FLAG:'chip-flag', TL:'chip-tl', NAME:'chip-name', ACCOUNT:'chip-account',
   SVC_TYPE:'chip-svctype', WARRANTY:'chip-warranty', LOB:'chip-lob',
@@ -1529,7 +1539,7 @@ let venMapData=[], accMapData=[], venMapRaw=null, accMapRaw=null
 let venMapTopSort='impact', accMapTopSort='impact'
 
 /* ── MULTI-SELECT STATE ── */
-const msState = { Month: new Set(), Week: new Set(), Warranty: new Set(), ProdGrp: new Set(), LOB: new Set(), Series: new Set() }
+const msState = { Month: new Set(), Week: new Set(), Warranty: new Set(), ProdGrp: new Set(), LOB: new Set() }
 
 /* ── COL ALIASES ── */
 const COL_ALIASES = {
@@ -1633,7 +1643,6 @@ function detectCols(headers){
     chips.push(`<span class="cb-chip ${idx>=0?'cb-ok':'cb-miss'}">${idx>=0?'✓':'✗'} ${wanted}${idx<0?' ← NOT FOUND':''}</span>`)
   }
   // Fallback: exact "Name" column for technician name when no better alias matched
-  { const i = headers.findIndex(h=>String(h).trim().toLowerCase()==='series'); IDX.SERIES = i; const c=document.getElementById('chip-series'); if(c) c.classList.toggle('found', i>=0); }
   if(IDX.TECH_NAME<0){ const i = headers.findIndex(h=>h.trim().toLowerCase()==='name'); if(i>=0) IDX.TECH_NAME = i; }
   document.getElementById('colBannerChips').innerHTML = chips.join('')
   document.getElementById('colBanner').classList.add('show')
@@ -1680,11 +1689,11 @@ function toggleMsAll(key){
 }
 function updateMsBtn(key){
   const btn = document.getElementById('msBtn'+key); if(!btn) return
-  const count = msState[key].size; const labels = {Month:'All Months', Week:'All Weeks', Warranty:'All Warranty Types', ProdGrp:'All Product Groups', LOB:'All LOBs', Series:'All Series'}
+  const count = msState[key].size; const labels = {Month:'All Months', Week:'All Weeks', Warranty:'All Warranty Types', ProdGrp:'All Product Groups', LOB:'All LOBs'}
   if(count===0) btn.textContent = labels[key] || 'All'; else if(count===1) btn.textContent =[...msState[key]][0]; else btn.textContent = `${count} selected`
 }
 function syncHiddenSelect(key){
-  const idMap = {Month:'fMonth', Week:'fWeek', Warranty:'fWarranty', ProdGrp:'fProdGrp', LOB:'fLOB', Series:'fSeries'}; const sel = document.getElementById(idMap[key] || 'f'+key); if(!sel) return
+  const idMap = {Month:'fMonth', Week:'fWeek', Warranty:'fWarranty', ProdGrp:'fProdGrp', LOB:'fLOB'}; const sel = document.getElementById(idMap[key] || 'f'+key); if(!sel) return
   for(let o of sel.options) o.selected = msState[key].has(o.value)
 }
 function toggleMsDropdown(key){
@@ -1696,9 +1705,9 @@ document.addEventListener('click', e=>{ if(!e.target.closest('.ms-wrap')) docume
 /* ── FILTERS ── */
 function populateFilters(){
   fillSel('fTL','All TLs',uniq('TL')); fillSel('fAgent','All Agents',uniq('NAME')); fillSel('fVendor','All Vendors',uniq('VENDOR')); fillSel('fAccount','All Accounts',uniq('ACCOUNT')); fillSel('fSub','All Sub-Series',uniq('SUB'))
-  const months=uniq('MONTH'), weeks=uniq('WEEK'), warrs=uniq('WARRANTY'), prodGrps=uniq('PROD_GRP'), lobs=uniq('LOB'), series=uniq('SERIES')
-  fillSel('fMonth','All Months',months,true); fillSel('fWeek','All Weeks',weeks,true); fillSel('fWarranty','All Warranty Types',warrs,true); fillSel('fProdGrp','All Product Groups',prodGrps,true); fillSel('fLOB','All LOBs',lobs,true); fillSel('fSeries','All Series',series,true)
-  buildMsDropdown('Month',months,'Months'); buildMsDropdown('Week',weeks,'Weeks'); buildMsDropdown('Warranty',warrs,'Warranty Types'); buildMsDropdown('ProdGrp',prodGrps,'Product Groups'); buildMsDropdown('LOB',lobs,'LOBs'); buildMsDropdown('Series',series,'Series')
+  const months=uniq('MONTH'), weeks=uniq('WEEK'), warrs=uniq('WARRANTY'), prodGrps=uniq('PROD_GRP'), lobs=uniq('LOB')
+  fillSel('fMonth','All Months',months,true); fillSel('fWeek','All Weeks',weeks,true); fillSel('fWarranty','All Warranty Types',warrs,true); fillSel('fProdGrp','All Product Groups',prodGrps,true); fillSel('fLOB','All LOBs',lobs,true)
+  buildMsDropdown('Month',months,'Months'); buildMsDropdown('Week',weeks,'Weeks'); buildMsDropdown('Warranty',warrs,'Warranty Types'); buildMsDropdown('ProdGrp',prodGrps,'Product Groups'); buildMsDropdown('LOB',lobs,'LOBs')
   document.getElementById('filterBar').classList.add('show')
   ;['fTL','fAgent','fVendor','fAccount','fSub'].forEach(id=>document.getElementById(id).onchange=applyFilters)
   updateReportScope();
@@ -1706,18 +1715,18 @@ function populateFilters(){
 function getMultiSelectValues(key){ const s = msState[key]; return s && s.size > 0 ? [...s] : null }
 function applyFilters(){
   const tl=v('fTL'), ag=v('fAgent'), vd=v('fVendor'), ac=v('fAccount'), sb=v('fSub')
-  const months=getMultiSelectValues('Month'), weeks=getMultiSelectValues('Week'), warrs=getMultiSelectValues('Warranty'), prodGrps=getMultiSelectValues('ProdGrp'), lobs=getMultiSelectValues('LOB'), seriesSel=getMultiSelectValues('Series')
+  const months=getMultiSelectValues('Month'), weeks=getMultiSelectValues('Week'), warrs=getMultiSelectValues('Warranty'), prodGrps=getMultiSelectValues('ProdGrp'), lobs=getMultiSelectValues('LOB')
   filteredData = rawData.filter(r=>{
     if(tl && r.TL!==tl) return false; if(ag && r.NAME!==ag) return false; if(months && !months.includes(r.MONTH)) return false; if(weeks && !weeks.includes(r.WEEK)) return false
     if(vd && r.VENDOR!==vd) return false; if(ac && r.ACCOUNT!==ac) return false; if(sb && r.SUB!==sb) return false; if(warrs && !warrs.includes(r.WARRANTY)) return false
-    if(prodGrps && !prodGrps.includes(r.PROD_GRP)) return false; if(lobs && !lobs.includes(r.LOB)) return false; if(seriesSel && !seriesSel.includes(r.SERIES)) return false; return true
+    if(prodGrps && !prodGrps.includes(r.PROD_GRP)) return false; if(lobs && !lobs.includes(r.LOB)) return false; return true
   })
   if(tl){ const ag4tl=[...new Set(rawData.filter(r=>r.TL===tl).map(r=>r.NAME).filter(Boolean))].sort(); fillSel('fAgent','All Agents',ag4tl); document.getElementById('fAgent').onchange=applyFilters }
   analyzeDebounced()
 }
 function resetFilters(){
   ;['fTL','fAgent','fVendor','fAccount','fSub'].forEach(id=>document.getElementById(id).value='')
-  msState.Month.clear(); msState.Week.clear(); msState.Warranty.clear(); msState.ProdGrp.clear(); msState.LOB.clear(); msState.Series.clear()
+  msState.Month.clear(); msState.Week.clear(); msState.Warranty.clear(); msState.ProdGrp.clear(); msState.LOB.clear()
   agActiveMslMonth=null; tlActiveMslMonth=null; populateFilters(); filteredData=[...rawData]; analyzeDebounced()
 }
 function v(id){ return document.getElementById(id).value }
@@ -1787,6 +1796,7 @@ function analyze(){
     if(techTab && techTab.classList.contains('on') && window.TechReport && window.TechReport.onDataChanged) window.TechReport.onDataChanged();
     const vrepTab = document.getElementById('tab-vendorrep');
     if(vrepTab && vrepTab.classList.contains('on') && window.VendorReport && window.VendorReport.onDataChanged) window.VendorReport.onDataChanged();
+    if(window.PPD && window.PPD.onDataChanged) window.PPD.onDataChanged();
   }catch(e){ console.error('post-analyze refresh', e); }
 }
 
@@ -3833,6 +3843,9 @@ function sw(name,btn){
   if(name==='vendorrep'){
     try{ window.VendorReport && window.VendorReport.onOpen && window.VendorReport.onOpen(); }catch(e){ console.error('vendorrep open', e); }
   }
+  if(name==='ppd'){
+    try{ window.PPD && window.PPD.onOpen && window.PPD.onOpen(); }catch(e){ console.error('ppd open', e); }
+  }
 }
 function exportCSV(){
   if(!filteredData.length){alert('No data to export.');return}
@@ -4298,7 +4311,7 @@ function saveFilterPreset(){
   const p={
     fTL:v('fTL'), fAgent:v('fAgent'), fVendor:v('fVendor'), fAccount:v('fAccount'), fSub:v('fSub'),
     Month:[...msState.Month], Week:[...msState.Week], Warranty:[...msState.Warranty],
-    ProdGrp:[...msState.ProdGrp], LOB:[...msState.LOB], Series:[...msState.Series]
+    ProdGrp:[...msState.ProdGrp], LOB:[...msState.LOB]
   };
   try{ localStorage.setItem(PRESET_KEY, JSON.stringify(p)); flashMsg('💾 Filter view saved'); }
   catch(e){ alert('Could not save preset'); }
@@ -5700,7 +5713,7 @@ function copyShareLink(btn){
     const gv = id => { const el = document.getElementById(id); return el ? el.value : ''; };
     ['fTL','fAgent','fVendor','fAccount','fSub'].forEach(id=>{ const v=gv(id); if(v) params.set(id, v); });
     if(typeof msState !== 'undefined'){
-      ['Month','Week','Warranty','ProdGrp','LOB','Series'].forEach(k=>{ if(msState[k] && msState[k].size) params.set('f'+k, [...msState[k]].join('|')); });
+      ['Month','Week','Warranty','ProdGrp','LOB'].forEach(k=>{ if(msState[k] && msState[k].size) params.set('f'+k, [...msState[k]].join('|')); });
     }
     const activeTab = document.querySelector('.tbtn.on'); if(activeTab){ const oc=activeTab.getAttribute('onclick')||''; const m=oc.match(/sw\('([^']+)'/); if(m) params.set('tab', m[1]); }
     const url = location.origin + location.pathname + (params.toString() ? ('?' + params.toString()) : '') + location.hash;
@@ -9963,6 +9976,265 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
 })();
 </script>
 
+<!-- ============================================================
+     PPD CONTROLLER — part-combination dispatch vs RRR
+     ============================================================ -->
+<style>
+  #tab-ppd .ppd-bar{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--card2);margin-bottom:14px}
+  #tab-ppd .ppd-ms{position:relative;min-width:220px;flex:1 1 220px}
+  #tab-ppd .ppd-cap{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);margin-bottom:4px}
+  #tab-ppd .ms-btn{width:100%;background:var(--card);border:1px solid var(--border);border-radius:5px;padding:8px 10px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--t1);font-family:inherit}
+  #tab-ppd .ms-btn.active{border-color:var(--red)}
+  #tab-ppd .ms-cnt{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;min-width:20px;text-align:center}
+  #tab-ppd .ms-cnt.zero{background:var(--border2);color:var(--t3)}
+  #tab-ppd .ms-panel{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:1px solid var(--border2);border-radius:6px;z-index:60;display:none;flex-direction:column;box-shadow:0 12px 32px rgba(0,0,0,.45)}
+  #tab-ppd .ppd-ms.open .ms-panel{display:flex}
+  #tab-ppd .ms-search{padding:8px;border-bottom:1px solid var(--border)}
+  #tab-ppd .ms-search input{width:100%;background:var(--dark);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--t1);font-size:12px;outline:none;font-family:inherit}
+  #tab-ppd .ms-list{overflow-y:auto;max-height:240px;padding:4px 0}
+  #tab-ppd .ms-opt{display:flex;align-items:center;gap:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:var(--t1)}
+  #tab-ppd .ms-opt:hover{background:rgba(226,0,26,.08)}
+  #tab-ppd .ms-opt .cnt{margin-left:auto;font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace}
+  #tab-ppd .ms-actions{display:flex;gap:6px;padding:6px;border-top:1px solid var(--border)}
+  #tab-ppd .ms-actions button{flex:1;background:var(--card2);border:1px solid var(--border);border-radius:4px;padding:4px;color:var(--t2);font-size:11px;cursor:pointer;font-family:inherit}
+  #tab-ppd .ppd-verdict{padding:12px 14px;border:1px solid var(--border2);border-left:3px solid var(--ok,#00c896);border-radius:8px;background:var(--card2);font-size:12.5px;line-height:1.7;color:var(--t1);margin-bottom:14px}
+  #tab-ppd table{width:100%;border-collapse:collapse}
+  #tab-ppd th{cursor:pointer;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);text-align:left;padding:8px 10px;border-bottom:1px solid var(--border2);white-space:nowrap}
+  #tab-ppd td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--t1);vertical-align:top}
+  #tab-ppd tr.low td{opacity:.55}
+  #tab-ppd .flagtag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:1px 6px;border-radius:99px;border:1px solid var(--border2);color:var(--t3);margin-left:6px}
+  #tab-ppd .num{font-family:'IBM Plex Mono',monospace;text-align:right}
+  #tab-ppd .exp{cursor:pointer}
+  #tab-ppd .exp:hover{background:rgba(124,224,255,.06)}
+  #tab-ppd .sub-wrap{background:var(--dark);padding:10px 14px;border-bottom:1px solid var(--border)}
+  #tab-ppd .note{padding:12px 4px;font-size:11px;color:var(--t3);line-height:1.7}
+</style>
+<script>
+(function(){
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const LOW = 5; // distinct MTSN below this = low sample
+  const state = { models:new Set(), symptoms:new Set(), open:null, sortKey:'rrr', sortDir:1, expanded:new Set() };
+
+  function src(){
+    if(typeof filteredData!=='undefined' && filteredData && filteredData.length) return filteredData;
+    return (typeof rawData!=='undefined' && rawData) ? rawData : [];
+  }
+  function partName(r){
+    const n = (r.FIRST_COMM||'').trim();
+    if(n) return n.toUpperCase();
+    const f = (r.FIRST_FRU||'').trim();
+    if(!f) return '';
+    const mapped = (typeof fruNameMap!=='undefined' && fruNameMap && fruNameMap[f]) ? String(fruNameMap[f]).trim() : '';
+    return (mapped || f).toUpperCase();
+  }
+  function scoped(){
+    return src().filter(r =>
+      (!state.models.size    || state.models.has(r.SUB||'')) &&
+      (!state.symptoms.size  || state.symptoms.has(r.SYMPTOM||''))
+    );
+  }
+  function optCounts(dim, base){
+    const m = new Map();
+    base.forEach(r=>{ const v=(dim==='model'?r.SUB:r.SYMPTOM)||''; if(!v) return; m.set(v,(m.get(v)||0)+1); });
+    // rank by impact: volume × RRR%
+    const hits = new Map(), mt = new Map();
+    base.forEach(r=>{
+      const v=(dim==='model'?r.SUB:r.SYMPTOM)||''; if(!v) return;
+      if(!mt.has(v)) mt.set(v,new Set());
+      if(r.MTSN) mt.get(v).add(r.MTSN);
+      if(String(r.FLAG)==='1') hits.set(v,(hits.get(v)||0)+1);
+    });
+    return [...m.entries()].map(([k,n])=>{
+      const h = hits.get(k)||0, d = mt.get(k)? mt.get(k).size : 0;
+      const rrr = d ? h/d*100 : 0;
+      return { k, n, impact: n*rrr };
+    }).sort((a,b)=> b.impact-a.impact || b.n-a.n || String(a.k).localeCompare(String(b.k)));
+  }
+
+  /* Build combinations: group rows by WO Number, collect the distinct part
+     names sent on that WO, key = alphabetically sorted names joined " + ". */
+  function combos(){
+    const rows = scoped();
+    const wos = new Map();
+    rows.forEach(r=>{
+      const wo = (r.WO_NUM||'').trim() || ('~'+(r.MTSN||'')+'|'+(r.MONTH||'')+'|'+(r.SYMPTOM||''));
+      if(!wos.has(wo)) wos.set(wo, { wo, parts:new Set(), rows:[] });
+      const g = wos.get(wo);
+      const p = partName(r);
+      if(p) g.parts.add(p);
+      g.rows.push(r);
+    });
+    let noPart = 0;
+    const map = new Map();
+    wos.forEach(g=>{
+      if(!g.parts.size){ noPart++; return; }
+      const names = [...g.parts].sort();
+      const key = names.join(' + ');
+      if(!map.has(key)) map.set(key, { key, parts:names, wos:0, mtsn:new Set(), hits:0, hitRows:[] });
+      const c = map.get(key);
+      c.wos++;
+      g.rows.forEach(r=>{ if(r.MTSN) c.mtsn.add(r.MTSN); });
+      const hit = g.rows.find(r=>String(r.FLAG)==='1');
+      if(hit){ c.hits++; c.hitRows.push(hit); }
+    });
+    const list = [...map.values()].map(c=>({
+      key:c.key, parts:c.parts, wos:c.wos,
+      mtsn:c.mtsn.size, hits:c.hits,
+      rrr: c.mtsn.size ? c.hits/c.mtsn.size*100 : 0,
+      hitRows: c.hitRows
+    }));
+    return { list, noPart, woCount: wos.size };
+  }
+  function sorted(list){
+    const k = state.sortKey, d = state.sortDir;
+    const val = c => k==='key' ? c.key : k==='parts' ? c.parts.length : c[k];
+    return [...list].sort((a,b)=>{
+      // default view (rrr asc) puts low-sample rows last
+      if(k==='rrr'){
+        const la = a.mtsn < LOW ? 1 : 0, lb = b.mtsn < LOW ? 1 : 0;
+        if(la!==lb) return la-lb;
+      }
+      const va = val(a), vb = val(b);
+      if(typeof va==='string') return d*va.localeCompare(vb);
+      return d*(va-vb) || b.wos-a.wos;
+    });
+  }
+
+  function verdict(list){
+    const solid = list.filter(c=>c.mtsn>=LOW);
+    if(solid.length < 2) return 'Select a model and symptom with enough dispatch history to compare combinations. Rows with fewer than '+LOW+' distinct serials are flagged as low sample.';
+    const best = solid.slice().sort((a,b)=>a.rrr-b.rrr)[0];
+    const worst = solid.slice().sort((a,b)=>b.rrr-a.rrr)[0];
+    const scope = (state.models.size?[...state.models].join(', '):'All models')+' × '+(state.symptoms.size?[...state.symptoms].join(', '):'all symptoms');
+    return '<b>'+esc(scope)+'</b> — sending <b>'+esc(best.key)+'</b> repeats at <b>'+best.rrr.toFixed(2)+'%</b> ('+best.hits+' hits / '+best.mtsn+' serials over '+best.wos+' WOs), while <b>'+esc(worst.key)+'</b> repeats at <b>'+worst.rrr.toFixed(2)+'%</b> ('+worst.hits+' hits / '+worst.mtsn+' serials). Dispatch <b>'+esc(best.key)+'</b> first — it avoids roughly '+Math.round((worst.rrr-best.rrr)/100*worst.mtsn)+' repeat visits at the current volume.';
+  }
+
+  function msPanel(dim, base){
+    const sel = dim==='model' ? state.models : state.symptoms;
+    const opts = optCounts(dim, dim==='symptom' && state.models.size
+      ? src().filter(r=>state.models.has(r.SUB||''))
+      : base);
+    return '<div class="ms-panel" onclick="event.stopPropagation()">'+
+      '<div class="ms-search"><input type="text" placeholder="Search…" data-role="search" data-dim="'+dim+'"/></div>'+
+      '<div class="ms-list" data-list="'+dim+'">'+
+        (opts.slice(0,400).map(o=>'<label class="ms-opt"><input type="checkbox" data-dim="'+dim+'" data-v="'+esc(o.k)+'" '+(sel.has(o.k)?'checked':'')+'/><span>'+esc(o.k)+'</span><span class="cnt">'+o.n+'</span></label>').join('') || '<div style="padding:8px;color:var(--t3);font-size:11px">No options</div>')+
+      '</div>'+
+      '<div class="ms-actions"><button type="button" data-role="clear" data-dim="'+dim+'">Clear</button></div>'+
+    '</div>';
+  }
+  function msBox(dim, label, base){
+    const sel = dim==='model' ? state.models : state.symptoms;
+    return '<div class="ppd-ms '+(state.open===dim?'open':'')+'" data-dim="'+dim+'">'+
+      '<div class="ppd-cap">'+label+'</div>'+
+      '<button class="ms-btn '+(sel.size?'active':'')+'" type="button" data-role="toggle" data-dim="'+dim+'">'+
+        '<span>'+(sel.size?[...sel].slice(0,2).join(', ')+(sel.size>2?' +'+(sel.size-2):''):'All')+'</span>'+
+        '<span class="ms-cnt '+(sel.size?'':'zero')+'">'+sel.size+'</span>'+
+      '</button>'+
+      (state.open===dim ? msPanel(dim, base) : '')+
+    '</div>';
+  }
+
+  function drillHtml(c){
+    const reasons = new Map();
+    c.hitRows.forEach(r=>{ const k = (typeof rrrReason==='function' ? rrrReason(r) : (r.NEXT_REASON||'')) || '(Blank / Not Captured)'; reasons.set(k,(reasons.get(k)||0)+1); });
+    const rl = [...reasons.entries()].sort((a,b)=>b[1]-a[1]);
+    const wos = c.hitRows.slice(0,300);
+    return '<tr><td colspan="6" style="padding:0"><div class="sub-wrap">'+
+      '<div style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3);margin-bottom:6px">Repeat repair reasons behind these '+c.hits+' hits</div>'+
+      (rl.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">'+rl.map(([k,n])=>'<span class="flagtag" style="color:var(--t1)">'+esc(k)+' · '+n+'</span>').join('')+'</div>' : '<div style="font-size:11px;color:var(--t3);margin-bottom:12px">No repeat hits for this combination.</div>')+
+      (wos.length ? '<table><thead><tr><th>WO Number</th><th>Serial (MTSN)</th><th>Month</th><th>Vendor</th><th>PUDO</th><th>Repeat Reason</th></tr></thead><tbody>'+
+        wos.map(r=>'<tr><td>'+esc(r.WO_NUM||'—')+'</td><td>'+esc(r.MTSN||'—')+'</td><td>'+esc(r.MONTH||'—')+'</td><td>'+esc(r.VENDOR||'—')+'</td><td>'+esc(r.PUDO||'—')+'</td><td>'+esc((typeof rrrReason==='function'?rrrReason(r):r.NEXT_REASON)||'(Blank / Not Captured)')+'</td></tr>').join('')+
+        '</tbody></table>'+(c.hitRows.length>300?'<div style="font-size:10px;color:var(--t3);margin-top:6px">Showing first 300 of '+c.hitRows.length+' — use Export Excel for the full list.</div>':'') : '')+
+    '</div></td></tr>';
+  }
+
+  function render(){
+    const body = document.getElementById('ppdBody'); if(!body) return;
+    const base = src();
+    if(!base.length){ body.innerHTML = '<div style="padding:32px;text-align:center;color:var(--t3);font-size:12px">Upload a file to use the PPD Controller.</div>'; return; }
+    const { list, noPart, woCount } = combos();
+    const rows = sorted(list);
+    const th = (k,l,cls) => '<th data-sort="'+k+'" class="'+(cls||'')+'">'+l+(state.sortKey===k?(state.sortDir>0?' ▲':' ▼'):'')+'</th>';
+    body.innerHTML =
+      '<div class="ppd-bar">'+msBox('model','Model (Sub Series)',base)+msBox('symptom','Symptom',base)+
+        '<button class="ms-btn" type="button" data-role="reset" style="max-width:110px;flex:0 0 auto">✕ Reset</button></div>'+
+      '<div class="ppd-verdict">'+verdict(list)+'</div>'+
+      '<div style="font-size:11px;color:var(--t3);margin-bottom:8px">'+rows.length+' part combination(s) across '+woCount.toLocaleString()+' work orders in the current period'+(noPart?' · '+noPart.toLocaleString()+' WO(s) had no part recorded and are excluded':'')+'</div>'+
+      '<table><thead><tr>'+th('key','Part Combination')+th('parts','Parts','num')+th('wos','Work Orders','num')+th('mtsn','Distinct MTSN','num')+th('hits','RRR Flags','num')+th('rrr','RRR %','num')+'</tr></thead><tbody>'+
+      (rows.length ? rows.map(c=>{
+        const open = state.expanded.has(c.key);
+        return '<tr class="exp '+(c.mtsn<LOW?'low':'')+'" data-key="'+esc(c.key)+'">'+
+          '<td>'+(open?'▾ ':'▸ ')+esc(c.key)+(c.mtsn<LOW?'<span class="flagtag">low sample</span>':'')+'</td>'+
+          '<td class="num">'+c.parts.length+'</td><td class="num">'+c.wos.toLocaleString()+'</td>'+
+          '<td class="num">'+c.mtsn.toLocaleString()+'</td><td class="num">'+c.hits.toLocaleString()+'</td>'+
+          '<td class="num" style="font-weight:700;color:'+(c.rrr>=10?'var(--red)':c.rrr>=5?'var(--warn,#f5a623)':'var(--ok,#00c896)')+'">'+c.rrr.toFixed(2)+'%</td></tr>'+
+          (open ? drillHtml(c) : '');
+      }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--t3);padding:26px">No part dispatch found for this selection.</td></tr>')+
+      '</tbody></table>'+
+      '<div class="note"><b>How this is calculated:</b> A <b>combination</b> is the set of distinct parts dispatched on one work order (from <code>First WO Commodity Name</code>, falling back to the FRU number when the name is blank), sorted alphabetically so the same set always reads the same way. <b>Work Orders</b> = WOs that received exactly that set. <b>Distinct MTSN</b> = unique machine serials in those WOs. <b>RRR Flags</b> = those WOs carrying a repeat flag (FLAG = 1). <b>RRR %</b> = RRR Flags ÷ Distinct MTSN × 100 — the same formula used everywhere else on the dashboard. Only the period selected in the header is counted. Rows with fewer than '+LOW+' distinct serials are dimmed and marked <i>low sample</i> — do not change dispatch policy on those.</div>';
+  }
+
+  document.addEventListener('click', function(e){
+    const tab = document.getElementById('tab-ppd');
+    if(!tab || !tab.classList.contains('on')) return;
+    if(!e.target.closest('#tab-ppd')){ if(state.open){ state.open=null; render(); } return; }
+    const tgl = e.target.closest('.ms-btn[data-role="toggle"]');
+    if(tgl){ const d=tgl.dataset.dim; state.open = state.open===d?null:d; render(); return; }
+    if(e.target.closest('[data-role="reset"]')){ state.models.clear(); state.symptoms.clear(); state.open=null; state.expanded.clear(); render(); return; }
+    const clr = e.target.closest('.ms-actions button[data-role="clear"]');
+    if(clr){ (clr.dataset.dim==='model'?state.models:state.symptoms).clear(); render(); return; }
+    const th = e.target.closest('#tab-ppd th[data-sort]');
+    if(th){ const k=th.dataset.sort; if(state.sortKey===k) state.sortDir=-state.sortDir; else { state.sortKey=k; state.sortDir = (k==='key')?1:-1; } render(); return; }
+    const row = e.target.closest('#tab-ppd tr.exp');
+    if(row){ const k=row.dataset.key; if(state.expanded.has(k)) state.expanded.delete(k); else state.expanded.add(k); render(); return; }
+    if(state.open && !e.target.closest('.ppd-ms')){ state.open=null; render(); }
+  });
+  document.addEventListener('change', function(e){
+    const cb = e.target.closest('#tab-ppd .ms-opt input[type=checkbox]');
+    if(!cb) return;
+    const set = cb.dataset.dim==='model' ? state.models : state.symptoms;
+    if(cb.checked) set.add(cb.dataset.v); else set.delete(cb.dataset.v);
+    state.expanded.clear();
+    render();
+  });
+  document.addEventListener('input', function(e){
+    const s = e.target.closest('#tab-ppd input[data-role="search"]');
+    if(!s) return;
+    const q = s.value.toLowerCase();
+    const list = document.querySelector('#tab-ppd .ms-list[data-list="'+s.dataset.dim+'"]');
+    if(!list) return;
+    list.querySelectorAll('.ms-opt').forEach(o=>{ o.style.display = o.textContent.toLowerCase().includes(q) ? '' : 'none'; });
+  });
+
+  window.PPD = {
+    onOpen(){ render(); },
+    onDataChanged(){ state.models.clear(); state.symptoms.clear(); state.expanded.clear(); state.open=null; render(); },
+    exportXLSX(){
+      try{
+        const { list } = combos();
+        if(!list.length){ alert('No data to export.'); return; }
+        const rows = sorted(list);
+        const wb = XLSX.utils.book_new();
+        const hdr = ['Part Combination','Parts','Work Orders','Distinct MTSN','RRR Flags','RRR %','Low Sample'];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([hdr, ...rows.map(c=>[c.key,c.parts.length,c.wos,c.mtsn,c.hits,+c.rrr.toFixed(2),c.mtsn<LOW?'YES':''])]), 'Combinations');
+        const whdr = ['Part Combination','WO Number','Serial (MTSN)','Month','Week','Vendor','PUDO','Model','Symptom','Repeat Reason'];
+        const wbody = [];
+        rows.forEach(c=>c.hitRows.forEach(r=>wbody.push([c.key, r.WO_NUM||'', r.MTSN||'', r.MONTH||'', r.WEEK||'', r.VENDOR||'', r.PUDO||'', r.SUB||'', r.SYMPTOM||'', (typeof rrrReason==='function'?rrrReason(r):r.NEXT_REASON)||'(Blank / Not Captured)'])));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([whdr, ...wbody]), 'RRR Hit WOs');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+          ['Generated', new Date().toLocaleString()],
+          ['Models', state.models.size ? [...state.models].join(', ') : 'ALL'],
+          ['Symptoms', state.symptoms.size ? [...state.symptoms].join(', ') : 'ALL'],
+          ['RRR% basis', 'RRR Flags / Distinct MTSN * 100']
+        ]), 'Filters');
+        XLSX.writeFile(wb, 'PPD_Controller_'+new Date().toISOString().slice(0,10)+'.xlsx');
+      }catch(e){ console.error(e); alert('Excel export failed.'); }
+    }
+  };
+})();
+</script>
+
+
 
 <!-- ============================================================
      RRR CHAT ASSISTANT (floating panel, local-data grounded)
@@ -10002,12 +10274,6 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
   .rce-chip.ok{color:#6ff0b6;border-color:rgba(111,240,182,.45);background:rgba(111,240,182,.08)}
   .rce-chip.warn{color:#ffd479;border-color:rgba(255,212,121,.45);background:rgba(255,212,121,.08)}
   .rce-chip.bad{color:#ff9b9b;border-color:rgba(255,120,120,.45);background:rgba(255,120,120,.08)}
-  #rce-cfg-panel{padding:12px 14px;border-bottom:1px solid var(--border,#243049);background:rgba(124,224,255,.04)}
-  #rce-cfg-panel label{display:block;font-size:11px;color:var(--t2,#bcc6de);margin-bottom:8px}
-  #rce-cfg-panel input{width:100%;margin-top:3px;background:var(--bg,#0e1421);color:var(--t1,#e6ecff);border:1px solid var(--border,#243049);border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit}
-  #rce-cfg-panel button{background:transparent;color:var(--t2,#bcc6de);border:1px solid var(--border,#243049);border-radius:6px;font-size:11px;padding:5px 12px;cursor:pointer}
-  #rce-cfg-panel button:hover{border-color:#7ce0ff;color:#7ce0ff}
-  #rce-cfg-panel .hint{font-size:10px;color:var(--t2,#8d97b0);margin-top:8px;line-height:1.5}
 </style>
 
 <button id="rce-chat-fab" title="Ask the RRR assistant">💬 Ask RRR</button>
@@ -10016,22 +10282,11 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     <div>
       <h3>🤖 RRR Assistant</h3>
       <div class="sub" id="rce-chat-scope">Ask about any agent, TL, model, vendor, symptom…</div>
-      <div class="sub" style="margin-top:4px"><span id="rce-ollama-chip" class="rce-chip warn">Checking Ollama…</span></div>
     </div>
     <div style="display:flex;gap:6px">
-      <button type="button" id="rce-chat-cfg" title="Ollama settings">⚙</button>
       <button type="button" id="rce-chat-clear">Clear</button>
       <button type="button" id="rce-chat-close">✕</button>
     </div>
-  </div>
-  <div id="rce-cfg-panel" style="display:none">
-    <label>Ollama URL<input type="text" id="rce-cfg-url" placeholder="http://localhost:11434"></label>
-    <label>Model<input type="text" id="rce-cfg-model" placeholder="gemma4:12b"></label>
-    <div style="display:flex;gap:6px;margin-top:8px">
-      <button type="button" id="rce-cfg-save">Save &amp; test</button>
-      <button type="button" id="rce-cfg-cancel">Cancel</button>
-    </div>
-    <div class="hint">Local only. Start Ollama with <code>OLLAMA_ORIGINS=*</code> so the browser can reach it.</div>
   </div>
   <div id="rce-chat-msgs"></div>
   <div class="rce-suggest" id="rce-chat-suggest"></div>
@@ -10128,48 +10383,6 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     );
   }
 
-  // ---------- Ollama (local) config ----------
-  const OLLAMA_DEFAULTS = { url:'http://localhost:11434', model:'gemma4:12b' };
-  function getCfg(){
-    let saved = {};
-    try { saved = JSON.parse(localStorage.getItem('rrr_ollama_cfg')||'{}') || {}; } catch(_) { saved = {}; }
-    return {
-      url: String(saved.url || OLLAMA_DEFAULTS.url).replace(/\/+$/,''),
-      model: String(saved.model || OLLAMA_DEFAULTS.model)
-    };
-  }
-  function setCfg(url, model){
-    localStorage.setItem('rrr_ollama_cfg', JSON.stringify({
-      url: String(url||'').trim().replace(/\/+$/,'') || OLLAMA_DEFAULTS.url,
-      model: String(model||'').trim() || OLLAMA_DEFAULTS.model
-    }));
-  }
-  function setChip(cls, text, title){
-    const el = $('rce-ollama-chip'); if(!el) return;
-    el.className = 'rce-chip '+cls;
-    el.textContent = text;
-    el.title = title || '';
-  }
-  async function checkOllama(){
-    const cfg = getCfg();
-    setChip('warn','Checking Ollama…');
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(()=>ctrl.abort(), 4000);
-      const res = await fetch(cfg.url+'/api/tags', { signal: ctrl.signal });
-      clearTimeout(t);
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      const data = await res.json();
-      const models = (data.models||[]).map(m=>m.name);
-      const has = models.some(m => m === cfg.model || m.split(':')[0] === cfg.model.split(':')[0]);
-      if(has) setChip('ok','● Ollama · '+cfg.model, cfg.url);
-      else setChip('warn','Ollama up · "'+cfg.model+'" not pulled', 'Available: '+(models.join(', ')||'none'));
-      return true;
-    } catch(e){
-      setChip('bad','Ollama not reachable', cfg.url+' — start Ollama with OLLAMA_ORIGINS=*');
-      return false;
-    }
-  }
 
   // ---------- analytics helpers ----------
   function kpiOf(rows){
@@ -10465,25 +10678,19 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     state.busy = true;
     $('rce-chat-send').disabled = true;
     const typing = addMsg('bot','<span class="rce-typing"></span><span class="rce-typing"></span><span class="rce-typing"></span>');
-    const cfg = getCfg();
     try {
       const fitted = fitContext(buildContext(question));
       const payload = JSON.stringify({
-        model: cfg.model,
-        stream: false,
-        options: { temperature: 0.2, num_ctx: 16384 },
-        messages: [
-          { role:'system', content: SYSTEM_PROMPT },
-          ...history.slice(0, -1).slice(-6).map(m=>({ role:m.role, content:String(m.content||'').slice(0,6000) })),
-          { role:'user', content: 'BRIEF (JSON):\n'+JSON.stringify(fitted.ctx)+'\n\nQUESTION:\n'+question }
-        ]
+        question: question,
+        history: history.slice(0, -1).slice(-6).map(m=>({ role:m.role, content:String(m.content||'').slice(0,6000) })),
+        context: fitted.ctx
       });
 
       let res = null, raw = '', netErr = null;
       for(let attempt=0; attempt<2; attempt++){
         netErr = null;
         try {
-          res = await fetch(cfg.url+'/api/chat', {
+          res = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: payload
@@ -10498,19 +10705,16 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
       typing.remove();
 
       if(netErr || !res){
-        console.error('[RRR Assistant] Ollama unreachable', netErr, 'payload bytes:', payload.length);
-        setChip('bad','Ollama not reachable', cfg.url);
-        addMsg('bot', md('**Cannot reach Ollama at `'+cfg.url+'`.**\n\nChecklist:\n- Ollama is running on this machine (`ollama serve`)\n- It was started with `OLLAMA_ORIGINS=*` so the browser is allowed to call it\n- The model `'+cfg.model+'` is pulled (`ollama pull '+cfg.model+'`)\n\nThis assistant is local-only, so it works only on a machine running Ollama. Use ⚙ to change the URL or model.'), 'err');
+        console.error('[RRR Assistant] network error', netErr, 'payload bytes:', payload.length);
+        addMsg('bot', md('**Could not reach the assistant.** Check your connection and try again.'), 'err');
       } else {
         let data = {};
         try { data = raw ? JSON.parse(raw) : {}; } catch(_) { data = {}; }
         if(!res.ok){
-          console.error('[RRR Assistant] Ollama HTTP', res.status, raw.slice(0,2000));
-          const detail = data?.error || raw.slice(0,300) || 'No response body.';
-          addMsg('bot', md('**Ollama rejected the request.**\n\n`HTTP '+res.status+'` — '+detail+(/model/i.test(String(detail))?'\n\nTry `ollama pull '+cfg.model+'`, or set a model you already have via ⚙.':'')), 'err');
+          console.error('[RRR Assistant] HTTP', res.status, raw.slice(0,2000));
+          addMsg('bot', md('**'+(data && data.error ? data.error : 'The assistant could not answer right now.')+'**'), 'err');
         } else {
-          const text = (data && data.message && data.message.content) ? data.message.content : '(no answer)';
-          setChip('ok','● Ollama · '+cfg.model, cfg.url);
+          const text = (data && typeof data.text === 'string' && data.text) ? data.text : '(no answer)';
           addMsg('bot', md(text));
           history.push({ role: 'assistant', content: text });
         }
@@ -10554,38 +10758,16 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     state.open = true;
     $('rce-chat-drawer').classList.add('on');
     updateScope();
-    checkOllama();
     setTimeout(()=>$('rce-chat-input').focus(),150);
     if(!$('rce-chat-msgs').children.length){
-      const cfg = getCfg();
-      addMsg('bot', md('Hi! I run **fully locally** on your Ollama (`'+cfg.model+'`) — your RRR file never leaves this machine.\n\nAsk about any **agent, TL, technician, model, symptom, repair reason, vendor, account, region, PUDO or FRU**. Every answer gives snapshot → what improved → what worsened → root cause → leverage → actions. I will confirm the month or week first if you have not picked one.'));
+      addMsg('bot', md('Hi! Ask about any **agent, TL, technician, model, symptom, repair reason, vendor, account, region, PUDO or FRU**. Every answer gives snapshot → what improved → what worsened → root cause → leverage → actions. I will confirm the month or week first if you have not picked one.'));
     }
   }
   function closeDrawer(){ state.open=false; $('rce-chat-drawer').classList.remove('on'); }
 
-  function toggleCfg(show){
-    const p = $('rce-cfg-panel');
-    const open = show !== undefined ? show : p.style.display === 'none';
-    if(open){
-      const cfg = getCfg();
-      $('rce-cfg-url').value = cfg.url;
-      $('rce-cfg-model').value = cfg.model;
-    }
-    p.style.display = open ? 'block' : 'none';
-  }
-
   document.addEventListener('DOMContentLoaded', function(){
     $('rce-chat-fab').addEventListener('click', openDrawer);
     $('rce-chat-close').addEventListener('click', closeDrawer);
-    $('rce-chat-cfg').addEventListener('click', ()=>toggleCfg());
-    $('rce-cfg-cancel').addEventListener('click', ()=>toggleCfg(false));
-    $('rce-cfg-save').addEventListener('click', function(){
-      setCfg($('rce-cfg-url').value, $('rce-cfg-model').value);
-      toggleCfg(false);
-      checkOllama();
-    });
-    $('rce-ollama-chip').addEventListener('click', checkOllama);
-    $('rce-ollama-chip').style.cursor = 'pointer';
     $('rce-chat-clear').addEventListener('click', function(){
       history.length = 0;
       $('rce-chat-msgs').innerHTML = '';
@@ -10604,7 +10786,6 @@ body.light-mode #tab-insights .mom-cell{background:var(--card2)}
     renderSuggestions();
     // refresh scope line whenever chips change
     setInterval(()=>{ if(state.open) updateScope(); }, 1200);
-    setInterval(()=>{ if(state.open && !state.busy) checkOllama(); }, 30000);
   });
 
 
